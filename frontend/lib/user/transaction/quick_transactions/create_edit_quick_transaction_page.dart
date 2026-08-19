@@ -15,6 +15,8 @@ class CreateEditQuickTransactionPage extends StatefulWidget {
   final Map<String, dynamic>? transaction;
   final bool useCoins;
   final String? prefillCounterpartyEmail;
+  final String? prefillCounterpartyName;
+  final bool prefillIsExternalUser;
   final String? initialAmount;
   final String? initialCurrency;
   final String? initialDescription;
@@ -28,6 +30,8 @@ class CreateEditQuickTransactionPage extends StatefulWidget {
     this.transaction,
     this.useCoins = false,
     this.prefillCounterpartyEmail,
+    this.prefillCounterpartyName,
+    this.prefillIsExternalUser = false,
     this.initialAmount,
     this.initialCurrency,
     this.initialDescription,
@@ -56,6 +60,8 @@ class _CreateEditQuickTransactionPageState
   DateTime? _scheduledAt;
   bool _isLoading = false;
   bool _loadingFriends = false;
+  bool _isExternalUser = false;
+  final TextEditingController _counterpartyNameController = TextEditingController();
   String? _userEmail;
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _suggestions = [];
@@ -109,28 +115,40 @@ class _CreateEditQuickTransactionPageState
       _amountController.text = widget.transaction!['amount']?.toString() ?? '';
       _currency = widget.transaction!['currency'] ?? 'INR';
       _descriptionController.text = widget.transaction!['description'] ?? '';
-      final currentUserEmail = _userEmail;
-      if (currentUserEmail != null) {
-        final users = widget.transaction!['users'] as List? ?? [];
-        String counterpartyEmail = '';
-        for (final user in users) {
-          String email = '';
-          if (user is Map) {
-            email = (user['email'] ?? '').toString();
-          } else if (user is String) {
-            email = user;
+      if (widget.transaction!['isExternalUser'] == true) {
+        _isExternalUser = true;
+        _counterpartyNameController.text = (widget.transaction!['counterpartyName'] ?? '').toString();
+      } else {
+        final currentUserEmail = _userEmail;
+        if (currentUserEmail != null) {
+          final users = widget.transaction!['users'] as List? ?? [];
+          String counterpartyEmail = '';
+          for (final user in users) {
+            String email = '';
+            if (user is Map) {
+              email = (user['email'] ?? '').toString();
+            } else if (user is String) {
+              email = user;
+            }
+            if (email.isNotEmpty &&
+                email.toLowerCase() != currentUserEmail.toLowerCase()) {
+              counterpartyEmail = email;
+              break;
+            }
           }
-          if (email.isNotEmpty &&
-              email.toLowerCase() != currentUserEmail.toLowerCase()) {
-            counterpartyEmail = email;
-            break;
-          }
+          _counterpartyEmailController.text = counterpartyEmail;
         }
-        _counterpartyEmailController.text = counterpartyEmail;
       }
       _role = widget.initialRole ?? widget.transaction!['role'] ?? 'lender';
       final rawCat = widget.transaction!['category'] ?? 'other';
       _category = rawCat == 'healthcare' ? 'medical' : rawCat;
+    } else if (widget.prefillIsExternalUser && (widget.prefillCounterpartyName ?? '').isNotEmpty) {
+      _isExternalUser = true;
+      _counterpartyNameController.text = widget.prefillCounterpartyName!.trim();
+      _amountController.text = widget.initialAmount ?? '';
+      _currency = widget.initialCurrency ?? 'INR';
+      _descriptionController.text = widget.initialDescription ?? '';
+      _role = widget.initialRole ?? 'lender';
     } else if ((widget.prefillCounterpartyEmail ?? '').isNotEmpty) {
       _counterpartyEmailController.text =
           widget.prefillCounterpartyEmail!.trim();
@@ -153,6 +171,7 @@ class _CreateEditQuickTransactionPageState
     _amountController.dispose();
     _descriptionController.dispose();
     _counterpartyEmailController.dispose();
+    _counterpartyNameController.dispose();
     super.dispose();
   }
 
@@ -567,7 +586,7 @@ class _CreateEditQuickTransactionPageState
     final t = AppLocalizations.of(context).t;
     final isEditing = widget.transaction != null;
     if (!_formKey.currentState!.validate()) return;
-    if (_isBlockedEmail(_counterpartyEmailController.text)) {
+    if (!_isExternalUser && _isBlockedEmail(_counterpartyEmailController.text)) {
       showSnack(context, t('this_user_is_blocked'), isError: true);
       return;
     }
@@ -581,7 +600,12 @@ class _CreateEditQuickTransactionPageState
       'amount': _amountController.text,
       'currency': _currency,
       'description': _descriptionController.text,
-      'counterpartyEmail': _counterpartyEmailController.text,
+      if (_isExternalUser) ...{
+        'counterpartyName': _counterpartyNameController.text.trim(),
+        'isExternalUser': true,
+      } else ...{
+        'counterpartyEmail': _counterpartyEmailController.text,
+      },
       'role': _storedRoleForSubmission(_role),
       'category': _category,
       'date': DateTime.now().toIso8601String(),
@@ -885,66 +909,115 @@ class _CreateEditQuickTransactionPageState
                       ),
                       const SizedBox(height: 16),
 
-                      // Counterparty email
-                      _buildStylishField(
-                        child: TextFormField(
-                          controller: _counterpartyEmailController,
-                          enabled: !isEditing,
-                          decoration: InputDecoration(
-                            labelText: t('counterparty_email'),
-                            prefixIcon: Icon(Icons.person_outline,
-                                color: isEditing
-                                    ? Colors.grey
-                                    : AppColors.cyan),
-                            suffixIcon: _loadingFriends
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      width: 20, height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan),
-                                    ),
-                                  )
-                                : IconButton(
-                                    icon: Icon(Icons.people,
-                                        color: isEditing ? Colors.grey : AppColors.cyan),
-                                    onPressed: isEditing ? null : _pickFriend,
-                                  ),
-                            border: InputBorder.none,
+                      // On LenDen / Not on LenDen toggle (only for create)
+                      if (!isEditing)
+                        _buildStylishField(
+                          child: SwitchListTile(
+                            value: !_isExternalUser,
+                            onChanged: (val) => setState(() {
+                              _isExternalUser = !val;
+                              _suggestions = [];
+                            }),
+                            title: Text(
+                              _isExternalUser
+                                  ? 'Not on LenDen (name only)'
+                                  : 'On LenDen (via email)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppThemeColors.primaryText(context),
+                              ),
+                            ),
+                            secondary: Icon(
+                              _isExternalUser ? Icons.person_off_rounded : Icons.verified_user_rounded,
+                              color: _isExternalUser ? Colors.orange : AppColors.cyan,
+                            ),
+                            activeColor: AppColors.cyan,
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return t('please_enter_counterparty_email');
-                            }
-                            if (value == userEmail) {
-                              return t(
-                                  'counterparty_cannot_be_same_as_your_email');
-                            }
-                            return null;
-                          },
                         ),
-                      ),
-                      if (_suggestions.isNotEmpty && !isEditing) ...[
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _suggestions.map((f) {
-                            final email =
-                                (f['email'] ?? '').toString();
-                            final name = (f['name'] ?? f['username'] ?? '')
-                                .toString();
-                            return ActionChip(
-                              label: Text(name.isNotEmpty
-                                  ? '$name ($email)'
-                                  : email),
-                              onPressed: () {
-                                setState(() {
-                                  _counterpartyEmailController.text = email;
-                                  _suggestions = [];
-                                });
-                              },
-                            );
-                          }).toList(),
+                      if (!isEditing) const SizedBox(height: 16),
+
+                      // Counterparty email OR name
+                      if (!_isExternalUser) ...[
+                        _buildStylishField(
+                          child: TextFormField(
+                            controller: _counterpartyEmailController,
+                            enabled: !isEditing,
+                            decoration: InputDecoration(
+                              labelText: t('counterparty_email'),
+                              prefixIcon: Icon(Icons.person_outline,
+                                  color: isEditing
+                                      ? Colors.grey
+                                      : AppColors.cyan),
+                              suffixIcon: _loadingFriends
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: SizedBox(
+                                        width: 20, height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: Icon(Icons.people,
+                                          color: isEditing ? Colors.grey : AppColors.cyan),
+                                      onPressed: isEditing ? null : _pickFriend,
+                                    ),
+                              border: InputBorder.none,
+                            ),
+                            validator: (value) {
+                              if (_isExternalUser) return null;
+                              if (value == null || value.isEmpty) {
+                                return t('please_enter_counterparty_email');
+                              }
+                              if (value == userEmail) {
+                                return t('counterparty_cannot_be_same_as_your_email');
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        if (_suggestions.isNotEmpty && !isEditing) ...[
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _suggestions.map((f) {
+                              final email = (f['email'] ?? '').toString();
+                              final name = (f['name'] ?? f['username'] ?? '').toString();
+                              return ActionChip(
+                                label: Text(name.isNotEmpty ? '$name ($email)' : email),
+                                onPressed: () {
+                                  setState(() {
+                                    _counterpartyEmailController.text = email;
+                                    _suggestions = [];
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ] else ...[
+                        _buildStylishField(
+                          child: TextFormField(
+                            controller: _counterpartyNameController,
+                            enabled: !isEditing,
+                            decoration: InputDecoration(
+                              labelText: 'Counterparty Name',
+                              prefixIcon: Icon(
+                                Icons.person_off_rounded,
+                                color: isEditing ? Colors.grey : Colors.orange,
+                              ),
+                              border: InputBorder.none,
+                              helperText: 'This person is not on LenDen',
+                              helperStyle: TextStyle(color: Colors.orange.shade700, fontSize: 11),
+                            ),
+                            validator: (value) {
+                              if (!_isExternalUser) return null;
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter the counterparty name';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
                       ],
                       const SizedBox(height: 16),

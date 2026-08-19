@@ -6,7 +6,7 @@ const referralShareSchema = new mongoose.Schema(
     channel: {
       type: String,
       required: true,
-      enum: ['whatsapp', 'telegram', 'email', 'sms', 'copy', 'other'],
+      enum: ['whatsapp', 'telegram', 'email', 'sms', 'copy', 'other', 'quick_transaction', 'group_invite'],
     },
     referralCode: { type: String, required: true },
     message: { type: String, default: '' },

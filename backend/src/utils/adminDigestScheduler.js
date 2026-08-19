@@ -7,7 +7,7 @@ const GroupTransaction = require('../models/groupTransaction');
 const SupportQuery = require('../models/supportQuery');
 const Dispute = require('../models/dispute');
 const FraudAlert = require('../models/fraudAlert');
-const { sendAdminDigestEmail } = require('./adminEmailNotifications');
+const { sendAdminDigestEmail } = require('./email/adminEmailNotifications');
 
 const PERIOD_SETTINGS_KEY = {
   daily: 'dailyTransactionSummary',

@@ -73,6 +73,7 @@ class _QuickTransactionDetailPageState
   }
 
   Future<void> _fetchCounterpartyInfo() async {
+    if (_tx['isExternalUser'] == true) return;
     final email = _counterpartyEmail;
     if (email.isEmpty) return;
     try {
@@ -141,6 +142,10 @@ class _QuickTransactionDetailPageState
   }
 
   Map<String, dynamic> get _counterparty {
+    if (_tx['isExternalUser'] == true) {
+      final name = (_tx['counterpartyName'] ?? '').toString();
+      return {'name': name.isNotEmpty ? name : 'External User', 'email': ''};
+    }
     final rawList = (_tx['users'] as List? ?? []);
     for (final user in rawList) {
       if (user is Map) {
@@ -774,7 +779,7 @@ class _QuickTransactionDetailPageState
         _infoRow(t('you_label'), _currentUserEmail ?? '', Icons.person),
         _infoRow(
           _counterpartyName.isNotEmpty ? _counterpartyName : t('counterparty_label'),
-          _counterpartyEmail,
+          _tx['isExternalUser'] == true ? 'Not on LenDen' : _counterpartyEmail,
           Icons.person_outline,
         ),
         if (_counterpartyUserId != null)

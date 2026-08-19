@@ -27,39 +27,39 @@ const resetSettlementState = (quickTransaction) => {
 
 exports.createQuickTransaction = async (req, res) => {
   try {
-    const { amount, currency, date, time, description, counterpartyEmail, role, category, isScheduled, scheduledAt } = req.body;
+    const { amount, currency, date, time, description, counterpartyEmail, counterpartyName, isExternalUser, role, category, isScheduled, scheduledAt } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
-      return res.status(400).json({ error: 'Valid counterpartyEmail is required' });
-    }
 
     const user = await User.findById(req.user._id).select('email blockedUsers');
     const userEmail = user.email;
 
-    if (userEmail === counterpartyEmail) {
-      return res.status(400).json({ error: 'User and counterparty email cannot be the same.' });
-    }
-
-    const counterparty = await User.findOne({ email: counterpartyEmail }).select(
-      'email blockedUsers'
-    );
-    if (!counterparty) {
-      return res.status(404).json({ error: 'Counterparty email not found.' });
-    }
-    if (isBlockedBy(user, counterparty)) {
-      return res.status(403).json({
-        error: 'You have blocked this user. Unblock to proceed.',
-      });
-    }
-    if (isBlockedBy(counterparty, user)) {
-      return res.status(403).json({
-        error: 'You cannot add this user because they have blocked you.',
-      });
+    let counterparty = null;
+    if (isExternalUser) {
+      if (!counterpartyName || !counterpartyName.toString().trim()) {
+        return res.status(400).json({ error: 'counterpartyName is required for external users.' });
+      }
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
+        return res.status(400).json({ error: 'Valid counterpartyEmail is required' });
+      }
+      if (userEmail === counterpartyEmail) {
+        return res.status(400).json({ error: 'User and counterparty email cannot be the same.' });
+      }
+      counterparty = await User.findOne({ email: counterpartyEmail }).select('email blockedUsers');
+      if (!counterparty) {
+        return res.status(404).json({ error: 'Counterparty email not found.' });
+      }
+      if (isBlockedBy(user, counterparty)) {
+        return res.status(403).json({ error: 'You have blocked this user. Unblock to proceed.' });
+      }
+      if (isBlockedBy(counterparty, user)) {
+        return res.status(403).json({ error: 'You cannot add this user because they have blocked you.' });
+      }
     }
 
     if (!(await isSubscribed(user._id))) {
@@ -82,18 +82,20 @@ exports.createQuickTransaction = async (req, res) => {
       date,
       time,
       description,
-      users: [userEmail, counterpartyEmail],
+      users: isExternalUser ? [userEmail] : [userEmail, counterpartyEmail],
       creatorEmail: userEmail,
       role,
       category: category || 'other',
       isScheduled: !!(isScheduled && scheduledDate),
       scheduledAt: scheduledDate,
       scheduledStatus: (isScheduled && scheduledDate) ? 'pending' : null,
+      counterpartyName: isExternalUser ? counterpartyName.toString().trim() : null,
+      isExternalUser: !!isExternalUser,
     });
 
     await quickTransaction.save();
     const referralReward = await processReferralRewardOnFirstCreation(req.user._id);
-    await logQuickTransactionActivity(req.user._id, 'quick_transaction_created', quickTransaction, { counterpartyEmail });
+    await logQuickTransactionActivity(req.user._id, 'quick_transaction_created', quickTransaction, { counterpartyEmail: isExternalUser ? null : counterpartyEmail, counterpartyName: isExternalUser ? counterpartyName : null });
 
     // Award gift card every 10 quick transactions (guaranteed, randomized within window)
     const quickTxnCount = await QuickTransaction.countDocuments({ creatorEmail: userEmail });
@@ -112,17 +114,19 @@ exports.createQuickTransaction = async (req, res) => {
         awardedCard: awardedCard
     });
 
-    // Notify counterparty fire-and-forget
-    User.findById(counterparty._id).select('notificationSettings').then(cp => {
-      if (cp?.notificationSettings?.transactionNotifications !== false) {
-        return Notification.create({
-          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
-          recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
-          message: `${userEmail} recorded a quick transaction with you for ${amount} ${currency}.`,
-        });
-      }
-    }).catch(() => {});
-    sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+    // Notify counterparty fire-and-forget (only for LenDen users)
+    if (!isExternalUser && counterparty) {
+      User.findById(counterparty._id).select('notificationSettings').then(cp => {
+        if (cp?.notificationSettings?.transactionNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+            message: `${userEmail} recorded a quick transaction with you for ${amount} ${currency}.`,
+          });
+        }
+      }).catch(() => {});
+      sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -133,15 +137,11 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
   const QUICK_TRANSACTION_COST = pricing.quickTransactionCost;
   const QUICK_TRANSACTION_DAILY_LIMIT = 3;
   try {
-    const { amount, currency, date, time, description, counterpartyEmail, role, category, isScheduled, scheduledAt } = req.body;
+    const { amount, currency, date, time, description, counterpartyEmail, counterpartyName, isExternalUser, role, category, isScheduled, scheduledAt } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
       return res.status(400).json({ error: 'amount must be a positive number' });
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
-      return res.status(400).json({ error: 'Valid counterpartyEmail is required' });
     }
 
     const user = await User.findById(req.user._id).select(
@@ -149,25 +149,29 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
     );
     const userEmail = user.email;
 
-    if (userEmail === counterpartyEmail) {
-      return res.status(400).json({ error: 'User and counterparty email cannot be the same.' });
-    }
-
-    const counterparty = await User.findOne({ email: counterpartyEmail }).select(
-      'email blockedUsers'
-    );
-    if (!counterparty) {
-      return res.status(404).json({ error: 'Counterparty email not found.' });
-    }
-    if (isBlockedBy(user, counterparty)) {
-      return res.status(403).json({
-        error: 'You have blocked this user. Unblock to proceed.',
-      });
-    }
-    if (isBlockedBy(counterparty, user)) {
-      return res.status(403).json({
-        error: 'You cannot add this user because they have blocked you.',
-      });
+    let counterparty = null;
+    if (isExternalUser) {
+      if (!counterpartyName || !counterpartyName.toString().trim()) {
+        return res.status(400).json({ error: 'counterpartyName is required for external users.' });
+      }
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
+        return res.status(400).json({ error: 'Valid counterpartyEmail is required' });
+      }
+      if (userEmail === counterpartyEmail) {
+        return res.status(400).json({ error: 'User and counterparty email cannot be the same.' });
+      }
+      counterparty = await User.findOne({ email: counterpartyEmail }).select('email blockedUsers');
+      if (!counterparty) {
+        return res.status(404).json({ error: 'Counterparty email not found.' });
+      }
+      if (isBlockedBy(user, counterparty)) {
+        return res.status(403).json({ error: 'You have blocked this user. Unblock to proceed.' });
+      }
+      if (isBlockedBy(counterparty, user)) {
+        return res.status(403).json({ error: 'You cannot add this user because they have blocked you.' });
+      }
     }
 
     const subscribed = await isSubscribed(user._id);
@@ -207,12 +211,12 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
       coins: QUICK_TRANSACTION_COST,
       source: 'quick_transaction_with_coins',
       title: 'Quick Transaction Created With Coins',
-      description: `Spent ${QUICK_TRANSACTION_COST} LenDen coins to create a quick transaction with ${counterpartyEmail}.`,
-      metadata: {
-        counterpartyEmail,
-        amount,
-        currency,
-      },
+      description: isExternalUser
+        ? `Spent ${QUICK_TRANSACTION_COST} LenDen coins to create a quick transaction with ${counterpartyName}.`
+        : `Spent ${QUICK_TRANSACTION_COST} LenDen coins to create a quick transaction with ${counterpartyEmail}.`,
+      metadata: isExternalUser
+        ? { counterpartyName, amount, currency }
+        : { counterpartyEmail, amount, currency },
     });
 
     const scheduledDate2 = isScheduled && scheduledAt ? new Date(scheduledAt) : null;
@@ -222,18 +226,20 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
       date,
       time,
       description,
-      users: [userEmail, counterpartyEmail],
+      users: isExternalUser ? [userEmail] : [userEmail, counterpartyEmail],
       creatorEmail: userEmail,
       role,
       category: category || 'other',
       isScheduled: !!(isScheduled && scheduledDate2),
       scheduledAt: scheduledDate2,
       scheduledStatus: (isScheduled && scheduledDate2) ? 'pending' : null,
+      counterpartyName: isExternalUser ? counterpartyName.toString().trim() : null,
+      isExternalUser: !!isExternalUser,
     });
 
     await quickTransaction.save();
     const referralReward = await processReferralRewardOnFirstCreation(req.user._id);
-    await logQuickTransactionActivity(req.user._id, 'quick_transaction_created_with_coins', quickTransaction, { counterpartyEmail });
+    await logQuickTransactionActivity(req.user._id, 'quick_transaction_created_with_coins', quickTransaction, { counterpartyEmail: isExternalUser ? null : counterpartyEmail, counterpartyName: isExternalUser ? counterpartyName : null });
 
     // Award gift card every 10 quick transactions (guaranteed, randomized within window)
     const quickTxnCount = await QuickTransaction.countDocuments({ creatorEmail: userEmail });
@@ -253,17 +259,19 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
         awardedCard: awardedCard
     });
 
-    // Notify counterparty fire-and-forget
-    User.findById(counterparty._id).select('notificationSettings').then(cp => {
-      if (cp?.notificationSettings?.transactionNotifications !== false) {
-        return Notification.create({
-          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
-          recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
-          message: `${userEmail} recorded a quick transaction with you for ${amount} ${currency}.`,
-        });
-      }
-    }).catch(() => {});
-    sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+    // Notify counterparty fire-and-forget (only for LenDen users)
+    if (!isExternalUser && counterparty) {
+      User.findById(counterparty._id).select('notificationSettings').then(cp => {
+        if (cp?.notificationSettings?.transactionNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+            message: `${userEmail} recorded a quick transaction with you for ${amount} ${currency}.`,
+          });
+        }
+      }).catch(() => {});
+      sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -280,7 +288,9 @@ exports.getQuickTransactions = async (req, res) => {
       dateFilter = 'all',
       favouritesOnly,
       counterparty,
+      counterpartyName,
       category,
+      userType,
     } = req.query;
 
     // Base query
@@ -305,9 +315,18 @@ exports.getQuickTransactions = async (req, res) => {
       query.favourite = userEmail;
     }
 
+    // User type filter (on LenDen vs external)
+    if (userType === 'external') {
+      query.isExternalUser = true;
+    } else if (userType === 'lenden') {
+      query.isExternalUser = { $ne: true };
+    }
+
     // Counterparty filter
     if (counterparty && counterparty.trim()) {
       query.users = { $all: [userEmail, counterparty.trim()] };
+    } else if (counterpartyName && counterpartyName.trim()) {
+      query.counterpartyName = new RegExp('^' + counterpartyName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
     }
 
     // Text search pushed to MongoDB

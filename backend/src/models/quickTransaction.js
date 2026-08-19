@@ -81,6 +81,8 @@ const quickTransactionSchema = new mongoose.Schema({
   },
   settledViaPayment: { type: Boolean, default: false },
   paymentMethod: { type: String, enum: ['wallet', null], default: null },
+  counterpartyName: { type: String, default: null },
+  isExternalUser: { type: Boolean, default: false },
   editHistory: [{
     editedAt: { type: Date, default: Date.now },
     editedBy: { type: String },

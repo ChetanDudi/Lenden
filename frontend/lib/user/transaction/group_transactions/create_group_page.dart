@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../utils/share_utils.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../digitise/gift_card_page.dart';
@@ -613,6 +615,38 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     return '#${_selectedColor!.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
+  Future<void> _offerShareGroupInvite(Map<String, dynamic> group) async {
+    final groupName = (group['title'] ?? 'the group').toString();
+    final appLink = await fetchAppInviteLink();
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Share Group Invite'),
+        content: Text('Invite others to join "$groupName". If they\'re not on LenDen yet, the invite link helps them sign up through your referral.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.share_rounded, size: 16),
+            label: const Text('Share Invite'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              String msg = '👥 Join "$groupName" on LenDen!\n📱 Download the app and ask the group admin for the join code.';
+              if (appLink.isNotEmpty) {
+                msg += '\n------------------\n$appLink';
+              }
+              await Share.share(msg, subject: 'Join $groupName on LenDen');
+              ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _createGroupWithCoins() async {
     final t = AppLocalizations.of(context).t;
     if (_hasBlockedMembers()) {
@@ -654,7 +688,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           }
           final groupId = data['group']?['_id']?.toString() ?? '';
           if (groupId.isNotEmpty) await _uploadGroupImageAfterCreate(groupId);
-          Navigator.pop(context, data['group']);
+          await _offerShareGroupInvite(Map<String, dynamic>.from(data['group'] ?? {}));
+          if (mounted) Navigator.pop(context, data['group']);
         }
       } else if (res.statusCode == 403) {
         final msg = (data['error'] ?? t('forbidden_label')).toString();
@@ -760,7 +795,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           }
           final groupId = data['group']?['_id']?.toString() ?? '';
           if (groupId.isNotEmpty) await _uploadGroupImageAfterCreate(groupId);
-          Navigator.pop(context, data['group']);
+          await _offerShareGroupInvite(Map<String, dynamic>.from(data['group'] ?? {}));
+          if (mounted) Navigator.pop(context, data['group']);
         }
       } else {
         final msg = (data['error'] ?? t('failed_to_create_group_msg')).toString();

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../../utils/share_utils.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -1334,20 +1335,46 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     ).then((_) {});
   }
 
+  Future<void> _shareGroupInvite(Map<String, dynamic> group) async {
+    final joinCode = (group['joinCode'] ?? '').toString().trim();
+    final groupName = (group['title'] ?? 'the group').toString();
+    final appLink = await fetchAppInviteLink();
+    String msg = '👥 Join "$groupName" on LenDen!\n';
+    if (joinCode.isNotEmpty) {
+      msg += '🔑 Join Code: $joinCode\n';
+    }
+    msg += '\n📱 Download LenDen & use the join code to be part of the group.';
+    if (appLink.isNotEmpty) {
+      msg += '\n------------------\n$appLink';
+    }
+    await Share.share(msg, subject: 'Join $groupName on LenDen');
+    ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
+  }
+
   Future<void> _openCreateGroup() async {
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (!session.hasFeature('group_creation')) {
+      if (mounted) showDialog(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black26,
+        builder: (_) => const PopScope(canPop: false, child: Center(child: CircularProgressIndicator())),
+      );
       int? dailyRemaining;
-      await Future.wait([
-        session.loadFreebieCounts(),
-        ApiClient.get('/api/limits/daily').then((res) {
-          if (res.statusCode == 200) {
-            final data = jsonDecode(res.body);
-            dailyRemaining = data['limits']?['groups']?['remaining'];
-          }
-        }),
-      ]);
+      try {
+        await Future.wait([
+          session.loadFreebieCounts(),
+          ApiClient.get('/api/limits/daily').then((res) {
+            if (res.statusCode == 200) {
+              final data = jsonDecode(res.body);
+              dailyRemaining = data['limits']?['groups']?['remaining'];
+            }
+          }),
+        ]);
+      } finally {
+        if (mounted) Navigator.pop(context);
+      }
       if (!mounted) return;
       if (dailyRemaining != null && dailyRemaining! <= 0) {
         showDailyLimitDialog(context,
@@ -2295,6 +2322,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                                 ),
                                                                 onPressed: () => _showAddExpenseDialog(group),
+                                                              ),
+                                                              const SizedBox(width: 8),
+                                                              ElevatedButton.icon(
+                                                                icon: const Icon(Icons.share_rounded, size: 18, color: Colors.white),
+                                                                label: const Text('Invite', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor: Colors.teal,
+                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                                ),
+                                                                onPressed: () => _shareGroupInvite(group),
                                                               ),
                                                             ],
                                                           ),

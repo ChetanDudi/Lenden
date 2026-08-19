@@ -4,7 +4,7 @@ const Admin = require('../models/admin');
 const Transaction = require('../models/transaction');
 const QuickTransaction = require('../models/quickTransaction');
 const Notification = require('../models/notification');
-const { sendReminderEmail } = require('./lendingborrowingotp');
+const { sendReminderEmail } = require('./email/lendingborrowingotp');
 const { sendToUser } = require('../services/notificationService');
 
 // Quiet hours use simple 'HH:mm' string comparison, same format the

@@ -87,6 +87,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   String filterBy = 'all'; // 'all', 'cleared', 'not_cleared'
   String _roleFilter = 'all'; // 'all', 'lent', 'borrowed'
   String _dateFilter = 'all'; // 'all', 'today', 'week', 'month'
+  String _userTypeFilter = 'all'; // 'all', 'lenden', 'external'
   String _selectedCounterparty = 'all';
   String _categoryFilter = 'all';
   bool _showFavouritesOnly = false;
@@ -225,6 +226,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
 
   Map<String, dynamic>? _counterpartyForViewer(
       Map<String, dynamic> transaction) {
+    if (transaction['isExternalUser'] == true) {
+      final name = (transaction['counterpartyName'] ?? '').toString();
+      return {'name': name.isNotEmpty ? name : 'External User', 'email': ''};
+    }
     final currentUserEmail = _currentUserEmail();
     final users = List<Map<String, dynamic>>.from(transaction['users'] ?? []);
     for (final user in users) {
@@ -243,15 +248,24 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       {'email': 'all', 'label': t('all_people_label')}
     ];
     for (final transaction in transactions) {
-      final counterparty = _counterpartyForViewer(transaction);
-      final email = (counterparty?['email'] ?? '').toString().trim();
-      if (email.isEmpty || seen.contains(email.toLowerCase())) continue;
-      seen.add(email.toLowerCase());
-      final name = (counterparty?['name'] ?? '').toString().trim();
-      options.add({
-        'email': email,
-        'label': name.isNotEmpty ? name : email,
-      });
+      if (transaction['isExternalUser'] == true) {
+        final name = (transaction['counterpartyName'] ?? '').toString().trim();
+        if (name.isEmpty) continue;
+        final key = '__ext__:$name';
+        if (seen.contains(key.toLowerCase())) continue;
+        seen.add(key.toLowerCase());
+        options.add({'email': key, 'label': '$name (Not on LenDen)'});
+      } else {
+        final counterparty = _counterpartyForViewer(transaction);
+        final email = (counterparty?['email'] ?? '').toString().trim();
+        if (email.isEmpty || seen.contains(email.toLowerCase())) continue;
+        seen.add(email.toLowerCase());
+        final name = (counterparty?['name'] ?? '').toString().trim();
+        options.add({
+          'email': email,
+          'label': name.isNotEmpty ? name : email,
+        });
+      }
     }
     return options;
   }
@@ -508,6 +522,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         filterBy != 'all' ||
         _roleFilter != 'all' ||
         _dateFilter != 'all' ||
+        _userTypeFilter != 'all' ||
         _selectedCounterparty != 'all' ||
         _categoryFilter != 'all' ||
         _showFavouritesOnly;
@@ -573,6 +588,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       filterBy = 'all';
       _roleFilter = 'all';
       _dateFilter = 'all';
+      _userTypeFilter = 'all';
       _selectedCounterparty = 'all';
       _categoryFilter = 'all';
       _showFavouritesOnly = false;
@@ -601,8 +617,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         params['role'] = _roleFilter == 'lent' ? 'lender' : 'borrower';
       if (_dateFilter != 'all') params['dateFilter'] = _dateFilter;
       if (_showFavouritesOnly) params['favouritesOnly'] = 'true';
-      if (_selectedCounterparty != 'all')
-        params['counterparty'] = _selectedCounterparty;
+      if (_userTypeFilter != 'all') params['userType'] = _userTypeFilter;
+      if (_selectedCounterparty != 'all') {
+        if (_selectedCounterparty.startsWith('__ext__:')) {
+          params['counterpartyName'] = _selectedCounterparty.substring(8);
+        } else {
+          params['counterparty'] = _selectedCounterparty;
+        }
+      }
       if (_categoryFilter != 'all') params['category'] = _categoryFilter;
 
       final fetchPage = append ? _qtPage + 1 : 1;
@@ -666,15 +688,24 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       {Map<String, dynamic>? transaction}) async {
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (_blockedEmails.isEmpty) {
-      await _loadBlockedUsers();
+    final needsLoad = _blockedEmails.isEmpty || !session.hasFeature('quick_transactions');
+    if (needsLoad && mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black26,
+        builder: (_) => const PopScope(canPop: false, child: Center(child: CircularProgressIndicator())),
+      );
     }
-    if (!session.hasFeature('quick_transactions')) {
-      await Future.wait([
-        session.loadFreebieCounts(),
-        _loadDailyLimits(),
-      ]);
+    try {
+      if (_blockedEmails.isEmpty) await _loadBlockedUsers();
+      if (!session.hasFeature('quick_transactions')) {
+        await Future.wait([session.loadFreebieCounts(), _loadDailyLimits()]);
+      }
+    } finally {
+      if (needsLoad && mounted) Navigator.pop(context);
     }
+    if (!mounted) return;
     final dailyQuickRemaining =
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
 
@@ -948,13 +979,20 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
 
   Future<void> _duplicateQuickTransaction(
       Map<String, dynamic> transaction) async {
-    final counterpartyEmail =
-        (_counterpartyForViewer(transaction)?['email'] ?? '').toString();
+    final isExternal = transaction['isExternalUser'] == true;
+    final counterpartyEmail = isExternal
+        ? ''
+        : (_counterpartyForViewer(transaction)?['email'] ?? '').toString();
+    final counterpartyName = isExternal
+        ? (transaction['counterpartyName'] ?? '').toString()
+        : '';
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CreateEditQuickTransactionPage(
-          prefillCounterpartyEmail: counterpartyEmail,
+          prefillCounterpartyEmail: isExternal ? null : counterpartyEmail,
+          prefillCounterpartyName: isExternal ? counterpartyName : null,
+          prefillIsExternalUser: isExternal,
           initialAmount: transaction['amount']?.toString(),
           initialCurrency: transaction['currency']?.toString(),
           initialDescription: transaction['description']?.toString(),
@@ -1008,7 +1046,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       '${t('status_colon_label')} $status',
     ];
     if (appLink.isNotEmpty) {
-      lines.addAll(['â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€', 'ðŸ“± Shared via LenDen', appLink]);
+      lines.addAll(['------------------', 'Shared via LenDen', appLink]);
     }
     return lines.join('\n');
   }
@@ -1017,18 +1055,129 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     final t = AppLocalizations.of(context).t;
     final appLink = await fetchAppInviteLink();
     final receiptText = _buildReceiptText(transaction, appLink: appLink);
+
+    final counterparty = _counterpartyForViewer(transaction);
+    final counterpartyName =
+        (counterparty?['name'] ?? counterparty?['email'] ?? t('unknown_label'))
+            .toString();
+    final isLender = _roleForViewer(transaction) == 'lender';
+    final viewerRole =
+        isLender ? t('you_lent_label') : t('you_borrowed_label');
+    final isCleared = transaction['cleared'] == true;
+    final status = isCleared ? t('cleared') : t('pending_label');
+    final description = (transaction['description'] ?? '').toString();
+
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppThemeColors.cardBg(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(t('quick_receipt_title'),
-            style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
-        content: SingleChildScrollView(
-          child: Text(
-            receiptText,
-            style: TextStyle(
-                height: 1.5, color: AppThemeColors.primaryText(dialogContext)),
+        contentPadding: EdgeInsets.zero,
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+          decoration: BoxDecoration(
+            color: AppColors.tricolorOrange.withValues(alpha: 0.10),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.receipt_long,
+                  color: AppColors.tricolorOrange, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                t('quick_receipt_title'),
+                style: TextStyle(
+                  color: AppThemeColors.primaryText(dialogContext),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _receiptRow(
+                  dialogContext,
+                  Icons.currency_rupee,
+                  t('amount_colon_label'),
+                  _formatDisplayAmount(transaction['amount'],
+                      transaction['currency']?.toString()),
+                  valueColor: AppColors.tricolorOrange,
+                  valueFontWeight: FontWeight.bold,
+                  valueFontSize: 16,
+                ),
+                _receiptRow(
+                  dialogContext,
+                  Icons.swap_horiz_rounded,
+                  t('role_label_colon'),
+                  viewerRole,
+                  valueColor: isLender
+                      ? Colors.green.shade600
+                      : Colors.red.shade400,
+                ),
+                _receiptRow(dialogContext, Icons.person_outline,
+                    t('counterparty_colon_label'), counterpartyName),
+                if (description.isNotEmpty)
+                  _receiptRow(dialogContext, Icons.notes_rounded,
+                      t('description_colon_label'), description),
+                _receiptRow(
+                  dialogContext,
+                  Icons.calendar_today_outlined,
+                  t('date_colon_label'),
+                  transaction['date']?.toString().split('T').first ?? '',
+                ),
+                _receiptRow(dialogContext, Icons.access_time_rounded,
+                    t('time_colon_label'), transaction['time'] ?? ''),
+                _receiptRow(
+                  dialogContext,
+                  isCleared
+                      ? Icons.check_circle_outline
+                      : Icons.pending_outlined,
+                  t('status_colon_label'),
+                  status,
+                  valueColor: isCleared
+                      ? Colors.green.shade600
+                      : Colors.orange.shade700,
+                ),
+                if (appLink.isNotEmpty) ...[
+                  Divider(
+                      height: 1,
+                      color: AppThemeColors.divider(dialogContext)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                    child: Row(
+                      children: [
+                        Icon(Icons.phone_android_rounded,
+                            size: 13,
+                            color: AppThemeColors.secondaryText(
+                                dialogContext)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Download LenDen: $appLink',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppThemeColors.secondaryText(
+                                    dialogContext)),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1036,7 +1185,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(t('close')),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
+            icon: const Icon(Icons.copy, size: 14),
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: receiptText));
               if (!mounted) return;
@@ -1047,9 +1197,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                     Text(t('quick_transaction_receipt_copied_message')),
               ).show(context);
             },
-            child: Text(t('copy_label')),
+            label: Text(t('copy_label')),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
+            icon: const Icon(Icons.share, size: 14),
             onPressed: () async {
               await Share.share(
                 receiptText,
@@ -1057,8 +1208,51 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
               );
               if (!mounted) return;
               Navigator.pop(dialogContext);
+              ApiClient.post('/api/referral/share',
+                      body: {'channel': 'quick_transaction'})
+                  .ignore();
             },
-            child: Text(t('share')),
+            label: Text(t('share')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _receiptRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+    FontWeight valueFontWeight = FontWeight.w600,
+    double valueFontSize = 13.5,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: AppThemeColors.secondaryText(context)),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: AppThemeColors.secondaryText(context)),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: valueFontSize,
+                fontWeight: valueFontWeight,
+                color: valueColor ?? AppThemeColors.primaryText(context),
+              ),
+            ),
           ),
         ],
       ),
@@ -1728,6 +1922,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         filterBy = (result['status'] ?? 'all').toString();
         _roleFilter = (result['role'] ?? 'all').toString();
         _dateFilter = (result['date'] ?? 'all').toString();
+        _userTypeFilter = (result['userType'] ?? 'all').toString();
         _selectedCounterparty = (result['counterparty'] ?? 'all').toString();
         _categoryFilter = (result['category'] ?? 'all').toString();
         _showFavouritesOnly = result['favourites'] == true;
@@ -1834,6 +2029,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                   setState(() => filterBy = filterBy == 'cleared' ? 'all' : 'cleared');
                   fetchQuickTransactions();
                 }, activeColor: Colors.green),
+                const SizedBox(width: 6),
+                _buildMiniChip('External', _userTypeFilter == 'external', Icons.person_off_rounded, () {
+                  setState(() => _userTypeFilter = _userTypeFilter == 'external' ? 'all' : 'external');
+                  fetchQuickTransactions();
+                }, activeColor: Colors.orange.shade700),
                 const SizedBox(width: 6),
                 _buildMiniChip(t('favourites_label'), _showFavouritesOnly, Icons.favorite_rounded, _toggleShowFavourites, activeColor: Colors.redAccent),
                 if (counterpartyOptions.length > 1) ...[
@@ -2906,6 +3106,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                             Colors.deepPurple,
                             _catIcon((transaction['category'] ?? 'other').toString()),
                           ),
+                          if (transaction['isExternalUser'] == true)
+                            _buildStatusChip(
+                              'Not on LenDen',
+                              Colors.orange.shade700,
+                              Icons.person_off_rounded,
+                            ),
                           if (((transaction['editHistory'] as List?)?.length ?? 0) > 0)
                             _buildStatusChip(
                               '${(transaction['editHistory'] as List).length} edit${(transaction['editHistory'] as List).length == 1 ? '' : 's'}',

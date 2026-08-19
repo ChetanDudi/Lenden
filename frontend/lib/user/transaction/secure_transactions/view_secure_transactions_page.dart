@@ -2010,16 +2010,26 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (!session.hasFeature('secure_transactions')) {
+      if (mounted) showDialog(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black26,
+        builder: (_) => const PopScope(canPop: false, child: Center(child: CircularProgressIndicator())),
+      );
       int? dailyRemaining;
-      await Future.wait([
-        session.loadFreebieCounts(),
-        ApiClient.get('/api/limits/daily').then((res) {
-          if (res.statusCode == 200) {
-            final data = jsonDecode(res.body);
-            dailyRemaining = data['limits']?['userTransactions']?['remaining'];
-          }
-        }),
-      ]);
+      try {
+        await Future.wait([
+          session.loadFreebieCounts(),
+          ApiClient.get('/api/limits/daily').then((res) {
+            if (res.statusCode == 200) {
+              final data = jsonDecode(res.body);
+              dailyRemaining = data['limits']?['userTransactions']?['remaining'];
+            }
+          }),
+        ]);
+      } finally {
+        if (mounted) Navigator.pop(context);
+      }
       if (!mounted) return;
       if (dailyRemaining != null && dailyRemaining! <= 0) {
         showDailyLimitDialog(context,

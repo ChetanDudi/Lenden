@@ -37,6 +37,7 @@ class _QuickTransactionFilterPageState
   String _status = 'all';
   String _role = 'all';
   String _date = 'all';
+  String _userType = 'all'; // 'all', 'lenden', 'external'
   String _counterparty = 'all';
   String _category = 'all';
   bool _favouritesOnly = false;
@@ -534,6 +535,37 @@ class _QuickTransactionFilterPageState
                   ),
                   const SizedBox(height: 16),
                   _buildSection(
+                    icon: Icons.person_search_rounded,
+                    title: 'User Type',
+                    subtitle: 'Show only LenDen users or external contacts',
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFFFF3E0),
+                        dark: const Color(0xFF2A2010)),
+                    child: Column(
+                      children: [
+                        _buildChoiceRow(
+                          label: 'All Users',
+                          value: 'all',
+                          groupValue: _userType,
+                          onChanged: (v) => setState(() => _userType = v ?? 'all'),
+                        ),
+                        _buildChoiceRow(
+                          label: 'On LenDen',
+                          value: 'lenden',
+                          groupValue: _userType,
+                          onChanged: (v) => setState(() => _userType = v ?? 'all'),
+                        ),
+                        _buildChoiceRow(
+                          label: 'Not on LenDen (External)',
+                          value: 'external',
+                          groupValue: _userType,
+                          onChanged: (v) => setState(() => _userType = v ?? 'all'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSection(
                     icon: Icons.people_alt_outlined,
                     title: t('counterparty_label'),
                     subtitle: t('pick_person_cleaner_list_view_message'),
@@ -701,6 +733,7 @@ class _QuickTransactionFilterPageState
                           _status = 'all';
                           _role = 'all';
                           _date = 'all';
+                          _userType = 'all';
                           _counterparty = 'all';
                           _category = 'all';
                           _favouritesOnly = false;
@@ -730,6 +763,7 @@ class _QuickTransactionFilterPageState
                           'status': _status,
                           'role': _role,
                           'date': _date,
+                          'userType': _userType,
                           'counterparty': _counterparty,
                           'category': _category,
                           'favourites': _favouritesOnly,

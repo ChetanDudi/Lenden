@@ -123,6 +123,16 @@ class _ReferralPageState extends State<ReferralPage> {
   }
 
 
+  String _channelLabel(String ch) {
+    switch (ch.toLowerCase().trim()) {
+      case 'quick_transaction': return 'Quick Transaction';
+      case 'group_invite': return 'Group Invite';
+      default:
+        final cleaned = ch.replaceAll('_', ' ');
+        return cleaned.isEmpty ? ch : '${cleaned[0].toUpperCase()}${cleaned.substring(1)}';
+    }
+  }
+
   IconData _iconFor(String name) {
     switch (name.toLowerCase().trim()) {
       case 'whatsapp': return FontAwesomeIcons.whatsapp;
@@ -130,6 +140,8 @@ class _ReferralPageState extends State<ReferralPage> {
       case 'email': case 'mail': return Icons.email_rounded;
       case 'sms': return Icons.sms_rounded;
       case 'copy': return Icons.copy_rounded;
+      case 'quick_transaction': return Icons.receipt_long_rounded;
+      case 'group_invite': return Icons.group_add_rounded;
       case 'facebook': return FontAwesomeIcons.facebook;
       case 'snapchat': return FontAwesomeIcons.snapchat;
       case 'instagram': return FontAwesomeIcons.instagram;
@@ -146,6 +158,8 @@ class _ReferralPageState extends State<ReferralPage> {
       case 'email': case 'mail': return const Color(0xFFFF7043);
       case 'sms': return const Color(0xFF26A69A);
       case 'copy': return const Color(0xFF5C6BC0);
+      case 'quick_transaction': return const Color(0xFF0288D1);
+      case 'group_invite': return const Color(0xFF00796B);
       case 'facebook': case 'messenger': return const Color(0xFF1877F2);
       case 'snapchat': return const Color(0xFFFDD835);
       case 'instagram': return const Color(0xFFE1306C);
@@ -610,7 +624,7 @@ class _ReferralPageState extends State<ReferralPage> {
                     Icon(_iconFor(ch), size: 15, color: color),
                     const SizedBox(width: 10),
                     Expanded(child: Text(
-                      '${ch.substring(0, 1).toUpperCase()}${ch.substring(1)} ${t('share_label')}',
+                      '${_channelLabel(ch)} ${t('share_label')}',
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: color),
                     )),
                     Text(stamp, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11)),

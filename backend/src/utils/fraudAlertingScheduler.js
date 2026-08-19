@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const Admin = require('../models/admin');
 const Notification = require('../models/notification');
 const { runFraudScan } = require('./fraudDetection');
-const { sendFraudAlertSummaryEmail } = require('./adminEmailNotifications');
+const { sendFraudAlertSummaryEmail } = require('./email/adminEmailNotifications');
 
 let systemSenderId = null;
 async function getSystemSenderId() {
