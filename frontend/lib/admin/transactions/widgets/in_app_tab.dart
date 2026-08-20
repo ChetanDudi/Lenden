@@ -11,6 +11,7 @@ import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../widgets/search_tab_bar.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 
 // ── Category metadata ─────────────────────────────────────────────────────────
@@ -309,6 +310,21 @@ class _InAppTabState extends State<InAppTab> with AutomaticKeepAliveClientMixin 
     }
   }
 
+  void _shareAsNote() {
+    final buf = StringBuffer();
+    buf.writeln('In-App Transactions — ${widget.cat.label}');
+    buf.writeln('Showing: ${_txns.length} transaction${_txns.length == 1 ? '' : 's'}');
+    if (_total > _txns.length) buf.writeln('Total (all pages): $_total');
+    if (_fromDate != null || _toDate != null) {
+      final from = _fromDate != null ? DateFormat('dd MMM yyyy').format(_fromDate!) : 'start';
+      final to = _toDate != null ? DateFormat('dd MMM yyyy').format(_toDate!) : 'now';
+      buf.writeln('Period: $from – $to');
+    }
+    if (_flaggedOnly) buf.writeln('Filter: Flagged only');
+    if (_search.isNotEmpty) buf.writeln('Search: "$_search"');
+    showShareAsNoteSheet(context, title: 'In-App Txns: ${widget.cat.label}', content: buf.toString().trim(), adminOnly: true);
+  }
+
   Future<void> _exportCsv(BuildContext ctx) async {
     final messenger = ScaffoldMessenger.of(ctx);
     messenger.showSnackBar(
@@ -535,6 +551,15 @@ class _InAppTabState extends State<InAppTab> with AutomaticKeepAliveClientMixin 
                           activeColor: Colors.green,
                           onTap: () => _exportCsv(ctx),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      _controlChip(
+                        context,
+                        icon: Icons.note_add_rounded,
+                        label: 'Share as Note',
+                        active: false,
+                        activeColor: AppColors.tricolorGreen,
+                        onTap: _shareAsNote,
                       ),
                     ],
                   ),

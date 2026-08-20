@@ -1429,23 +1429,28 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
 
   Widget _buildEmptyState(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(
-        children: [
-          Icon(Icons.inbox_rounded, size: 58, color: AppThemeColors.mutedText(context)),
-          const SizedBox(height: 12),
-          Text(title,
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppThemeColors.secondaryText(context))),
-          const SizedBox(height: 6),
-          Text(subtitle,
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context))),
-        ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_rounded, size: 58, color: AppThemeColors.mutedText(context)),
+            const SizedBox(height: 12),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 6),
+            Text(subtitle,
+                textAlign: TextAlign.center,
+                style:
+                    TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context))),
+          ],
+        ),
       ),
     );
   }
@@ -1512,7 +1517,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                   ? errorStateWidget(context,_plansError!, _fetchPlans)
                   : _plans.isEmpty
                       ? _buildEmptyState(
-                          t('nothing_here'), t('add_first_subscription_plan'))
+                          t('nothing_here'), t('no_subscription_plans_available'))
                       : Builder(builder: (context) {
                           final filteredPlans = _getFilteredPlans();
                           if (filteredPlans.isEmpty) {

@@ -17,6 +17,7 @@ import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 const _kCardColors = [
   Color(0xFFFFF4E6), Color(0xFFE8F5E9), Color(0xFFFCE4EC),
@@ -679,11 +680,31 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           '1. Open the LenDen app\n'
                           '2. Go to Groups → tap the 🔗 link icon\n'
                           '3. Enter the code: ${currentCode!}\n\n'
-                          '──────────────────\n'
+                          '------------------\n'
                           'LenDen – Split expenses effortlessly with friends & family. '
                           'Track debts, settle instantly, and manage group expenses with ease.'
                           '$downloadLine';
                       Share.share(msg, subject: 'Join $groupTitle on LenDen');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 20),
+                    label: const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.tricolorGreen, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () async {
+                      final groupTitle = (_group['title'] ?? 'Our Group').toString();
+                      final memberCount = (_group['members'] as List?)?.length ?? 0;
+                      final code = currentCode ?? '';
+                      final noteContent = 'Group: $groupTitle\nMembers: $memberCount${code.isNotEmpty ? '\nJoin Code: $code' : ''}';
+                      await showShareAsNoteSheet(ctx, title: 'Join $groupTitle on LenDen', content: noteContent);
                     },
                   ),
                 ),

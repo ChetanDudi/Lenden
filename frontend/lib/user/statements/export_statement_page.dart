@@ -6,6 +6,7 @@ import '../../utils/share_utils.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/share_as_note_sheet.dart';
 
 class ExportStatementPage extends StatefulWidget {
   const ExportStatementPage({super.key});
@@ -257,6 +258,26 @@ class _ExportStatementPageState extends State<ExportStatementPage> {
                   _exporting ? 'Generating…' : 'Export & Share CSV',
                   style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  final from = DateFormat('dd MMM yyyy').format(_fromDate);
+                  final to = DateFormat('dd MMM yyyy').format(_toDate);
+                  final typeLabel = _type == 'all' ? 'All' : _type == 'quick' ? 'Quick' : _type == 'secure' ? 'Secure' : 'Group';
+                  final content = 'Statement period: $from – $to\nType: $typeLabel transactions\n\nGenerated via LenDen. Open the app to view the full statement.';
+                  showShareAsNoteSheet(context, title: 'Transaction Statement ($from – $to)', content: content);
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.tricolorGreen, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 20),
+                label: const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

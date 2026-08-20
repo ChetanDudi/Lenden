@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/search_tab_bar.dart';
+import '../../widgets/share_as_note_sheet.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
@@ -18,80 +19,100 @@ class AdminNotesPage extends StatefulWidget {
   State<AdminNotesPage> createState() => _AdminNotesPageState();
 }
 
-class _AdminNotesPageState extends State<AdminNotesPage> {
+class _AdminNotesPageState extends State<AdminNotesPage> with TickerProviderStateMixin {
+  // Own notes
   List<Map<String, dynamic>> notes = [];
   List<Map<String, dynamic>> filteredNotes = [];
   bool loading = true;
   String? error;
+
+  // Shared notes (received from other admins)
+  List<Map<String, dynamic>> sharedNotes = [];
+  List<Map<String, dynamic>> filteredSharedNotes = [];
+  bool loadingShared = true;
+  String? errorShared;
+
   String searchQuery = '';
   String sortBy = 'created_desc';
   final _searchCtrl = TextEditingController();
+  late TabController _tabController;
+
+  bool get _isSharedTab => _tabController.index == 1;
+
+  List<Map<String, dynamic>> get _displayedNotes =>
+      _isSharedTab ? filteredSharedNotes : filteredNotes;
+
+  bool get _activeLoading => _isSharedTab ? loadingShared : loading;
+  String? get _activeError => _isSharedTab ? errorShared : error;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) setState(() {});
+    });
     fetchNotes();
+    fetchSharedNotes();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
+  void _sortList(List<Map<String, dynamic>> list) {
+    list.sort((a, b) {
+      switch (sortBy) {
+        case 'created_asc':  return (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? '');
+        case 'created_desc': return (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? '');
+        case 'updated_asc':  return (a['updatedAt'] ?? '').compareTo(b['updatedAt'] ?? '');
+        case 'updated_desc': return (b['updatedAt'] ?? '').compareTo(a['updatedAt'] ?? '');
+        case 'title_az':     return (a['title'] ?? '').toLowerCase().compareTo((b['title'] ?? '').toLowerCase());
+        case 'title_za':     return (b['title'] ?? '').toLowerCase().compareTo((a['title'] ?? '').toLowerCase());
+        default:             return 0;
+      }
+    });
+  }
+
   void sortNotes() {
     setState(() {
-      filteredNotes.sort((a, b) {
-        switch (sortBy) {
-          case 'created_asc':
-            return (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? '');
-          case 'created_desc':
-            return (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? '');
-          case 'updated_asc':
-            return (a['updatedAt'] ?? '').compareTo(b['updatedAt'] ?? '');
-          case 'updated_desc':
-            return (b['updatedAt'] ?? '').compareTo(a['updatedAt'] ?? '');
-          case 'title_az':
-            return (a['title'] ?? '')
-                .toLowerCase()
-                .compareTo((b['title'] ?? '').toLowerCase());
-          case 'title_za':
-            return (b['title'] ?? '')
-                .toLowerCase()
-                .compareTo((a['title'] ?? '').toLowerCase());
-          default:
-            return 0;
-        }
-      });
+      _sortList(filteredNotes);
+      _sortList(filteredSharedNotes);
     });
   }
 
   void filterNotes(String query) {
     setState(() {
       searchQuery = query;
+      final q = query.toLowerCase();
       filteredNotes = notes
-          .where((note) =>
-              (note['title'] ?? '').toLowerCase().contains(query.toLowerCase()) ||
-              (note['content'] ?? '').toLowerCase().contains(query.toLowerCase()))
+          .where((n) =>
+              (n['title'] ?? '').toLowerCase().contains(q) ||
+              (n['content'] ?? '').toLowerCase().contains(q))
           .toList();
-      sortNotes();
+      filteredSharedNotes = sharedNotes
+          .where((n) =>
+              (n['title'] ?? '').toLowerCase().contains(q) ||
+              (n['content'] ?? '').toLowerCase().contains(q))
+          .toList();
+      _sortList(filteredNotes);
+      _sortList(filteredSharedNotes);
     });
   }
 
   Future<void> fetchNotes() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
+    setState(() { loading = true; error = null; });
     try {
       final res = await ApiClient.get('/api/notes');
       if (res.statusCode == 200) {
-        final fetchedNotes =
-            List<Map<String, dynamic>>.from(json.decode(res.body)['notes']);
+        final fetched = List<Map<String, dynamic>>.from(json.decode(res.body)['notes']);
         setState(() {
-          notes = fetchedNotes;
-          filteredNotes = fetchedNotes;
-          sortNotes();
+          notes = fetched;
+          filteredNotes = fetched;
+          _sortList(filteredNotes);
           loading = false;
         });
       } else {
@@ -100,11 +121,31 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
           loading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       setState(() {
         error = AppLocalizations.of(context).t('failed_to_load_notes');
         loading = false;
       });
+    }
+  }
+
+  Future<void> fetchSharedNotes() async {
+    setState(() { loadingShared = true; errorShared = null; });
+    try {
+      final res = await ApiClient.get('/api/notes/shared');
+      if (res.statusCode == 200) {
+        final fetched = List<Map<String, dynamic>>.from(json.decode(res.body)['notes']);
+        setState(() {
+          sharedNotes = fetched;
+          filteredSharedNotes = fetched;
+          _sortList(filteredSharedNotes);
+          loadingShared = false;
+        });
+      } else {
+        setState(() { errorShared = 'Failed to load shared notes'; loadingShared = false; });
+      }
+    } catch (_) {
+      setState(() { errorShared = 'Failed to load shared notes'; loadingShared = false; });
     }
   }
 
@@ -113,7 +154,13 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
       context,
       MaterialPageRoute(builder: (_) => NoteFormPage(note: note)),
     );
-    if (result == true) fetchNotes();
+    if (result == true) {
+      if (note != null && note['isShared'] == true) {
+        fetchSharedNotes();
+      } else {
+        fetchNotes();
+      }
+    }
   }
 
   PopupMenuItem _noteMenuItem(IconData icon, String label, Color color, VoidCallback onTap) {
@@ -141,126 +188,96 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
   }
 
   Future<void> deleteNote(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        final t = AppLocalizations.of(context).t;
-        return AlertDialog(
-        backgroundColor: AppThemeColors.cardBg(context),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.delete_outline, color: Colors.red, size: 24),
+              child: const Icon(Icons.delete_outline, color: Colors.red, size: 24),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Text(t('delete_note'),
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
-                    color: AppThemeColors.primaryText(context))),
+                    color: AppThemeColors.primaryText(dialogContext))),
           ],
         ),
-        content: Text(
-          t('delete_note_confirm'),
-          style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(context)),
-        ),
+        content: Text(t('delete_note_confirm'),
+            style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(dialogContext))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
             child: Text(t('cancel'),
                 style: TextStyle(
-                    color: AppThemeColors.secondaryText(context),
+                    color: AppThemeColors.secondaryText(dialogContext),
                     fontSize: 15,
                     fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               elevation: 0,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(t('delete'),
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600)),
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
           ),
         ],
-      );
-      },
+      ),
     );
 
     if (confirmed == true) {
       final res = await ApiClient.delete('/api/notes/$id');
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 && mounted) {
         setState(() {
-          notes.removeWhere((note) => note['_id'] == id);
+          if (_isSharedTab) {
+            sharedNotes.removeWhere((n) => n['_id'] == id);
+          } else {
+            notes.removeWhere((n) => n['_id'] == id);
+          }
           filterNotes(searchQuery);
         });
       }
     }
   }
 
-  String _formatDate(String? isoString) {
-    if (isoString == null) return '';
-    final dt = DateTime.tryParse(isoString);
+  String _formatDate(String? iso) {
+    if (iso == null) return '';
+    final dt = DateTime.tryParse(iso);
     if (dt == null) return '';
-    return '${dt.day} ${_getMonthName(dt.month)}, ${dt.year.toString().substring(2)}';
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return months[month - 1];
+    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${dt.day} ${m[dt.month - 1]}, ${dt.year.toString().substring(2)}';
   }
 
   void _copyAllNotes() {
     final loc = AppLocalizations.of(context).t;
-    if (filteredNotes.isEmpty) {
-      showSnack(context, loc('no_notes_to_copy'), isError: true);
-      return;
+    final toCopy = _displayedNotes;
+    if (toCopy.isEmpty) { showSnack(context, loc('no_notes_to_copy'), isError: true); return; }
+    final buf = StringBuffer();
+    for (int i = 0; i < toCopy.length; i++) {
+      buf.write('--- Note ${i + 1}: ${toCopy[i]['title'] ?? ''} ---\n${toCopy[i]['content'] ?? ''}');
+      if (i < toCopy.length - 1) buf.write('\n\n');
     }
-    final buffer = StringBuffer();
-    for (int i = 0; i < filteredNotes.length; i++) {
-      final note = filteredNotes[i];
-      buffer.write('--- Note ${i + 1}: ${note['title'] ?? ''} ---\n');
-      buffer.write('${note['content'] ?? ''}');
-      if (i < filteredNotes.length - 1) buffer.write('\n\n');
-    }
-    Clipboard.setData(ClipboardData(text: buffer.toString()));
+    Clipboard.setData(ClipboardData(text: buf.toString()));
     showSnack(context, loc('copied_to_clipboard_message'));
   }
 
   Future<void> _deleteAllNotes() async {
-    final toDelete = List<Map<String, dynamic>>.from(filteredNotes);
-    if (toDelete.isEmpty) {
-      showSnack(context, 'No notes to delete.', isError: true);
-      return;
-    }
+    final toDelete = List<Map<String, dynamic>>.from(_displayedNotes);
+    if (toDelete.isEmpty) { showSnack(context, 'No notes to delete.', isError: true); return; }
     final loc = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -270,19 +287,15 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
         title: Row(children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 24),
           ),
           const SizedBox(width: 12),
           Text('Delete All Notes',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
-                  color: AppThemeColors.primaryText(ctx))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppThemeColors.primaryText(ctx))),
         ]),
         content: Text(
-          'This will permanently delete all ${toDelete.length} note${toDelete.length == 1 ? '' : 's'}. This cannot be undone.',
+          'This will permanently delete all ${toDelete.length} note${toDelete.length == 1 ? '' : 's'}.',
           style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx)),
         ),
         actions: [
@@ -292,11 +305,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                 style: TextStyle(color: AppThemeColors.secondaryText(ctx), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete All', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
@@ -312,80 +321,62 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
         deleted++;
         if (mounted) {
           setState(() {
-            notes.removeWhere((n) => n['_id'] == note['_id']);
+            if (_isSharedTab) {
+              sharedNotes.removeWhere((n) => n['_id'] == note['_id']);
+            } else {
+              notes.removeWhere((n) => n['_id'] == note['_id']);
+            }
             filterNotes(searchQuery);
           });
         }
       }
     }
-    if (mounted) {
-      showSnack(context, 'Deleted $deleted note${deleted == 1 ? '' : 's'}.',
-          isError: deleted < toDelete.length);
-    }
+    if (mounted) showSnack(context, 'Deleted $deleted note${deleted == 1 ? '' : 's'}.', isError: deleted < toDelete.length);
   }
 
   void _showSortBottomSheet() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        final t = AppLocalizations.of(context).t;
-        return Container(
+      builder: (sheetCtx) => Container(
         decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
+          color: AppThemeColors.cardBg(sheetCtx),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(25), topRight: Radius.circular(25)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppThemeColors.divider(context),
-                borderRadius: BorderRadius.circular(2),
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(sheetCtx), borderRadius: BorderRadius.circular(2)),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.sort, color: Colors.blue, size: 20),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    t('sort_by'),
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppThemeColors.primaryText(context)),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.all(20),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.sort, color: Colors.blue, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(t('sort_by'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(sheetCtx))),
+              ]),
             ),
-            Divider(height: 1, thickness: 1, color: AppThemeColors.divider(context)),
-            _buildSortOption(
-                'created_desc', t('newest_first'), Icons.new_releases),
+            Divider(height: 1, thickness: 1, color: AppThemeColors.divider(sheetCtx)),
+            _buildSortOption('created_desc', t('newest_first'), Icons.new_releases),
             _buildSortOption('created_asc', t('oldest_first'), Icons.access_time),
             _buildSortOption('updated_desc', t('recently_updated'), Icons.update),
             _buildSortOption('updated_asc', t('least_updated'), Icons.history),
             _buildSortOption('title_az', t('title_a_z'), Icons.sort_by_alpha),
             _buildSortOption('title_za', t('title_z_a'), Icons.sort_by_alpha),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
           ],
         ),
-      );
-      },
+      ),
     );
   }
 
@@ -393,48 +384,69 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
     final isSelected = sortBy == value;
     return InkWell(
       onTap: () {
-        setState(() {
-          sortBy = value;
-          sortNotes();
-        });
+        setState(() { sortBy = value; sortNotes(); });
         Navigator.pop(context);
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color:
-              isSelected ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
-          border: Border(
-            left: BorderSide(
-              color: isSelected ? Colors.blue : Colors.transparent,
-              width: 3,
-            ),
-          ),
+          color: isSelected ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
+          border: Border(left: BorderSide(color: isSelected ? Colors.blue : Colors.transparent, width: 3)),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.blue : AppThemeColors.secondaryText(context),
-              size: 20,
-            ),
-            SizedBox(width: 16),
+            Icon(icon, color: isSelected ? Colors.blue : AppThemeColors.secondaryText(context), size: 20),
+            const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
+              child: Text(label, style: TextStyle(
                   fontSize: 15,
                   color: isSelected ? Colors.blue : AppThemeColors.primaryText(context),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: Colors.blue, size: 20),
+            if (isSelected) const Icon(Icons.check_circle, color: Colors.blue, size: 20),
           ],
         ),
       ),
     );
+  }
+
+  List<PopupMenuEntry> _buildNoteMenu(Map<String, dynamic> note) {
+    final t = AppLocalizations.of(context).t;
+    final noteId = note['_id']?.toString() ?? '';
+    final noteTitle = (note['title'] ?? '').toString();
+    final noteContent = (note['content'] ?? '').toString();
+    return [
+      _noteMenuItem(Icons.edit, t('edit_note'), Colors.blue,
+          () => Future.delayed(Duration.zero, () => createOrEditNote(note: note))),
+      _noteMenuItem(Icons.copy_rounded, t('copy'), Colors.teal, () {
+        Clipboard.setData(ClipboardData(text: '$noteTitle\n\n$noteContent'));
+        showSnack(context, t('copied_to_clipboard_message'));
+      }),
+      _noteMenuItem(Icons.share_rounded, t('share'), Colors.indigo,
+          () => Share.share('$noteTitle\n\n$noteContent')),
+      _noteMenuItem(Icons.note_add_rounded, 'Share as Note', AppColors.tricolorGreen,
+          () => Future.delayed(
+            Duration.zero,
+            () => showShareAsNoteSheet(
+              context,
+              title: noteTitle,
+              content: noteContent,
+              noteId: noteId,
+              adminOnly: true,
+            ),
+          )),
+      _noteMenuItem(Icons.copy_all_rounded, t('duplicate'), Colors.orange,
+          () => Future.delayed(Duration.zero, () async {
+            final res = await ApiClient.post('/api/notes', body: {'title': '$noteTitle (copy)', 'content': noteContent});
+            if (res.statusCode == 201) {
+              final newNote = json.decode(res.body)['note'];
+              setState(() { notes.insert(0, newNote); filterNotes(searchQuery); });
+              if (_isSharedTab) _tabController.animateTo(0);
+            }
+          })),
+      _noteMenuItem(Icons.delete_rounded, t('delete_note'), Colors.red,
+          () => Future.delayed(Duration.zero, () => deleteNote(noteId))),
+    ];
   }
 
   @override
@@ -445,9 +457,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
       body: Stack(
         children: [
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 0, left: 0, right: 0,
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
@@ -456,362 +466,318 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   color: AppThemeColors.waveSolid(context),
                   gradient: AppThemeColors.isDark(context)
                       ? null
-                      : const LinearGradient(
-                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                        ),
+                      : const LinearGradient(colors: [AppColors.cyan, Color(0xFF48CAE4)]),
                 ),
               ),
             ),
           ),
           SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(
-                          context, '/admin/dashboard');
-                    },
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        t('admin_notes'),
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: AppThemeColors.primaryText(context),
-                          letterSpacing: 1.2,
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
+                        onPressed: () => Navigator.pushReplacementNamed(context, '/admin/dashboard'),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Text(t('admin_notes'),
+                              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
+                                  color: AppThemeColors.primaryText(context), letterSpacing: 1.2)),
                         ),
                       ),
+                      IconButton(
+                        icon: Icon(Icons.copy_all_rounded, color: AppThemeColors.primaryText(context)),
+                        onPressed: _copyAllNotes,
+                        tooltip: t('copy_all_notes'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
+                        onPressed: _deleteAllNotes,
+                        tooltip: 'Delete all notes',
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Tab bar
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.surfaceBg(context),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: AppThemeColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 2))],
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.copy_all_rounded, color: AppThemeColors.primaryText(context)),
-                    onPressed: _copyAllNotes,
-                    tooltip: AppLocalizations.of(context).t('copy_all_notes'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
-                    onPressed: _deleteAllNotes,
-                    tooltip: 'Delete all notes',
-                  ),
-                ],
-              ),
-            ),
-
-            // Search Bar
-            AppSearchBar(
-              controller: _searchCtrl,
-              hintText: t('search_notes'),
-              onChanged: filterNotes,
-              margin: const EdgeInsets.symmetric(horizontal: 20.0),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Sort button with Tricolor Border
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: _showSortBottomSheet,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppThemeColors.cardBg(context),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.filter_list,
-                                color: AppThemeColors.primaryText(context), size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              t('sort'),
-                              style: TextStyle(
-                                color: AppThemeColors.primaryText(context),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: AppThemeColors.primaryText(context),
+                    unselectedLabelColor: AppThemeColors.secondaryText(context),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    unselectedLabelStyle: const TextStyle(fontSize: 14),
+                    tabs: [
+                      Tab(
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.notes_rounded, size: 16),
+                          const SizedBox(width: 6),
+                          const Text('Yours'),
+                          if (notes.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                              child: Text('${notes.length}', style: const TextStyle(fontSize: 11, color: AppColors.cyan)),
                             ),
                           ],
+                        ]),
+                      ),
+                      Tab(
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.share_rounded, size: 16),
+                          const SizedBox(width: 6),
+                          const Text('Shared'),
+                          if (sharedNotes.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(color: AppColors.tricolorGreen.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                              child: Text('${sharedNotes.length}', style: TextStyle(fontSize: 11, color: AppColors.tricolorGreen)),
+                            ),
+                          ],
+                        ]),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Search Bar
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: t('search_notes'),
+                  onChanged: filterNotes,
+                  margin: const EdgeInsets.symmetric(horizontal: 20.0),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Sort button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      GestureDetector(
+                        onTap: _showSortBottomSheet,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              colors: [Colors.orange, Colors.white, Colors.green],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.filter_list, color: AppThemeColors.primaryText(context), size: 18),
+                                const SizedBox(width: 6),
+                                Text(t('sort'), style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 14, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
 
-            const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-            // Notes List
-            Expanded(
-              child: loading
-                  ? Center(
-                      child: CircularProgressIndicator(color: AppThemeColors.primaryText(context)))
-                  : error != null
-                      ? errorStateWidget(context, error!, fetchNotes)
-                      : filteredNotes.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.note_outlined,
-                                      size: 64, color: AppThemeColors.mutedText(context)),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    t('no_notes_yet'),
-                                    style: TextStyle(
-                                        color: AppThemeColors.mutedText(context),
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    t('tap_plus_to_create_note'),
-                                    style: TextStyle(
-                                        color: AppThemeColors.mutedText(context), fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20.0, vertical: 8),
-                              itemCount: filteredNotes.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 16),
-                              itemBuilder: (context, i) {
-                                final note = filteredNotes[i];
-                                return GestureDetector(
-                                  onTap: () => createOrEditNote(note: note),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(22),
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Colors.orange,
-                                          Colors.white,
-                                          Colors.green
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
+                // Notes list
+                Expanded(
+                  child: _activeLoading
+                      ? Center(child: CircularProgressIndicator(color: AppThemeColors.primaryText(context)))
+                      : _activeError != null
+                          ? errorStateWidget(context, _activeError!, _isSharedTab ? fetchSharedNotes : fetchNotes)
+                          : _displayedNotes.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _isSharedTab ? Icons.inbox_rounded : Icons.note_outlined,
+                                        size: 64, color: AppThemeColors.mutedText(context),
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.08),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: _getNoteColor(i, context),
-                                        borderRadius: BorderRadius.circular(20),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        _isSharedTab ? 'No notes shared with you yet' : t('no_notes_yet'),
+                                        style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 18, fontWeight: FontWeight.w500),
                                       ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    note['title'] ??
-                                                        t('no_title_label'),
-                                                    style: TextStyle(
-                                                      fontSize: 18,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: AppThemeColors.primaryText(context),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _isSharedTab
+                                            ? 'When another admin shares a note with you it appears here'
+                                            : t('tap_plus_to_create_note'),
+                                        style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: () async {
+                                    if (_isSharedTab) await fetchSharedNotes(); else await fetchNotes();
+                                  },
+                                  color: AppColors.cyan,
+                                  child: ListView.separated(
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
+                                    itemCount: _displayedNotes.length,
+                                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                                    itemBuilder: (context, i) {
+                                      final note = _displayedNotes[i];
+                                      return GestureDetector(
+                                        onTap: () => createOrEditNote(note: note),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(22),
+                                            gradient: const LinearGradient(
+                                              colors: [Colors.orange, Colors.white, Colors.green],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                                          ),
+                                          child: Container(
+                                            decoration: BoxDecoration(color: _getNoteColor(i, context), borderRadius: BorderRadius.circular(20)),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(20),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  if (note['isShared'] == true && note['sharedFrom'] != null) ...[
+                                                    Container(
+                                                      margin: const EdgeInsets.only(bottom: 10),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.tricolorGreen.withValues(alpha: 0.12),
+                                                        borderRadius: BorderRadius.circular(20),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(Icons.share_rounded, size: 12, color: AppColors.tricolorGreen),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'From ${note['sharedFrom']['senderName'] ?? note['sharedFrom']['senderEmail'] ?? 'Unknown'}',
+                                                            style: TextStyle(fontSize: 11, color: AppColors.tricolorGreen, fontWeight: FontWeight.w600),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                PopupMenuButton(
-                                                  icon: Container(
-                                                    padding: EdgeInsets.all(4),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black
-                                                          .withValues(alpha: 0.05),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    child: Icon(Icons.more_vert,
-                                                        color: AppThemeColors.secondaryText(context),
-                                                        size: 20),
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              16)),
-                                                  elevation: 8,
-                                                  offset: Offset(0, 8),
-                                                  itemBuilder: (context) => [
-                                                    _noteMenuItem(Icons.edit, t('edit_note'), Colors.blue,
-                                                        () => Future.delayed(Duration.zero, () => createOrEditNote(note: note))),
-                                                    _noteMenuItem(Icons.copy_rounded, t('copy'), Colors.teal,
-                                                        () {
-                                                          Clipboard.setData(ClipboardData(
-                                                              text: '${note['title'] ?? ''}\n\n${note['content'] ?? ''}'));
-                                                          showSnack(context, t('copied_to_clipboard_message'));
-                                                        }),
-                                                    _noteMenuItem(Icons.share_rounded, t('share'), Colors.indigo,
-                                                        () => Share.share('${note['title'] ?? ''}\n\n${note['content'] ?? ''}')),
-                                                    _noteMenuItem(Icons.copy_all_rounded, t('duplicate'), Colors.orange,
-                                                        () => Future.delayed(Duration.zero, () async {
-                                                          final res = await ApiClient.post('/api/notes', body: {
-                                                            'title': '${note['title']} (copy)',
-                                                            'content': note['content'],
-                                                          });
-                                                          if (res.statusCode == 201) {
-                                                            final newNote = json.decode(res.body)['note'];
-                                                            setState(() { notes.insert(0, newNote); filterNotes(searchQuery); });
-                                                          }
-                                                        })),
-                                                    _noteMenuItem(Icons.delete_rounded, t('delete_note'), Colors.red,
-                                                        () => Future.delayed(Duration.zero, () => deleteNote(note['_id']))),
                                                   ],
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.calendar_today,
-                                                    size: 12,
-                                                    color: AppThemeColors.mutedText(context)),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  '${t('created')}: ${_formatDate(note['createdAt'])}',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: AppThemeColors.mutedText(context),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          note['title'] ?? t('no_title_label'),
+                                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                      PopupMenuButton(
+                                                        icon: Container(
+                                                          padding: const EdgeInsets.all(4),
+                                                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+                                                          child: Icon(Icons.more_vert, color: AppThemeColors.secondaryText(context), size: 20),
+                                                        ),
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                        elevation: 8,
+                                                        offset: const Offset(0, 8),
+                                                        itemBuilder: (_) => _buildNoteMenu(note),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Icon(Icons.update,
-                                                    size: 12,
-                                                    color: AppThemeColors.mutedText(context)),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  '${t('updated')}: ${_formatDate(note['updatedAt'])}',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: AppThemeColors.mutedText(context),
+                                                  const SizedBox(height: 12),
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.calendar_today, size: 12, color: AppThemeColors.mutedText(context)),
+                                                      const SizedBox(width: 4),
+                                                      Text('${t('created')}: ${_formatDate(note['createdAt'])}',
+                                                          style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                                                      const SizedBox(width: 12),
+                                                      Icon(Icons.update, size: 12, color: AppThemeColors.mutedText(context)),
+                                                      const SizedBox(width: 4),
+                                                      Text('${t('updated')}: ${_formatDate(note['updatedAt'])}',
+                                                          style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                                                    ],
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Text(
-                                              note['content'] ?? '',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: AppThemeColors.secondaryText(context),
-                                                height: 1.4,
+                                                  const SizedBox(height: 12),
+                                                  Text(
+                                                    note['content'] ?? '',
+                                                    style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context), height: 1.4),
+                                                    maxLines: 4,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
                                               ),
-                                              maxLines: 4,
-                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      ],
-    ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [Colors.orange, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () => createOrEditNote(),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
+        ],
       ),
+      floatingActionButton: !_isSharedTab
+          ? Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(colors: [Colors.orange, Colors.green], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
+              ),
+              child: FloatingActionButton(
+                onPressed: () => createOrEditNote(),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: const Icon(Icons.add, color: Colors.white, size: 28),
+              ),
+            )
+          : null,
     );
   }
 
   Color _getNoteColor(int index, BuildContext context) {
     final isDark = AppThemeColors.isDark(context);
     final colors = isDark
-        ? [
-            const Color(0xFF2C2418), // Dark cream
-            const Color(0xFF192519), // Dark green
-            const Color(0xFF2A1A1E), // Dark pink
-            const Color(0xFF161E2C), // Dark blue
-            const Color(0xFF26240E), // Dark yellow
-            const Color(0xFF221628), // Dark purple
-          ]
-        : [
-            const Color(0xFFFFF4E6), // Cream
-            const Color(0xFFE8F5E9), // Light green
-            const Color(0xFFFCE4EC), // Light pink
-            const Color(0xFFE3F2FD), // Light blue
-            const Color(0xFFFFF9C4), // Light yellow
-            const Color(0xFFF3E5F5), // Light purple
-          ];
+        ? [const Color(0xFF2C2418), const Color(0xFF192519), const Color(0xFF2A1A1E),
+           const Color(0xFF161E2C), const Color(0xFF26240E), const Color(0xFF221628)]
+        : [const Color(0xFFFFF4E6), const Color(0xFFE8F5E9), const Color(0xFFFCE4EC),
+           const Color(0xFFE3F2FD), const Color(0xFFFFF9C4), const Color(0xFFF3E5F5)];
     return colors[index % colors.length];
   }
 }

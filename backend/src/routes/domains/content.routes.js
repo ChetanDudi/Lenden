@@ -39,9 +39,13 @@ module.exports = (router, { auth, isAdmin, handleAdUpload }) => {
   router.post('/feedback', auth, feedbackController.submitFeedback);
   router.get('/feedback/my', auth, feedbackController.getUserFeedbacks);
 
-  // Notes
+  // Notes — specific paths before :id to avoid param capture
+  router.get('/notes/shared', auth, noteController.getSharedNotes);
+  router.get('/notes/recipients', auth, noteController.searchNoteRecipients);
+  router.post('/notes/share-content', auth, noteController.shareContentAsNote);
   router.post('/notes', auth, noteController.createNote);
   router.get('/notes', auth, noteController.getNotes);
+  router.post('/notes/:id/share', auth, noteController.shareNote);
   router.put('/notes/:id', auth, noteController.updateNote);
   router.delete('/notes/:id', auth, noteController.deleteNote);
 

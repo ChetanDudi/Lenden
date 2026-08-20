@@ -24,6 +24,7 @@ import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 const _kStCategories = [
   {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
@@ -961,19 +962,40 @@ class _SecureTransactionDetailPageState
       final footer = appLink.isNotEmpty ? '\n📥 $appLink' : '';
       Share.share(
         '📋 ${tr('transaction_summary_label')}\n'
-        '━━━━━━━━━━━━━━━━━━━\n'
+        '-------------------\n'
         '$role: $amount\n'
         '${tr('counterparty_label')}: $counterparty\n'
         '${tr('date_label')}: $date\n'
         '${tr('interest_label')}: $interest\n'
         '${tr('remaining_label')}: $remaining\n'
         '${tr('id_label')}: $txId\n'
-        '━━━━━━━━━━━━━━━━━━━\n'
+        '-------------------\n'
         '${tr('shared_via_lenden_message')}'
         '$footer',
         subject: '${tr('lenden_transaction_label')}: $amount',
       );
     });
+  }
+
+  void _shareTransactionAsNote() {
+    final tr = AppLocalizations.of(context).t;
+    final t = _t;
+    final role = widget.isLending ? tr('lent_label') : tr('borrowed_label');
+    final amount = _formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString());
+    final counterparty = t['counterpartyEmail'] ?? '—';
+    final rawDate = t['date']?.toString() ?? '';
+    final date = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+    final remaining = _formatDisplayAmount(
+        double.tryParse(_calculateRemainingAmount(t)) ?? 0, t['currency']?.toString());
+    final content =
+        '$role: $amount\n'
+        '${tr('counterparty_label')}: $counterparty\n'
+        '${tr('date_label')}: $date\n'
+        '${tr('remaining_label')}: $remaining';
+    showShareAsNoteSheet(context,
+      title: '${tr('transaction_summary_label')} - $amount',
+      content: content,
+    );
   }
 
   void _showPaymentTimeline() {
@@ -1410,6 +1432,11 @@ class _SecureTransactionDetailPageState
                         label: loc('share_label'),
                         color: Colors.deepPurple,
                         onTap: _shareTransaction),
+                    _serviceChip(
+                        icon: Icons.note_add_rounded,
+                        label: 'As Note',
+                        color: AppColors.tricolorGreen,
+                        onTap: _shareTransactionAsNote),
                     _serviceChip(
                         icon: Icons.timeline,
                         label: loc('timeline_label'),

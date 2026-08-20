@@ -11,6 +11,7 @@ import '../../../widgets/app_colors.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../utils/responsive.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 const _kCategories = [
   {'key': 'food',          'label': 'Food'},
@@ -244,7 +245,7 @@ class _QuickTransactionHistoryPageState
     final buf = StringBuffer();
     final desc = (_tx['description'] ?? '').toString();
     buf.writeln('CURRENT STATE — "${desc.isNotEmpty ? desc : 'Quick Transaction'}"');
-    buf.writeln('─' * 40);
+    buf.writeln('-' * 40);
     buf.writeln('Amount      : ${_fmtAmount(_tx['amount'], _tx['currency'])}');
     buf.writeln('Description : ${_tx['description'] ?? '—'}');
     buf.writeln('Role        : ${_roleLbl(_myRole)}');
@@ -267,7 +268,7 @@ class _QuickTransactionHistoryPageState
     buf.writeln(_buildCurrentStateText());
     buf.writeln('');
     buf.writeln('EDIT HISTORY (${_history.length} edit${_history.length == 1 ? '' : 's'})');
-    buf.writeln('─' * 40);
+    buf.writeln('-' * 40);
     if (_history.isEmpty) {
       buf.writeln('No edits recorded.');
     } else {
@@ -660,6 +661,18 @@ class _QuickTransactionHistoryPageState
                       description: const Text('Full history copied to clipboard'),
                     ).show(context);
                   }
+                },
+              ),
+              const Divider(height: 1),
+              _shareOption(
+                icon: Icons.note_add_rounded,
+                color: AppColors.tricolorGreen,
+                label: 'Share as Note',
+                subtitle: 'Send to a LenDen user as a note',
+                onTap: () async {
+                  Navigator.pop(context);
+                  final desc = (_tx['description'] ?? 'Quick Transaction').toString();
+                  await showShareAsNoteSheet(context, title: desc, content: _buildCurrentStateText());
                 },
               ),
             ],

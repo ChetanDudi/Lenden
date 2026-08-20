@@ -16,6 +16,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../widgets/search_tab_bar.dart';
 import './widgets/group_expense_helpers.dart';
 import './widgets/add_expense_sheet.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 class GroupExpensesPage extends StatefulWidget {
   final String groupId;
@@ -297,6 +298,27 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
                     onPressed: () {
                       Navigator.pop(context);
                       _requestReceipt('share');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.tricolorGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.note_add_rounded),
+                    label: const Text('Share as Note'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      showShareAsNoteSheet(
+                        context,
+                        title: '${widget.groupTitle} – Group Report',
+                        content: 'Group expenses report for "${widget.groupTitle}". Open LenDen to view the full breakdown.',
+                      );
                     },
                   ),
                 ),

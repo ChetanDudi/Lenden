@@ -32,6 +32,7 @@ const activitySchema = new mongoose.Schema({
       'note_created',
       'note_edited',
       'note_deleted',
+      'note_shared',
       
       // Profile activities
       'profile_updated',

@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/share_utils.dart';
+import 'share_as_note_sheet.dart';
 
 /// Reusable full-screen payment success celebration.
 ///
@@ -97,7 +98,7 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
       buf.writeln('🎉 ${widget.title}');
       buf.writeln('');
       buf.writeln('📋 Receipt — LenDen App');
-      buf.writeln('━━━━━━━━━━━━━━━━━━━━━━');
+      buf.writeln('--------------------');
       buf.writeln('Type     : ${widget.transactionType}');
       if (widget.amount != null) {
         buf.writeln(
@@ -110,11 +111,29 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
       for (final e in widget.extraDetails.entries) {
         buf.writeln('${e.key.padRight(9)}: ${e.value}');
       }
-      buf.writeln('━━━━━━━━━━━━━━━━━━━━━━');
+      buf.writeln('--------------------');
       buf.writeln('Powered by LenDen — Lend, borrow & manage money together.');
       if (appLink.isNotEmpty) buf.writeln('📥 $appLink');
       Share.share(buf.toString(), subject: 'LenDen Payment Receipt');
     });
+  }
+
+  void _shareAsNote() {
+    final now = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
+    final buf = StringBuffer();
+    buf.writeln('Type: ${widget.transactionType}');
+    if (widget.amount != null) buf.writeln('Amount: ${widget.currency}${widget.amount!.toStringAsFixed(2)}');
+    if (widget.recipientName != null) buf.writeln('To: ${widget.recipientName}');
+    buf.writeln('Date: $now');
+    final _idPattern = RegExp(
+      r'^[0-9a-f]{24}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      caseSensitive: false,
+    );
+    for (final e in widget.extraDetails.entries) {
+      if (_idPattern.hasMatch(e.value.trim())) continue;
+      buf.writeln('${e.key}: ${e.value}');
+    }
+    showShareAsNoteSheet(context, title: widget.title, content: buf.toString().trim());
   }
 
   @override
@@ -326,6 +345,16 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _shareAsNote,
+                    icon: const Icon(Icons.note_add_rounded, color: Colors.white, size: 18),
+                    label: const Text(
+                      'Share as Note',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                     ),
                   ),
 

@@ -341,6 +341,7 @@ exports.pay = async (req, res) => {
     }).catch(() => {});
 
     res.json({ message: 'Payment successful', balance: newBalance });
+    createActivityLog(req.user._id, 'wallet_payment', 'Wallet Payment Sent', `Sent ₹${amount} to ${receiver.email}`, { amount, toEmail: receiver.email, note: note || 'Wallet transfer' }).catch(() => {});
   } catch (err) {
     if (err.message === 'Insufficient wallet balance') {
       User.findById(req.user._id).select('notificationSettings').then(u => {
@@ -779,6 +780,7 @@ exports.payToUserWithOtp = async (req, res) => {
     }).catch(() => {});
 
     res.json({ message: 'Payment successful', balance: newBalance });
+    createActivityLog(req.user._id, 'wallet_payment', 'Wallet Payment Sent', `Sent ₹${amount} to ${receiver.email}`, { amount, toEmail: receiver.email, note: note || 'Wallet transfer' }).catch(() => {});
   } catch (err) {
     if (err.message === 'Insufficient wallet balance') {
       User.findById(req.user._id).select('notificationSettings').then(u => {

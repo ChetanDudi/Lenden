@@ -477,6 +477,10 @@ exports.logNoteActivity = async (userId, type, note, metadata = {}, creatorInfo 
         activityData.description = `Deleted by ${creatorEmail} - note "${note.title}"`;
       }
       break;
+    case 'note_shared':
+      activityData.title = 'Note Shared';
+      activityData.description = `Shared note "${note.title}" with ${metadata.targetEmail || 'a user'}`;
+      break;
   }
   
   return await createActivityLog(userId, type, activityData.title, activityData.description, metadata, {
@@ -528,6 +532,10 @@ exports.logQuickTransactionActivity = async (userId, type, transaction, metadata
     case 'quick_transaction_cleared_all':
       activityData.title = 'All Quick Transactions Cleared';
       activityData.description = 'You cleared all your quick transactions.';
+      break;
+    case 'quick_transaction_paid':
+      activityData.title = 'Quick Transaction Paid';
+      activityData.description = `You paid ${transaction.amount} ${transaction.currency} for "${transaction.description}" via wallet`;
       break;
   }
 

@@ -13,6 +13,7 @@ import './create_edit_quick_transaction_page.dart';
 import './quick_transaction_history_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 const _kQtCategories = [
   {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
@@ -403,7 +404,7 @@ class _QuickTransactionDetailPageState
     final t = AppLocalizations.of(context).t;
     final roleLabel = _myRole == 'lender' ? t('lent_label') : t('borrowed_label');
     fetchAppInviteLink().then((appLink) {
-      final footer = appLink.isNotEmpty ? '\n──────────────────\n📱 Shared via LenDen\n$appLink' : '';
+      final footer = appLink.isNotEmpty ? '\n------------------\nShared via LenDen\n$appLink' : '';
       final msg =
           '${t('quick_transaction_summary_title')}\n'
           '${_formatAmount()} - $_currency\n'
@@ -414,6 +415,22 @@ class _QuickTransactionDetailPageState
           '$footer';
       Share.share(msg);
     });
+  }
+
+  void _shareTransactionAsNote() {
+    final t = AppLocalizations.of(context).t;
+    final roleLabel = _myRole == 'lender' ? t('lent_label') : t('borrowed_label');
+    final content =
+        '${t('quick_transaction_summary_title')}\n'
+        '${_formatAmount()} - $_currency\n'
+        '${t('you_role_to_from_counterparty_label').replaceFirst('{role}', roleLabel).replaceFirst('{counterparty}', _counterpartyEmail)}\n'
+        '${t('description_colon_label')} $_description\n'
+        '${t('status_colon_label')} ${_cleared ? t('cleared') : t('pending_label')}\n'
+        '${t('settlement_colon_label')} $_settlementStatus';
+    showShareAsNoteSheet(context,
+      title: '${t('quick_transaction_summary_title')} - ${_formatAmount()} $_currency',
+      content: content,
+    );
   }
 
   // Direct "Pay Now" — /pay atomically transfers the wallet money and marks
@@ -637,6 +654,9 @@ class _QuickTransactionDetailPageState
               case 'share':
                 _shareTransaction();
                 break;
+              case 'share_as_note':
+                _shareTransactionAsNote();
+                break;
             }
           },
           itemBuilder: (_) => [
@@ -662,6 +682,14 @@ class _QuickTransactionDetailPageState
               child: ListTile(
                 leading: const Icon(Icons.share, color: Colors.green),
                 title: Text(t('share')),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: 'share_as_note',
+              child: ListTile(
+                leading: Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen),
+                title: const Text('Share as Note'),
                 contentPadding: EdgeInsets.zero,
               ),
             ),

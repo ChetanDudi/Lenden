@@ -237,7 +237,22 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
       isExternalUser: !!isExternalUser,
     });
 
-    await quickTransaction.save();
+    // If save fails, refund coins so the user is not penalised for a server error.
+    try {
+      await quickTransaction.save();
+    } catch (saveErr) {
+      await User.findByIdAndUpdate(user._id, { $inc: { lenDenCoins: QUICK_TRANSACTION_COST } });
+      await recordCoinLedgerEntry({
+        userId: user._id,
+        direction: 'earned',
+        coins: QUICK_TRANSACTION_COST,
+        source: 'refund_quick_transaction_with_coins',
+        title: 'Refund: Quick Transaction Creation Failed',
+        description: `Refunded ${QUICK_TRANSACTION_COST} coins after quick transaction creation failed.`,
+        metadata: { error: saveErr.message },
+      });
+      throw saveErr;
+    }
     const referralReward = await processReferralRewardOnFirstCreation(req.user._id);
     await logQuickTransactionActivity(req.user._id, 'quick_transaction_created_with_coins', quickTransaction, { counterpartyEmail: isExternalUser ? null : counterpartyEmail, counterpartyName: isExternalUser ? counterpartyName : null });
 
@@ -504,8 +519,8 @@ exports.updateQuickTransaction = async (req, res) => {
       return res.status(403).json({ error: 'Cannot edit a cleared transaction' });
     }
 
-    if (!quickTransaction.users.includes(userEmail)) {
-      return res.status(403).json({ error: 'User not authorized to update this transaction' });
+    if (quickTransaction.creatorEmail !== userEmail) {
+      return res.status(403).json({ error: 'Only the creator can edit this transaction' });
     }
 
     quickTransaction.editHistory.push({
@@ -769,7 +784,14 @@ exports.respondQuickTransactionSettlement = async (req, res) => {
 exports.clearAllQuickTransactions = async (req, res) => {
   try {
     const userEmail = req.user.email;
-    await QuickTransaction.deleteMany({ users: userEmail });
+    // Hard-delete transactions where this user is the only party (external/solo records).
+    await QuickTransaction.deleteMany({ users: [userEmail] });
+    // For shared transactions (two LenDen users), just remove this user from the users
+    // array so the counterparty's record is preserved.
+    await QuickTransaction.updateMany(
+      { users: userEmail, $where: 'this.users.length > 1' },
+      { $pull: { users: userEmail } }
+    );
     await logQuickTransactionActivity(req.user._id, 'quick_transaction_cleared_all', {});
     res.status(200).json({ message: 'All quick transactions cleared successfully' });
   } catch (error) {

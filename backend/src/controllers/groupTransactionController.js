@@ -1307,6 +1307,8 @@ exports.leaveGroup = async (req, res) => {
     
     res.json({ group: groupObj });
 
+    logGroupActivity(req.user._id, 'group_left', group, {}).catch(() => {});
+
     // Send email + notify group creator
     try {
       groupTransactionEmail.sendMemberLeftEmail(populatedGroup, req.user.email);
@@ -2579,6 +2581,8 @@ exports.joinByCode = async (req, res) => {
 
     await group.save();
     res.json({ success: true, group });
+
+    logGroupActivity(req.user._id, 'group_joined', group, {}).catch(() => {});
 
     // Notify group creator that a new member joined
     User.findById(group.creator).select('notificationSettings').then(creatorUser => {

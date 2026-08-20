@@ -45,6 +45,14 @@ exports.generateReceipt = async (req, res) => {
       return res.status(403).json({ error: 'You are not a party to this transaction.' });
     }
 
+    // Receipt may only be emailed to a party of the transaction, not an arbitrary address.
+    if (action === 'email') {
+      const allowedEmails = [transaction.userEmail, transaction.counterpartyEmail].map(e => e.toLowerCase());
+      if (!allowedEmails.includes(email.toLowerCase())) {
+        return res.status(403).json({ error: 'Receipt can only be sent to parties of this transaction.' });
+      }
+    }
+
     // Generate PDF with custom size
     const doc = new PDFDocument({ 
       margin: 0,
@@ -459,26 +467,41 @@ exports.createTransactionWithCoins = async (req, res) => {
       },
     });
 
-    // Save transaction
-    const transaction = await Transaction.create({
-      amount,
-      currency,
-      date,
-      time,
-      place,
-      photos,
-      counterpartyEmail,
-      userEmail,
-      role,
-      interestType: finalInterestType,
-      interestRate: finalInterestRate,
-      expectedReturnDate: finalExpectedReturnDate,
-      compoundingFrequency: finalCompoundingFrequency,
-      description: description || '',
-      category: category || 'other',
-      remainingAmount: totalAmountWithInterest,
-      totalAmountWithInterest: totalAmountWithInterest
-    });
+    // Save transaction — if this fails, refund coins so the user is not penalised.
+    let transaction;
+    try {
+      transaction = await Transaction.create({
+        amount,
+        currency,
+        date,
+        time,
+        place,
+        photos,
+        counterpartyEmail,
+        userEmail,
+        role,
+        interestType: finalInterestType,
+        interestRate: finalInterestRate,
+        expectedReturnDate: finalExpectedReturnDate,
+        compoundingFrequency: finalCompoundingFrequency,
+        description: description || '',
+        category: category || 'other',
+        remainingAmount: totalAmountWithInterest,
+        totalAmountWithInterest: totalAmountWithInterest
+      });
+    } catch (saveErr) {
+      await User.findByIdAndUpdate(user._id, { $inc: { lenDenCoins: TRANSACTION_COST } });
+      await recordCoinLedgerEntry({
+        userId: user._id,
+        direction: 'earned',
+        coins: TRANSACTION_COST,
+        source: 'refund_secure_transaction_with_coins',
+        title: 'Refund: Secure Transaction Creation Failed',
+        description: `Refunded ${TRANSACTION_COST} coins after transaction creation failed.`,
+        metadata: { error: saveErr.message },
+      });
+      throw saveErr;
+    }
     const referralReward = await processReferralRewardOnFirstCreation(req.user._id);
 
     // Log activity for both users with creator context
@@ -593,7 +616,8 @@ exports.createTransaction = async (req, res) => {
       });
     }
 
-    if (!(await isSubscribed(user._id))) {
+    const subscribed = await isSubscribed(user._id);
+    if (!subscribed) {
       const { start, end } = getTodayRange();
       const todayCount = await Transaction.countDocuments({
         userEmail: user.email,
@@ -651,33 +675,42 @@ exports.createTransaction = async (req, res) => {
     });
     const referralReward = await processReferralRewardOnFirstCreation(req.user._id);
     
+    // Decrement free-transaction counter in DB so the UI value stays accurate.
+    let updatedFreeRemaining = user.freeUserTransactionsRemaining;
+    if (!subscribed && user.freeUserTransactionsRemaining > 0) {
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { $inc: { freeUserTransactionsRemaining: -1 } },
+        { new: true }
+      ).select('freeUserTransactionsRemaining');
+      if (updatedUser) updatedFreeRemaining = updatedUser.freeUserTransactionsRemaining;
+    }
+
     // Log activity for both users with creator context
     try {
-      const [user, counterparty] = await Promise.all([
+      const [creatorDoc, cpDoc] = await Promise.all([
         User.findOne({ email: userEmail }).select('_id notificationSettings'),
         User.findOne({ email: counterpartyEmail }).select('_id notificationSettings'),
       ]);
 
-      // Determine who created the transaction (the user making the request)
       const creatorInfo = {
-        creatorId: user._id,
+        creatorId: creatorDoc?._id ?? req.user._id,
         creatorEmail: userEmail
       };
-      
-      if (user) {
-        await logTransactionActivity(user._id, 'transaction_created', transaction, {}, creatorInfo);
+
+      if (creatorDoc) {
+        await logTransactionActivity(creatorDoc._id, 'transaction_created', transaction, {}, creatorInfo);
       }
-      if (counterparty) {
-        await logTransactionActivity(counterparty._id, 'transaction_created', transaction, {}, creatorInfo);
-        // Notify counterparty of the new transaction
-        if (counterparty.notificationSettings?.transactionNotifications !== false) {
+      if (cpDoc) {
+        await logTransactionActivity(cpDoc._id, 'transaction_created', transaction, {}, creatorInfo);
+        if (cpDoc.notificationSettings?.transactionNotifications !== false) {
           await Notification.create({
-            sender: user._id, senderModel: 'User', recipientType: 'specific-users',
-            recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [cpDoc._id], recipientModel: 'User', category: 'transaction',
             message: `${userEmail} recorded a ${role} transaction of ₹${amount} with you.`,
           });
         }
-        sendToUser(User, counterparty._id, { title: 'New Transaction 🔐', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+        sendToUser(User, cpDoc._id, { title: 'New Transaction 🔐', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
       }
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
@@ -688,17 +721,14 @@ exports.createTransaction = async (req, res) => {
     let awardedCard = null;
     if (shouldAwardGiftCard(user._id, userTxnCount, 5)) {
       awardedCard = await awardGiftCard(user._id, 'userTransaction');
-    } else {
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Transaction created successfully",
-      transactionId: transaction.transactionId, 
+      transactionId: transaction.transactionId,
       transaction,
-      freeUserTransactionsRemaining: !subscribed && user.freeUserTransactionsRemaining > 0
-        ? user.freeUserTransactionsRemaining - 1
-        : user.freeUserTransactionsRemaining,
+      freeUserTransactionsRemaining: updatedFreeRemaining,
       referralReward,
       giftCardAwarded: awardedCard ? true : false,
       awardedCard: awardedCard
@@ -734,6 +764,9 @@ exports.sendCounterpartyOTP = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
   try {
+    // Validate the target is a registered LenDen user — prevents using this as a spam vector.
+    const target = await User.findOne({ email: email.toLowerCase().trim() }).select('_id');
+    if (!target) return res.status(404).json({ error: 'No LenDen account found for this email.' });
     await lendingborrowingotp.resendOtp(email);
     res.json({ message: 'OTP sent to counterparty email' });
   } catch (err) {
@@ -754,6 +787,10 @@ exports.verifyCounterpartyOTP = async (req, res) => {
 exports.sendUserOTP = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
+  // The OTP must go to the authenticated user's own email only.
+  if (email.toLowerCase().trim() !== req.user.email.toLowerCase().trim()) {
+    return res.status(403).json({ error: 'You can only request an OTP for your own account email.' });
+  }
   try {
     await lendingborrowingotp.resendOtp(email);
     res.json({ message: 'OTP sent to user email' });
@@ -965,34 +1002,35 @@ exports.clearTransaction = async (req, res) => {
     } else {
       return res.status(403).json({ error: 'You are not a party to this transaction' });
     }
-    // When a real payment was made, clear both sides at once.
+    // When a real wallet payment was made, clear both sides at once.
+    // Require paidAmount > 0 so a caller cannot dual-clear with amount:0.
     if (bothSides && updated) {
-      transaction.userCleared = true;
-      transaction.counterpartyCleared = true;
-
-      // Record the payment in partialPayments so it appears in history.
-      // Cap at server-known remainingAmount so callers cannot inject an
-      // arbitrary amount and create a fraudulent audit record.
       const requestedAmount = req.body.amount ? Number(req.body.amount) : 0;
       const serverRemaining = transaction.remainingAmount ?? transaction.amount;
       const paidAmount = Math.min(requestedAmount, serverRemaining > 0 ? serverRemaining : requestedAmount);
-      if (paidAmount > 0) {
-        const lenderEmail = transaction.role === 'lender'
-          ? transaction.userEmail
-          : transaction.counterpartyEmail;
-        const paidBy = email.toLowerCase() === lenderEmail.toLowerCase() ? 'lender' : 'borrower';
-        const paymentMethod = req.body.paymentMethod || 'wallet';
-        transaction.partialPayments.push({
-          amount: paidAmount,
-          paidBy,
-          paidAt: new Date(),
-          description: paymentMethod === 'wallet'
-            ? 'Pay Now via LenDen Wallet'
-            : 'Pay Now payment',
-          paymentMethod,
-        });
-        transaction.isPartiallyPaid = true;
+
+      if (paidAmount <= 0) {
+        return res.status(400).json({ error: 'A positive payment amount is required to clear both sides.' });
       }
+
+      transaction.userCleared = true;
+      transaction.counterpartyCleared = true;
+
+      const lenderEmail = transaction.role === 'lender'
+        ? transaction.userEmail
+        : transaction.counterpartyEmail;
+      const paidBy = email.toLowerCase() === lenderEmail.toLowerCase() ? 'lender' : 'borrower';
+      const paymentMethod = req.body.paymentMethod || 'wallet';
+      transaction.partialPayments.push({
+        amount: paidAmount,
+        paidBy,
+        paidAt: new Date(),
+        description: paymentMethod === 'wallet'
+          ? 'Pay Now via LenDen Wallet'
+          : 'Pay Now payment',
+        paymentMethod,
+      });
+      transaction.isPartiallyPaid = true;
     }
     if (updated) {
       await transaction.save();
@@ -1208,6 +1246,12 @@ exports.verifyPartialPaymentOTP = async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+
+    // Each party can only verify their own OTP — prevents one user from verifying the other's side.
+    if (cleanEmail !== req.user.email.toLowerCase().trim()) {
+      return res.status(403).json({ error: 'You can only verify your own email OTP.' });
+    }
+
     let role;
     if (transaction.userEmail.toLowerCase() === cleanEmail) {
       role = transaction.role;
@@ -1264,12 +1308,16 @@ exports.processPartialPayment = async (req, res) => {
     const lenderEmail = transaction.role === 'lender' ? transaction.userEmail : transaction.counterpartyEmail;
     const borrowerEmail = transaction.role === 'lender' ? transaction.counterpartyEmail : transaction.userEmail;
 
-    if (
-      !lendingborrowingotp.isPartialPaymentVerified(transactionId, 'lender') ||
-      !lendingborrowingotp.isPartialPaymentVerified(transactionId, 'borrower')
-    ) {
+    // Atomically consume the verified flags before entering the session.
+    // This prevents two concurrent requests from both passing the check and
+    // both entering the session, which would cause a double-payment.
+    const lenderVerified = lendingborrowingotp.isPartialPaymentVerified(transactionId, 'lender');
+    const borrowerVerified = lendingborrowingotp.isPartialPaymentVerified(transactionId, 'borrower');
+    if (!lenderVerified || !borrowerVerified) {
       return res.status(400).json({ error: 'Both parties must verify their OTP before payment can be processed' });
     }
+    // Consume immediately — any concurrent duplicate request will now fail the check above.
+    lendingborrowingotp.consumePartialPaymentVerified(transactionId);
 
     // Calculate interest on the current remaining amount (not the original amount)
     let currentRemainingAmount = transaction.remainingAmount || transaction.amount;
@@ -1404,9 +1452,6 @@ exports.processPartialPayment = async (req, res) => {
 
       newBalance = payer.walletBalance;
     });
-
-    // One-time-use â€” both parties must re-verify OTP for any further payment.
-    lendingborrowingotp.consumePartialPaymentVerified(transactionId);
 
     // Log activity for partial payment - both parties get notified
     // req.user._id is the payer; payee._id was already fetched above (line ~1293).

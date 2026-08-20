@@ -23,6 +23,7 @@ import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 
 class ViewGroupTransactionsPage extends StatefulWidget {
   const ViewGroupTransactionsPage({super.key});
@@ -1335,6 +1336,19 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     ).then((_) {});
   }
 
+  void _shareGroupAsNote(Map<String, dynamic> group) {
+    final groupName = (group['title'] ?? 'Group').toString();
+    final members = List.from(group['members'] ?? []);
+    final expenses = List.from(group['expenses'] ?? []);
+    final joinCode = (group['joinCode'] ?? '').toString().trim();
+    final buf = StringBuffer();
+    buf.writeln('Group: $groupName');
+    buf.writeln('Members: ${members.length}');
+    buf.writeln('Expenses: ${expenses.length}');
+    if (joinCode.isNotEmpty) buf.writeln('Join Code: $joinCode');
+    showShareAsNoteSheet(context, title: groupName, content: buf.toString().trim());
+  }
+
   Future<void> _shareGroupInvite(Map<String, dynamic> group) async {
     final joinCode = (group['joinCode'] ?? '').toString().trim();
     final groupName = (group['title'] ?? 'the group').toString();
@@ -1395,6 +1409,20 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     }
     Navigator.push(
         context, MaterialPageRoute(builder: (_) => const CreateGroupPage()));
+  }
+
+  // ── Share as Note ─────────────────────────────────────────────────────────
+  void _shareGroupSummaryAsNote() {
+    final buf = StringBuffer();
+    buf.writeln('Group Transactions Summary');
+    buf.writeln('Total groups: ${userGroups.length}');
+    for (final g in userGroups.take(5)) {
+      final title = (g['title'] ?? 'Group').toString();
+      final memberCount = (g['members'] as List?)?.length ?? 0;
+      buf.writeln('- $title ($memberCount member${memberCount == 1 ? '' : 's'})');
+    }
+    if (userGroups.length > 5) buf.writeln('...and ${userGroups.length - 5} more');
+    showShareAsNoteSheet(context, title: 'My Groups on LenDen', content: buf.toString().trim());
   }
 
   // ── CSV Export ────────────────────────────────────────────────────────────
@@ -1662,6 +1690,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
               onSelected: (value) {
                 if (value == 'export_csv') _exportCsv();
                 if (value == 'export_pdf') _exportPdf();
+                if (value == 'share_as_note') _shareGroupSummaryAsNote();
               },
               itemBuilder: (ctx) => [
                 if (userGroups.isNotEmpty) ...[
@@ -1679,6 +1708,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                       Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
                       SizedBox(width: 12),
                       Text('Export PDF'),
+                    ]),
+                  ),
+                  const PopupMenuItem(
+                    value: 'share_as_note',
+                    child: Row(children: [
+                      Icon(Icons.note_add_rounded, size: 18, color: AppColors.tricolorGreen),
+                      SizedBox(width: 12),
+                      Text('Share as Note'),
                     ]),
                   ),
                 ],
@@ -2334,6 +2371,20 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                                 onPressed: () => _shareGroupInvite(group),
                                                               ),
                                                             ],
+                                                          ),
+                                                          const SizedBox(height: 8),
+                                                          SizedBox(
+                                                            width: double.infinity,
+                                                            child: OutlinedButton.icon(
+                                                              icon: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 16),
+                                                              label: const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontWeight: FontWeight.w600)),
+                                                              style: OutlinedButton.styleFrom(
+                                                                side: const BorderSide(color: AppColors.tricolorGreen),
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                                              ),
+                                                              onPressed: () => _shareGroupAsNote(group),
+                                                            ),
                                                           ),
 
                                                           SizedBox(height: 16),

@@ -63,6 +63,7 @@ class _ActivityPageState extends State<ActivityPage> {
     'note_created',
     'note_edited',
     'note_deleted',
+    'note_shared',
     'profile_updated',
     'password_changed',
     'login',
@@ -382,27 +383,29 @@ class _ActivityPageState extends State<ActivityPage> {
       case 'offer_accepted':
         return t('activity_type_offer_accepted');
       case 'wallet_topup':
-        return 'Wallet Top-up';
+        return t('activity_type_wallet_topup');
       case 'wallet_payment':
-        return 'Wallet Payment';
+        return t('activity_type_wallet_payment');
       case 'wallet_pin_set':
-        return 'Wallet PIN Set';
+        return t('activity_type_wallet_pin_set');
       case 'wallet_pin_removed':
-        return 'Wallet PIN Removed';
+        return t('activity_type_wallet_pin_removed');
       case 'withdrawal_requested':
-        return 'Withdrawal Requested';
+        return t('activity_type_withdrawal_requested');
       case 'budget_expense_added':
-        return 'Budget Expense Added';
+        return t('activity_type_budget_expense_added');
       case 'budget_expense_deleted':
-        return 'Budget Expense Deleted';
+        return t('activity_type_budget_expense_deleted');
       case 'quick_transaction_paid':
-        return 'Quick Transaction Paid';
+        return t('activity_type_quick_transaction_paid');
+      case 'note_shared':
+        return t('activity_type_note_shared');
       case 'support_reply_edited':
-        return 'Support Reply Edited';
+        return t('activity_type_support_reply_edited');
       case 'support_reply_deleted':
-        return 'Support Reply Deleted';
+        return t('activity_type_support_reply_deleted');
       case 'support_query_status_updated':
-        return 'Support Status Updated';
+        return t('activity_type_support_query_status_updated');
       default:
         return type.replaceAll('_', ' ').toUpperCase();
     }
@@ -431,6 +434,7 @@ class _ActivityPageState extends State<ActivityPage> {
       case 'note_created':
       case 'note_edited':
       case 'note_deleted':
+      case 'note_shared':
         return Icons.note;
       case 'profile_updated':
         return Icons.person;
@@ -499,6 +503,7 @@ class _ActivityPageState extends State<ActivityPage> {
       case 'transaction_created':
       case 'group_created':
       case 'note_created':
+      case 'note_shared':
       case 'expense_added':
         return Colors.green;
       case 'transaction_cleared':

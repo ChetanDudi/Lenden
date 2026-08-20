@@ -27,6 +27,7 @@ import '../../../widgets/budget_limit_banner.dart';
 import '../../../widgets/free_attempts_banner.dart';
 import '../../../widgets/search_tab_bar.dart';
 import '../../budget/budget_messages_page.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 import '../../budget/budget_planning_page.dart';
 
 const _kSecureCategories = [
@@ -2104,6 +2105,19 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     );
   }
 
+  // ── Share as Note ─────────────────────────────────────────────────────────
+  void _shareAsNote() {
+    final allTxns = [...lending, ...borrowing];
+    final lendCount = lending.length;
+    final borrowCount = borrowing.length;
+    final buf = StringBuffer();
+    buf.writeln('Secure Transactions Summary');
+    buf.writeln('Lending: $lendCount transaction${lendCount == 1 ? '' : 's'}');
+    buf.writeln('Borrowing: $borrowCount transaction${borrowCount == 1 ? '' : 's'}');
+    buf.writeln('Total: ${allTxns.length} transaction${allTxns.length == 1 ? '' : 's'}');
+    showShareAsNoteSheet(context, title: 'Secure Transactions Report', content: buf.toString().trim());
+  }
+
   // ── CSV Export ────────────────────────────────────────────────────────────
   Future<void> _exportCsv() async {
     final allTxns = [...lending, ...borrowing];
@@ -2330,6 +2344,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
             onSelected: (value) {
               if (value == 'export_csv') _exportCsv();
               if (value == 'export_pdf') _exportPdf();
+              if (value == 'share_as_note') _shareAsNote();
             },
             itemBuilder: (ctx) => [
               if (lending.isNotEmpty || borrowing.isNotEmpty) ...[
@@ -2347,6 +2362,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                     Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
                     SizedBox(width: 12),
                     Text('Export PDF'),
+                  ]),
+                ),
+                const PopupMenuItem(
+                  value: 'share_as_note',
+                  child: Row(children: [
+                    Icon(Icons.note_add_rounded, size: 18, color: AppColors.tricolorGreen),
+                    SizedBox(width: 12),
+                    Text('Share as Note'),
                   ]),
                 ),
               ],

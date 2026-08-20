@@ -6,6 +6,7 @@ const WalletTransaction = require('../models/walletTransaction');
 const WithdrawalRequest = require('../models/withdrawalRequest');
 const Notification = require('../models/notification');
 const { sendToUser } = require('../services/notificationService');
+const { createActivityLog } = require('./activityController');
 
 const MIN_WITHDRAWAL = 100; // ₹100
 
@@ -98,6 +99,8 @@ exports.initiateWithdrawal = async (req, res) => {
         status: 'processing',
       }], { session });
     });
+
+    createActivityLog(req.user._id, 'withdrawal_requested', 'Withdrawal Requested', `Requested ₹${parsedAmount} withdrawal via ${mode === 'upi' ? 'UPI' : 'bank transfer'}`, { amount: parsedAmount, mode }).catch(() => {});
 
     // ── Phase 2 (no RazorpayX payout account): queue for admin manual transfer ──
     if (!hasPayoutAccount) {

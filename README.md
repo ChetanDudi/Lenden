@@ -14,7 +14,7 @@ LenDen is a full-stack mobile application for tracking and settling money betwee
 | Payments | Razorpay (orders, webhooks, manual review) |
 | Auth | JWT (access + refresh tokens), Google OAuth 2.0 |
 | Email | Nodemailer (OTP, receipts, notifications) |
-| Scheduling | node-cron (7 background jobs) |
+| Scheduling | node-cron (9 background jobs) |
 | PDF | PDFKit (receipts, statements) |
 | Logging | Winston |
 
@@ -73,7 +73,7 @@ Lenden/
 - Real-money wallet balance per user
 - **Top-up via Razorpay** — Payment Handle link + manual payment verification
 - **Pay User** — transfer wallet balance to any registered user (OTP or PIN)
-- **Transaction PIN** — set/change/remove a 4-digit wallet PIN for fast auth
+- **Transaction PIN** — set/change/remove a 6-digit wallet PIN for fast auth
 - **Wallet history** — paginated ledger of all credits, debits, top-ups, and withdrawals
 - **Withdrawal** — request payout to bank (admin-reviewed; no RazorpayX required)
 - **QR/Scan payments** — scan a UPI QR code to request an external payment (admin-reviewed)
@@ -203,6 +203,8 @@ An in-app coin economy that rewards engagement.
 - **Mutual friends** display
 - **Block / Unblock** users
 - **Remove friend**
+- **Counterparties page** — view all people you've transacted with, ranked by activity
+- **User ratings** — rate a counterparty after settling; receive ratings from others
 - **Birthdays** — see upcoming friend birthdays
 - **Birthday wish** — send an in-app wish
 - **Birthday gift** — send coins as a gift
@@ -219,6 +221,7 @@ An in-app coin economy that rewards engagement.
 - **Budget streak** — track consecutive months under budget
 - **Recurring expenses** — log fixed monthly costs
 - **Budget messages** — system messages when limits are approached or exceeded
+- **Personal expenses** — log ad-hoc expenses against budget categories; searchable, filterable history
 - **Savings goals** — create, fund, and track financial goals
 - **Smart Insights** — AI-style spending tips and pattern analysis
 - **Financial Reports** — spending summary across all transaction types
@@ -704,7 +707,7 @@ On first startup, if no admin exists in the database, a default admin is created
 
 ## Dark Mode
 
-The app ships with full light/dark mode support controlled by a toggle in **Settings → Theme**. The preference is persisted in `flutter_secure_storage` and applied at startup through an `AppThemeNotifier` (Provider). Every screen and widget reads its palette from `AppThemeColors` helpers (`AppThemeColors.cardBg(context)`, `AppThemeColors.primaryText(context)`, etc.) — no hard-coded `Colors.white` or `Colors.black` appear in the UI layer.
+The app ships with light/dark mode support controlled by a toggle in **Settings → Theme**. The preference is persisted in `flutter_secure_storage` and applied at startup through an `AppThemeNotifier` (Provider). Most screens read their palette from `AppThemeColors` helpers (`AppThemeColors.cardBg(context)`, `AppThemeColors.primaryText(context)`, etc.). Coverage is broad but not exhaustive — some legacy widgets still use `AppColors` static constants (light-only) and are being migrated incrementally.
 
 ---
 

@@ -17,6 +17,7 @@ import '../../../utils/api_client.dart';
 import '../../../widgets/currency_display.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
+import '../../../widgets/share_as_note_sheet.dart';
 import '../../digitise/gift_card_page.dart';
 import '../analytics_page.dart';
 import '../../wallet/widgets/payment_sheet.dart';
@@ -1213,6 +1214,16 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                   .ignore();
             },
             label: Text(t('share')),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.note_add_rounded, size: 14),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.tricolorGreen),
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              final desc = (transaction['description'] ?? '').toString();
+              showShareAsNoteSheet(context, title: desc.isNotEmpty ? desc : t('lenden_quick_transaction_label'), content: receiptText);
+            },
+            label: const Text('Note'),
           ),
         ],
       ),
@@ -2983,6 +2994,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                                 _payNow(transaction);
                               } else if (value == 'share') {
                                 _showReceiptDialog(transaction);
+                              } else if (value == 'share_as_note') {
+                                final desc = (transaction['description'] ?? '').toString();
+                                final receiptText = _buildReceiptText(transaction);
+                                showShareAsNoteSheet(context, title: desc.isNotEmpty ? desc : t('lenden_quick_transaction_label'), content: receiptText);
                               } else if (value == 'pin') {
                                 _togglePinTransaction(
                                     (transaction['_id'] ?? '').toString());
@@ -3032,6 +3047,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                               PopupMenuItem(
                                 value: 'share',
                                 child: Text(t('share_receipt_label')),
+                              ),
+                              PopupMenuItem(
+                                value: 'share_as_note',
+                                child: Row(children: [
+                                  const Icon(Icons.note_add_rounded, size: 16, color: AppColors.tricolorGreen),
+                                  const SizedBox(width: 8),
+                                  const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontWeight: FontWeight.w600)),
+                                ]),
                               ),
                               PopupMenuItem(
                                 value: 'pin',

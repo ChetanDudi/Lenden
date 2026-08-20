@@ -27,7 +27,7 @@ class AppThemeColors {
       isDark(context) ? Colors.grey[400]! : Colors.grey[600]!;
 
   static Color mutedText(BuildContext context) =>
-      isDark(context) ? Colors.grey[500]! : Colors.grey[500]!;
+      isDark(context) ? Colors.grey[400]! : Colors.grey[500]!;
 
   static Color border(BuildContext context) =>
       isDark(context) ? Colors.white24 : const Color(0xFFBFE8F2);
@@ -42,6 +42,14 @@ class AppThemeColors {
 
   static Color waveSolid(BuildContext context) =>
       isDark(context) ? const Color(0xFF023047) : AppColors.cyan;
+
+  /// Warm card background used in home / summary cards.
+  static Color warmCardBg(BuildContext context) =>
+      isDark(context) ? const Color(0xFF1A1A2E) : const Color(0xFFFFF8F0);
+
+  /// Blue accent — use instead of the light-only [AppColors.blue].
+  static Color blue(BuildContext context) =>
+      isDark(context) ? const Color(0xFF64B5F6) : const Color(0xFF1976D2);
 
   /// Generic light/dark pair picker for the many hand-picked pastel "tinted
   /// surface" colors (status banners, alert dialogs, etc.) scattered across

@@ -15,6 +15,7 @@ import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' as dart_io;
 import '../../../utils/avatar_helpers.dart' as ah;
+import '../../../widgets/share_as_note_sheet.dart';
 
 class CreateGroupPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
@@ -640,6 +641,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               }
               await Share.share(msg, subject: 'Join $groupName on LenDen');
               ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
+            },
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.note_add_rounded, size: 16),
+            label: const Text('Share as Note'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.tricolorGreen),
+            onPressed: () {
+              Navigator.pop(ctx);
+              final content = StringBuffer();
+              content.writeln('Group: $groupName');
+              content.writeln('Download LenDen and ask the group admin for the join code.');
+              if (appLink.isNotEmpty) content.writeln('App: $appLink');
+              showShareAsNoteSheet(context, title: 'Join $groupName on LenDen', content: content.toString().trim());
             },
           ),
         ],
