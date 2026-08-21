@@ -6,11 +6,7 @@ const { sendPasswordResetOTP } = require('../utils/email/passwordresetemailotp')
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
 
 function isPasswordValid(password) {
-  if (!password || password.length < 8 || password.length > 30) return false;
-  if (!/[A-Z]/.test(password)) return false;
-  if (!/[a-z]/.test(password)) return false;
-  if (!/[^A-Za-z0-9]/.test(password)) return false;
-  return true;
+  return password != null && password.length >= 8 && password.length <= 30;
 }
 
 // Send OTP for password reset
@@ -70,7 +66,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!isPasswordValid(newPassword)) {
-      return res.status(400).json({ error: 'Password must be 8–30 characters and include uppercase, lowercase, and a special character.' });
+      return res.status(400).json({ error: 'Password must be 8–30 characters.' });
     }
 
     const Model = userType === 'admin' ? Admin : User;

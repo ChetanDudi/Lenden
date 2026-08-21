@@ -43,7 +43,8 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   String? _selectedGender;
   bool _detailsLocked = false;
   Timer? _otpTimer;
-  // double _rating = 0.0; // Rating removed
+  Timer? _usernameDebounce;
+  Timer? _emailDebounce;
 
   // Uniqueness check state
   bool _isUsernameUnique = true;
@@ -69,6 +70,8 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   @override
   void dispose() {
     _otpTimer?.cancel();
+    _usernameDebounce?.cancel();
+    _emailDebounce?.cancel();
     _nameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
@@ -205,6 +208,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         final userOrAdmin = result['userOrAdmin'];
         final token = result['accessToken'] as String;
         final refreshToken = result['refreshToken'] as String;
+        final isNewUser = result['isNewUser'] == true;
 
         final session = Provider.of<SessionProvider>(context, listen: false);
         await session.saveTokens(token, refreshToken);
@@ -213,6 +217,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         userData['role'] = 'user';
         session.setUser(userData);
         await session.checkSubscriptionStatus();
+
+        if (isNewUser && mounted) {
+          await _showReferralCodeDialog();
+        }
 
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/user/dashboard');
@@ -344,6 +352,83 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showReferralCodeDialog() async {
+    final t = AppLocalizations.of(context).t;
+    final codeController = TextEditingController();
+    String? errorText;
+    bool applying = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppThemeColors.cardBg(ctx),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(t('referral_dialog_title')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(t('referral_dialog_body'),
+                  style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: t('referral_code_hint'),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  errorText: errorText,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: applying ? null : () => Navigator.pop(ctx),
+              child: Text(t('referral_skip')),
+            ),
+            ElevatedButton(
+              onPressed: applying
+                  ? null
+                  : () async {
+                      final code = codeController.text.trim();
+                      if (code.isEmpty) { Navigator.pop(ctx); return; }
+                      setDialogState(() { applying = true; errorText = null; });
+                      try {
+                        final res = await ApiClient.post('/api/referral/apply-code', body: {'referralCode': code});
+                        final data = jsonDecode(res.body);
+                        if (res.statusCode == 200) {
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(t('referral_code_applied_toast')),
+                              duration: const Duration(seconds: 4),
+                            ));
+                          }
+                        } else {
+                          setDialogState(() { applying = false; errorText = data['error'] ?? t('referral_invalid_code'); });
+                        }
+                      } catch (_) {
+                        setDialogState(() { applying = false; errorText = t('referral_apply_network_error'); });
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.cyan,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: applying
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(t('referral_apply'), style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+    codeController.dispose();
   }
 
   void _showRegistrationSuccessDialog() {
@@ -538,7 +623,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                         controller: _usernameController,
                         enabled: !_detailsLocked,
                         onChanged: (val) {
-                          if (val.isNotEmpty) _checkUsernameUnique(val);
+                          _usernameDebounce?.cancel();
+                          _usernameDebounce = Timer(const Duration(milliseconds: 400), () {
+                            if (val.isNotEmpty) _checkUsernameUnique(val);
+                          });
                         },
                         decoration: InputDecoration(
                           labelText: 'Username',
@@ -593,7 +681,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                         controller: _emailController,
                         enabled: !_detailsLocked,
                         onChanged: (val) {
-                          if (val.isNotEmpty) _checkEmailUnique(val);
+                          _emailDebounce?.cancel();
+                          _emailDebounce = Timer(const Duration(milliseconds: 400), () {
+                            if (val.isNotEmpty) _checkEmailUnique(val);
+                          });
                         },
                         decoration: InputDecoration(
                           labelText: 'Email',
@@ -690,10 +781,12 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           child: Text(_errorMessage!,
                               style: const TextStyle(color: Colors.red)),
                         ),
-                      SizedBox(
+                      Opacity(
+                        opacity: _isGoogleLoading ? 0.45 : 1.0,
+                        child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _register,
+                          onPressed: (_isLoading || _isGoogleLoading) ? null : _register,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
@@ -748,6 +841,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           ),
                         ),
                       ),
+                    ),
                     ] else ...[
                       if (_errorMessage != null)
                         Padding(
@@ -858,7 +952,9 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    SizedBox(
+                    Opacity(
+                      opacity: (_isLoading || _otpSent) ? 0.45 : 1.0,
+                      child: SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
                         onPressed:
@@ -893,6 +989,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                                 ],
                               ),
                       ),
+                    ),
                     ),
                     const SizedBox(height: 18),
                     Row(

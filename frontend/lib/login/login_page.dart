@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import '../otp_input.dart';
@@ -52,6 +53,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
   String _loginOtp = '';
   String? _otpErrorMessage;
   int _otpSecondsLeft = 0;
+  Timer? _otpTimer;
   String? _deviceId;
 
   bool get _isSubmitting => _isLoading || _isVerifyingOtp;
@@ -79,6 +81,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   @override
   void dispose() {
+    _otpTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
@@ -309,6 +312,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
         final refreshToken = result['refreshToken'] as String;
         final dailyLoginReward =
             result['dailyLoginReward'] as Map<String, dynamic>?;
+        final isNewUser = result['isNewUser'] == true;
 
         final session = Provider.of<SessionProvider>(context, listen: false);
         await session.saveTokens(token, refreshToken);
@@ -323,6 +327,10 @@ class _UserLoginPageState extends State<UserLoginPage> {
           session.setUser(userData);
         }
         await session.checkSubscriptionStatus();
+
+        if (isNewUser && mounted) {
+          await _showReferralCodeDialog();
+        }
 
         if (dailyLoginReward != null && dailyLoginReward['awarded'] == true) {
           final coins = dailyLoginReward['coinsAwarded'] ?? 1;
@@ -545,16 +553,16 @@ class _UserLoginPageState extends State<UserLoginPage> {
   }
 
   void _startOtpTimer() {
-    _otpSecondsLeft = 120;
-    Future.doWhile(() async {
-      if (_otpSecondsLeft > 0 && mounted && _otpSent) {
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {
-          _otpSecondsLeft--;
-        });
-        return true;
+    _otpTimer?.cancel();
+    setState(() => _otpSecondsLeft = 120);
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
+      if (_otpSecondsLeft <= 1) {
+        t.cancel();
+        if (mounted) setState(() => _otpSecondsLeft = 0);
+        return;
       }
-      return false;
+      setState(() => _otpSecondsLeft--);
     });
   }
 
@@ -1066,7 +1074,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       ],
                       const SizedBox(height: 10),
                       if (_loginMethod != 'Email + OTP')
-                        SizedBox(
+                        Opacity(
+                        opacity: _isGoogleLoading ? 0.45 : 1.0,
+                        child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _anyLoading
@@ -1137,6 +1147,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                               ),
                             ),
                           ),
+                        ),
                         ),
                       const SizedBox(height: 18),
                       Row(
@@ -1332,6 +1343,83 @@ class _UserLoginPageState extends State<UserLoginPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _showReferralCodeDialog() async {
+    final t = AppLocalizations.of(context).t;
+    final codeController = TextEditingController();
+    String? errorText;
+    bool applying = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppThemeColors.cardBg(ctx),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(t('referral_dialog_title')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(t('referral_dialog_body'),
+                  style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: t('referral_code_hint'),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  errorText: errorText,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: applying ? null : () => Navigator.pop(ctx),
+              child: Text(t('referral_skip')),
+            ),
+            ElevatedButton(
+              onPressed: applying
+                  ? null
+                  : () async {
+                      final code = codeController.text.trim();
+                      if (code.isEmpty) { Navigator.pop(ctx); return; }
+                      setDialogState(() { applying = true; errorText = null; });
+                      try {
+                        final res = await ApiClient.post('/api/referral/apply-code', body: {'referralCode': code});
+                        final data = jsonDecode(res.body);
+                        if (res.statusCode == 200) {
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(t('referral_code_applied_toast')),
+                              duration: const Duration(seconds: 4),
+                            ));
+                          }
+                        } else {
+                          setDialogState(() { applying = false; errorText = data['error'] ?? t('referral_invalid_code'); });
+                        }
+                      } catch (_) {
+                        setDialogState(() { applying = false; errorText = t('referral_apply_network_error'); });
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.cyan,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: applying
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(t('referral_apply'), style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+    codeController.dispose();
   }
 
   void _showDailyLoginRewardNotification(int coins) {

@@ -1,10 +1,16 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/api_client.dart';
 
 class GoogleAuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    // On web, clientId is required (serverClientId is ignored by the web plugin).
+    // On mobile, serverClientId is used to verify the ID token on the backend.
+    clientId: kIsWeb
+        ? '887637529626-r7tt1nevedtnp1l06fa6rp2vbu6k6m89.apps.googleusercontent.com'
+        : null,
     serverClientId:
         '887637529626-r7tt1nevedtnp1l06fa6rp2vbu6k6m89.apps.googleusercontent.com',
     scopes: ['email'],
@@ -53,6 +59,7 @@ class GoogleAuthService {
           'refreshToken': responseData['refreshToken'],
           'userType': (responseData['userType'] as String?) ?? 'user',
           'dailyLoginReward': responseData['dailyLoginReward'],
+          'isNewUser': responseData['isNewUser'] == true,
         };
       }
       if (response.statusCode == 202 && responseData['requires2FA'] == true) {

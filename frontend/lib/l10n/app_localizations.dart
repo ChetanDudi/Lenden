@@ -870,6 +870,32 @@ class AppLocalizations {
       'feature_birthday_title': 'Birthday Reminders',
       'feature_birthday_desc':
           'Get push notifications when friends and counterparties celebrate their birthday.',
+      'feature_coins_title': 'LenDen Coins',
+      'feature_coins_desc':
+          'Earn coins through referrals, daily logins, and gift cards — redeem for rewards.',
+      'feature_referral_title': 'Referral System',
+      'feature_referral_desc':
+          'Invite friends with your unique code and both earn bonus coins on their first transaction.',
+      'feature_qr_title': 'QR Payments',
+      'feature_qr_desc':
+          'Scan a QR code to pay contacts instantly without typing an email address.',
+      'feature_google_signin_title': 'Google Sign-In',
+      'feature_google_signin_desc':
+          'Sign in securely with your Google account — no password required.',
+      'referral_dialog_title': 'Welcome to LenDen! 🎉',
+      'referral_dialog_body':
+          'Do you have a referral code? Enter it to earn bonus LenDen coins!',
+      'referral_code_hint': 'Referral Code (optional)',
+      'referral_skip': 'Skip',
+      'referral_apply': 'Apply',
+      'referral_code_applied_toast':
+          "Referral code applied! You'll earn bonus coins after your first transaction.",
+      'referral_apply_network_error': 'Could not apply code. Try again.',
+      'referral_invalid_code': 'Invalid code',
+      'referral_bonus_title': 'Referral Bonus!',
+      'referral_bonus_body':
+          'You earned {coins} LenDen coins as a welcome bonus for completing your first transaction via referral!',
+      'referral_awesome': 'Awesome!',
       'security_and_privacy': 'Security & Privacy',
       'security_privacy_intro':
           'Your security is our top priority. LenDen uses industry-standard practices to protect your data:',
@@ -5230,6 +5256,32 @@ class AppLocalizations {
       'feature_birthday_title': 'जन्मदिन रिमाइंडर',
       'feature_birthday_desc':
           'जब मित्र और प्रतिपक्ष अपना जन्मदिन मनाएं तो पुश नोटिफिकेशन प्राप्त करें।',
+      'feature_coins_title': 'LenDen कॉइन',
+      'feature_coins_desc':
+          'रेफरल, दैनिक लॉगिन और गिफ्ट कार्ड से कॉइन कमाएं — पुरस्कारों के लिए रिडीम करें।',
+      'feature_referral_title': 'रेफरल सिस्टम',
+      'feature_referral_desc':
+          'अपने अनूठे कोड से मित्रों को आमंत्रित करें और दोनों के पहले लेन-देन पर बोनस कॉइन पाएं।',
+      'feature_qr_title': 'QR पेमेंट',
+      'feature_qr_desc':
+          'ईमेल टाइप किए बिना QR कोड स्कैन करके संपर्कों को तुरंत भुगतान करें।',
+      'feature_google_signin_title': 'Google साइन-इन',
+      'feature_google_signin_desc':
+          'अपने Google खाते से सुरक्षित रूप से साइन इन करें — पासवर्ड की जरूरत नहीं।',
+      'referral_dialog_title': 'LenDen में आपका स्वागत है! 🎉',
+      'referral_dialog_body':
+          'क्या आपके पास रेफरल कोड है? इसे दर्ज करें और बोनस LenDen कॉइन पाएं!',
+      'referral_code_hint': 'रेफरल कोड (वैकल्पिक)',
+      'referral_skip': 'छोड़ें',
+      'referral_apply': 'लागू करें',
+      'referral_code_applied_toast':
+          'रेफरल कोड लागू हुआ! आपके पहले लेन-देन के बाद बोनस कॉइन मिलेंगे।',
+      'referral_apply_network_error': 'कोड लागू नहीं हो सका। पुनः प्रयास करें।',
+      'referral_invalid_code': 'अमान्य कोड',
+      'referral_bonus_title': 'रेफरल बोनस!',
+      'referral_bonus_body':
+          'रेफरल के माध्यम से पहला लेन-देन पूरा करने पर आपको {coins} LenDen कॉइन मिले!',
+      'referral_awesome': 'शानदार!',
       'security_and_privacy': 'सुरक्षा और गोपनीयता',
       'security_privacy_intro':
           'आपकी सुरक्षा हमारी सर्वोच्च प्राथमिकता है। LenDen आपके डेटा की सुरक्षा के लिए उद्योग-मानक प्रथाओं का उपयोग करता है:',

@@ -1,6 +1,8 @@
 const User = require('../models/user');
 const ReferralConfig = require('../models/referralConfig');
 const { recordCoinLedgerEntry } = require('./coinLedgerService');
+const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 const DEFAULT_SHARE_OPTIONS = [
   {
@@ -186,6 +188,34 @@ const processReferralRewardOnFirstCreation = async (userId) => {
       occurredAt,
     }),
   ]);
+
+  // In-app notifications (fire-and-forget)
+  Notification.create({
+    sender: user._id, senderModel: 'User',
+    recipientType: 'specific-users', recipients: [user._id], recipientModel: 'User',
+    category: 'transaction',
+    title: 'Referral Bonus Unlocked!',
+    message: `You earned ${refereeReward} LenDen coins as a welcome bonus for completing your first transaction via referral!`,
+  }).catch(() => {});
+  Notification.create({
+    sender: user._id, senderModel: 'User',
+    recipientType: 'specific-users', recipients: [referrer._id], recipientModel: 'User',
+    category: 'transaction',
+    title: 'Referral Reward Received!',
+    message: `Your referred user completed their first transaction. You earned ${inviterReward} LenDen coins!`,
+  }).catch(() => {});
+
+  // Push notifications
+  sendToUser(User, user._id, {
+    title: 'Referral Bonus Unlocked!',
+    body: `You earned ${refereeReward} LenDen coins for your first transaction via referral!`,
+    data: { type: 'referral_reward', coins: String(refereeReward) },
+  }).catch(() => {});
+  sendToUser(User, referrer._id, {
+    title: 'Referral Reward Received!',
+    body: `Your referred user completed their first transaction. You earned ${inviterReward} coins!`,
+    data: { type: 'referral_reward', coins: String(inviterReward) },
+  }).catch(() => {});
 
   return {
     granted: true,

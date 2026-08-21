@@ -1028,11 +1028,7 @@ const getAllAdmins = async (req, res) => {
 };
 
 function isPasswordValid(password) {
-  const lengthValid = password.length >= 8 && password.length <= 30;
-  const hasUpper = /[A-Z]/.test(password);
-  const hasLower = /[a-z]/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  return lengthValid && hasUpper && hasLower && hasSpecial;
+  return password.length >= 8 && password.length <= 30;
 }
 
 // Add new admin
@@ -1052,7 +1048,7 @@ const addAdmin = async (req, res) => {
     if (!isPasswordValid(password)) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be 8-30 characters and include uppercase, lowercase, and special character'
+        message: 'Password must be 8–30 characters.'
       });
     }
 

@@ -47,6 +47,7 @@ module.exports = (router, { auth, isAdmin, io }) => {
 
   // Referral & coins
   router.get('/referral/me', auth, referralController.getReferralInfo);
+  router.post('/referral/apply-code', auth, referralController.applyReferralCode);
   router.post('/referral/share', auth, referralController.logReferralShare);
   router.get('/coins/history', auth, coinLedgerController.getMyCoinHistory);
   router.post('/coins/buy-with-wallet', auth, coinLedgerController.buyCoinsWithWallet);

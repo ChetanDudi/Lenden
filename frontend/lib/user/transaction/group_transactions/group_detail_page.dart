@@ -670,7 +670,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       final groupTitle = (_group['title'] ?? 'Our Group').toString();
                       final memberCount = (_group['members'] as List?)?.length ?? 0;
                       final appLink = await fetchAppInviteLink();
+                      final myReferralCode = await fetchReferralCode();
                       final downloadLine = appLink.isNotEmpty ? '\n📥 Download LenDen: $appLink' : '';
+                      final referralLine = myReferralCode.isNotEmpty
+                          ? '\n🎁 *Referral Code: $myReferralCode*\n'
+                            '   (New to LenDen? Enter this code on sign-up to earn bonus coins!)'
+                          : '';
                       final msg = '🎉 You\'re invited to join *$groupTitle* on LenDen!\n\n'
                           '👥 Group: $groupTitle\n'
                           '👤 Members: $memberCount\n\n'
@@ -679,7 +684,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           '📱 How to join:\n'
                           '1. Open the LenDen app\n'
                           '2. Go to Groups → tap the 🔗 link icon\n'
-                          '3. Enter the code: ${currentCode!}\n\n'
+                          '3. Enter the code: ${currentCode!}\n'
+                          '$referralLine\n'
                           '------------------\n'
                           'LenDen – Split expenses effortlessly with friends & family. '
                           'Track debts, settle instantly, and manage group expenses with ease.'
@@ -723,9 +729,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           if (res.statusCode == 200) {
                             final code = jsonDecode(res.body)['joinCode']?.toString();
                             setSheet(() { currentCode = code; generating = false; });
+                            if (!mounted) return;
                             setState(() => _group['joinCode'] = code);
                           } else {
                             setSheet(() => generating = false);
+                            if (!mounted) return;
+                            final err = (jsonDecode(res.body)['error'] ?? 'Failed to regenerate code').toString();
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
                           }
                         },
                       ),
@@ -740,9 +750,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           final res = await ApiClient.delete('/api/group-transactions/${widget.groupId}/join-code');
                           if (res.statusCode == 200) {
                             setSheet(() { currentCode = null; generating = false; });
+                            if (!mounted) return;
                             setState(() => _group['joinCode'] = null);
                           } else {
                             setSheet(() => generating = false);
+                            if (!mounted) return;
+                            final err = (jsonDecode(res.body)['error'] ?? 'Failed to disable join code').toString();
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
                           }
                         },
                         style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),

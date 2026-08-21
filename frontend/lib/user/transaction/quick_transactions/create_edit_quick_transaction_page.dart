@@ -628,7 +628,40 @@ class _CreateEditQuickTransactionPageState
 
       if (!mounted) return;
       if (res.statusCode == 200 || res.statusCode == 201) {
-        Navigator.pop(context, jsonDecode(res.body));
+        final responseData = jsonDecode(res.body);
+        final referralReward = responseData['referralReward'] as Map<String, dynamic>?;
+        if (referralReward != null && referralReward['granted'] == true && mounted) {
+          final coins = referralReward['refereeReward'] as int? ?? 0;
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppThemeColors.cardBg(ctx),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(children: [
+                const Text('🎉', style: TextStyle(fontSize: 28)),
+                const SizedBox(width: 8),
+                Text(t('referral_bonus_title'), style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 18)),
+              ]),
+              content: Text(
+                t('referral_bonus_body').replaceAll('{coins}', coins.toString()),
+                style: TextStyle(color: AppThemeColors.secondaryText(ctx)),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cyan,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(t('referral_awesome'), style: const TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        }
+        if (!mounted) return;
+        Navigator.pop(context, responseData);
       } else {
         setState(() => _isLoading = false);
         final exceeded = parseBudgetExceeded(res.body);

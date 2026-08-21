@@ -117,6 +117,28 @@ exports.logReferralShare = async (req, res) => {
   }
 };
 
+exports.applyReferralCode = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('_id referredByUser referralRewardGranted referralCode');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.referredByUser) return res.status(400).json({ error: 'You have already used a referral code.' });
+
+    const code = (req.body.referralCode || '').toString().trim().toUpperCase();
+    if (!code) return res.status(400).json({ error: 'Referral code is required.' });
+    if (code === user.referralCode) return res.status(400).json({ error: 'You cannot use your own referral code.' });
+
+    const referrer = await User.findOne({ referralCode: code }).select('_id');
+    if (!referrer) return res.status(404).json({ error: 'Invalid referral code.' });
+
+    user.referredByUser = referrer._id;
+    await user.save();
+
+    res.json({ success: true, message: 'Referral code applied! You will earn coins after your first transaction.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 exports.getReferralConfigForAdmin = async (_req, res) => {
   try {
     const config = await getReferralConfig();

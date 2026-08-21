@@ -9,6 +9,13 @@ import 'api_client.dart';
 // ════════════════════════════════════════════════════════════════════════════
 
 String? _cachedAppInviteLink;
+String? _cachedReferralCode;
+
+/// Call on logout so the next user gets their own referral data.
+void clearReferralCache() {
+  _cachedAppInviteLink = null;
+  _cachedReferralCode = null;
+}
 
 /// Returns the admin-configured app invite/download link from the referral API.
 /// The link is cached in memory after the first successful fetch.
@@ -20,10 +27,27 @@ Future<String> fetchAppInviteLink() async {
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final link = (data['inviteLink'] ?? '').toString().trim();
-      if (link.isNotEmpty) {
-        _cachedAppInviteLink = link;
-        return link;
-      }
+      final code = (data['referralCode'] ?? '').toString().trim();
+      if (link.isNotEmpty) _cachedAppInviteLink = link;
+      if (code.isNotEmpty) _cachedReferralCode = code;
+      if (link.isNotEmpty) return link;
+    }
+  } catch (_) {}
+  return '';
+}
+
+/// Returns the current user's referral code. Cached after first fetch.
+Future<String> fetchReferralCode() async {
+  if (_cachedReferralCode != null) return _cachedReferralCode!;
+  try {
+    final res = await ApiClient.get('/api/referral/me');
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final code = (data['referralCode'] ?? '').toString().trim();
+      final link = (data['inviteLink'] ?? '').toString().trim();
+      if (code.isNotEmpty) _cachedReferralCode = code;
+      if (link.isNotEmpty) _cachedAppInviteLink = link;
+      return code;
     }
   } catch (_) {}
   return '';

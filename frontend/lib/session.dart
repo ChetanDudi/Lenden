@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'utils/http_interceptor.dart';
+import 'utils/share_utils.dart' show clearReferralCache;
 import 'user/chats/chat_encryption_service.dart';
 
 class SessionProvider extends ChangeNotifier {
@@ -558,6 +559,7 @@ class SessionProvider extends ChangeNotifier {
     clearUser();
     clearCounterparties();
     clearSubscription();
+    clearReferralCache();
   }
 
   void updateNotificationSettings(Map<String, dynamic> settings) {

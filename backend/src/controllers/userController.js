@@ -22,11 +22,7 @@ const { sendToUser } = require('../services/notificationService');
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
 
 function isPasswordValid(password) {
-  const lengthValid = password.length >= 8 && password.length <= 30;
-  const hasUpper = /[A-Z]/.test(password);
-  const hasLower = /[a-z]/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  return lengthValid && hasUpper && hasLower && hasSpecial;
+  return password.length >= 8 && password.length <= 30;
 }
 
 function getUtcDateKey(date = new Date()) {
@@ -114,7 +110,7 @@ exports.register = async (req, res) => {
     }
     // Password constraints
     if (!isPasswordValid(password)) {
-      return res.status(400).json({ error: 'Password must be 8-30 characters, include uppercase, lowercase, and special character.' });
+      return res.status(400).json({ error: 'Password must be 8–30 characters.' });
     }
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -507,8 +503,10 @@ exports.googleLogin = async (req, res) => {
     }
 
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       const username = await generateUniqueUsernameFromEmail(email);
       const uniqueReferralCode = await generateUniqueReferralCode();
       user = new User({
@@ -521,12 +519,24 @@ exports.googleLogin = async (req, res) => {
         referralCode: uniqueReferralCode,
         memberSince: new Date(),
       });
+
+      // Apply referral code if provided during first sign-in
+      const incomingReferralCode = (req.body.referralCode || '').toString().trim().toUpperCase();
+      if (incomingReferralCode) {
+        const referrer = await User.findOne({ referralCode: incomingReferralCode }).select('_id');
+        if (referrer && !referrer._id.equals(user._id)) {
+          user.referredByUser = referrer._id;
+        }
+      }
+
       await user.save();
     } else if (!user.googleId) {
       // Existing local account signing in with Google for the first time â€” link it.
       // authProvider stays 'local' so the account still requires its original
       // password for non-Google logins; googleId alone is enough to allow Google sign-in.
+      // Save immediately so the linkage persists even if the account is deactivated.
       user.googleId = googleId;
+      await user.save();
     }
 
     if (user.deactivatedAccount) {
@@ -602,6 +612,7 @@ exports.googleLogin = async (req, res) => {
       refreshToken,
       deviceId,
       dailyLoginReward: dailyReward,
+      isNewUser,
     });
   } catch (err) {
     console.error('âŒ Google login error:', err.message);
