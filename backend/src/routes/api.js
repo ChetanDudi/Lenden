@@ -31,6 +31,7 @@ module.exports = (io) => {
   require('./domains/content.routes')(router, deps);
   require('./domains/support.routes')(router, deps);
   require('./domains/budget.routes')(router, deps);
+  require('./domains/community.routes')(router, deps);
   require('./domains/admin.routes')(router, deps);
 
   // App version check — no auth required so client can call before login

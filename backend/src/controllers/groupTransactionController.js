@@ -224,7 +224,7 @@ exports.createGroupWithCoins = async (req, res) => {
 
 exports.createGroup = async (req, res) => {
   try {
-    const { title, memberEmails, color } = req.body;
+    const { title, memberEmails, color, communityId } = req.body;
     const creator = await User.findById(req.user._id).select(
       'email blockedUsers'
     );
@@ -281,9 +281,15 @@ exports.createGroup = async (req, res) => {
     memberIds.unshift(creator._id.toString());
     
     const members = memberIds.map(id => ({ user: id }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, color });
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, color, communityId: communityId || null });
+    if (communityId) {
+      try {
+        const Community = require('../models/community');
+        await Community.findByIdAndUpdate(communityId, { $addToSet: { groups: group._id } });
+      } catch (_) {}
+    }
     const referralReward = await processReferralRewardOnFirstCreation(creator._id);
-    
+
     // freeGroupsRemaining is handled by the `handleUsage('group')` middleware
     // so we avoid decrementing it again here to prevent double-counting.
     

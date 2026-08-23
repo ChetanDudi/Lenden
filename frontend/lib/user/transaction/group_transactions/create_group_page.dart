@@ -36,6 +36,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   Map<String, Map<String, dynamic>> _memberUsers = {};
   List<Map<String, dynamic>> _userGroups = [];
   bool _loadingGroups = false;
+  List<Map<String, dynamic>> _userCommunities = [];
+  String? _selectedCommunityId;
+  String? _selectedCommunityName;
   bool _creatingGroup = false;
   String? _error;
   String? _memberAddError;
@@ -56,6 +59,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     _memberEmailController.addListener(_updateFriendSuggestions);
     _loadFriends();
     _loadDailyLimits();
+    _loadCommunities();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Provider.of<SessionProvider>(context, listen: false).loadFreebieCounts();
@@ -78,6 +82,121 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       Color(0xFFE3F2FD), Color(0xFFFFF9C4), Color(0xFFF3E5F5),
     ];
     return colors[index % colors.length];
+  }
+
+  Future<void> _loadCommunities() async {
+    try {
+      final res = await ApiClient.get('/api/communities');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _userCommunities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _showCommunityPicker() async {
+    Color parseColor(dynamic c) {
+      try {
+        if (c is String && c.startsWith('#')) return Color(int.parse('FF${c.replaceFirst('#', '')}', radix: 16));
+      } catch (_) {}
+      return AppColors.cyan;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.4,
+        maxChildSize: 0.85,
+        builder: (_, scrollCtrl) => Container(
+          decoration: BoxDecoration(color: AppThemeColors.cardBg(ctx), borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
+          child: Column(children: [
+            const SizedBox(height: 12),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.hub_rounded, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text('Add to Community', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: AppThemeColors.divider(ctx)),
+            Expanded(
+              child: ListView(controller: scrollCtrl, padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
+                // None option
+                GestureDetector(
+                  onTap: () { setState(() { _selectedCommunityId = null; _selectedCommunityName = null; }); Navigator.pop(ctx); },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: _selectedCommunityId == null ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.surfaceBg(ctx),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _selectedCommunityId == null ? AppColors.cyan.withValues(alpha: 0.5) : AppThemeColors.border(ctx)),
+                    ),
+                    child: Row(children: [
+                      Container(width: 38, height: 38, decoration: BoxDecoration(color: AppThemeColors.border(ctx).withValues(alpha: 0.5), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.block_rounded, size: 18, color: AppThemeColors.mutedText(ctx))),
+                      const SizedBox(width: 12),
+                      Text('No community', style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+                      const Spacer(),
+                      if (_selectedCommunityId == null) const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 20),
+                    ]),
+                  ),
+                ),
+                ..._userCommunities.map((c) {
+                  final id = (c['_id'] ?? '').toString();
+                  final name = (c['name'] ?? '').toString();
+                  final color = parseColor(c['color']);
+                  final grpCount = (c['groups'] as List?)?.length ?? 0;
+                  final initials = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+                  final isSelected = _selectedCommunityId == id;
+                  return GestureDetector(
+                    onTap: () { setState(() { _selectedCommunityId = id; _selectedCommunityName = name; }); Navigator.pop(ctx); },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? color.withValues(alpha: 0.08) : AppThemeColors.surfaceBg(ctx),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: isSelected ? color.withValues(alpha: 0.5) : AppThemeColors.border(ctx)),
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 38, height: 38,
+                          decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)]), borderRadius: BorderRadius.circular(11)),
+                          child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(ctx))),
+                          Text('$grpCount group${grpCount == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                        ])),
+                        if (isSelected) Icon(Icons.check_circle_rounded, color: color, size: 20),
+                      ]),
+                    ),
+                  );
+                }),
+                if (_userCommunities.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
+                    child: Text('You\'re not in any communities yet. Create one after making this group!', style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx)), textAlign: TextAlign.center),
+                  ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadFriends() async {
@@ -1358,6 +1477,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         'description': _descriptionController.text.trim(),
         'memberEmails': _memberEmails,
         'color': _colorHex(),
+        if (_selectedCommunityId != null) 'communityId': _selectedCommunityId,
       });
       final data = json.decode(res.body);
       if (res.statusCode == 201) {
@@ -1919,6 +2039,33 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 }).toList(),
               ),
             ],
+
+            const SizedBox(height: 20),
+
+            // Community picker
+            GestureDetector(
+              onTap: _showCommunityPicker,
+              child: _profileStyleField(
+                icon: Icons.hub_rounded,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(children: [
+                    Expanded(
+                      child: _selectedCommunityId == null
+                          ? Text('Add to Community (optional)', style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 15))
+                          : Text(_selectedCommunityName ?? 'Community', style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 15, fontWeight: FontWeight.w600)),
+                    ),
+                    if (_selectedCommunityId != null)
+                      GestureDetector(
+                        onTap: () => setState(() { _selectedCommunityId = null; _selectedCommunityName = null; }),
+                        child: Icon(Icons.close_rounded, size: 18, color: AppThemeColors.mutedText(context)),
+                      )
+                    else
+                      Icon(Icons.expand_more_rounded, size: 20, color: AppThemeColors.mutedText(context)),
+                  ]),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 30),
 
