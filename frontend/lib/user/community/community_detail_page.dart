@@ -57,7 +57,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
         if (mounted) setState(() { _community = data['community']; _loading = false; });
         _loadBalance();
       } else {
-        if (mounted) setState(() { _error = 'Failed to load community'; _loading = false; });
+        if (mounted) setState(() { _error = AppLocalizations.of(context).t('failed_to_load_community'); _loading = false; });
       }
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
@@ -620,7 +620,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
         backgroundColor: AppThemeColors.scaffoldBg(context),
         body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(_error!, style: TextStyle(color: AppThemeColors.secondaryText(context))),
-          TextButton(onPressed: _load, child: const Text('Retry', style: TextStyle(color: AppColors.cyan))),
+          TextButton(onPressed: _load, child: Text(AppLocalizations.of(context).t('retry_label'), style: const TextStyle(color: AppColors.cyan))),
         ])),
       );
     }
@@ -907,7 +907,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                         trailing: _isAdmin
                             ? IconButton(
                                 icon: Icon(Icons.remove_circle_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 22),
-                                tooltip: 'Remove from community',
+                                tooltip: AppLocalizations.of(context).t('remove_from_community_tooltip'),
                                 onPressed: () async {
                                   try {
                                     final r = await ApiClient.delete('/api/communities/${widget.communityId}/groups/$gId');

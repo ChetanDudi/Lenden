@@ -917,7 +917,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(t('rate_another_user_title'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
                     const SizedBox(height: 3),
-                    Text('Tap to rate a user', style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
+                    Text(AppLocalizations.of(context).t('tap_to_rate_user_hint'), style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
                   ])),
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -935,7 +935,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Tap a friend to rate them', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                  Text(AppLocalizations.of(context).t('select_friend_to_rate_label'), style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 100,
@@ -982,7 +982,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                               decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                              child: const Text('Rate', style: TextStyle(fontSize: 9, color: Colors.amber, fontWeight: FontWeight.bold)),
+                              child: Text(AppLocalizations.of(context).t('rate_friend_badge'), style: const TextStyle(fontSize: 9, color: Colors.amber, fontWeight: FontWeight.bold)),
                             ),
                           ]),
                         );

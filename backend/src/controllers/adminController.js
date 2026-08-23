@@ -758,6 +758,12 @@ const deleteUser = async (req, res) => {
       });
     }
 
+    // Detach user reference from their app rating so the rating persists
+    try {
+      const { markRatingUserDeleted } = require('./AppratingController');
+      await markRatingUserDeleted(user._id);
+    } catch (_) {}
+
     res.json({
       success: true,
       message: 'User deleted successfully'

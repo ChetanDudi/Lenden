@@ -562,11 +562,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         setState(() {
           _hasRatedApp = data['rating'] != null;
         });
-        if (!_hasRatedApp &&
-            !_ratingDialogShown &&
-            (_adRandom.nextInt(3) == 0)) {
+        if (!_hasRatedApp && !_ratingDialogShown) {
           _ratingDialogShown = true;
-          Future.delayed(Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 1200), () {
             if (mounted) _showAppRatingDialog();
           });
         }

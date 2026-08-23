@@ -568,6 +568,12 @@ const deleteAccount = async (req, res) => {
     user.devices = [];
     await user.save();
 
+    // Detach user reference from their app rating so the rating persists
+    try {
+      const { markRatingUserDeleted } = require('./AppratingController');
+      await markRatingUserDeleted(user._id);
+    } catch (_) {}
+
     const TokenService = require('../utils/tokenService');
     await TokenService.revokeAllUserTokens(user._id, 'user');
 

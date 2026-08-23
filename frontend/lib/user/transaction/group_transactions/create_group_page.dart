@@ -1831,8 +1831,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 style: TextStyle(color: AppThemeColors.primaryText(context)),
                 maxLines: 2,
                 decoration: InputDecoration(
-                  labelText: 'Description (optional)',
-                  hintText: 'What is this group for?',
+                  labelText: t('description_optional_label'),
+                  hintText: t('group_description_hint'),
                   labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
                   hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                   border: InputBorder.none,
@@ -2020,7 +2020,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
                     : const Icon(Icons.people, color: AppColors.cyan),
                 label: Text(
-                  _loadingFriends ? 'Loading...' : t('add_from_friends_label'),
+                  _loadingFriends ? t('loading') : t('add_from_friends_label'),
                   style: const TextStyle(color: AppColors.cyan),
                 ),
               ),
@@ -2031,7 +2031,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
                     : const Icon(Icons.group_work_rounded, color: AppColors.cyan),
                 label: Text(
-                  _loadingGroups ? 'Loading...' : 'Add from Groups',
+                  _loadingGroups ? t('loading') : t('add_from_groups_label'),
                   style: const TextStyle(color: AppColors.cyan),
                 ),
               ),

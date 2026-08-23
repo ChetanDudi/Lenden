@@ -4414,6 +4414,12 @@ class AppLocalizations {
       'share_invite_btn': 'Share Invite',
       'copy_message_btn': 'Copy Message',
       'message_copied_snack': 'Message copied!',
+      'group_description_hint': 'What is this group for?',
+      'add_from_groups_label': 'Add from Groups',
+      'tap_to_rate_user_hint': 'Tap to rate a user',
+      'rate_friend_badge': 'Rate',
+      'failed_to_load_community': 'Failed to load community',
+      'remove_from_community_tooltip': 'Remove from community',
 
       // Activity type display names (used in activity_page.dart filter labels)
       'activity_type_wallet_topup': 'Wallet Top-up',
@@ -8870,6 +8876,12 @@ class AppLocalizations {
       'share_invite_btn': 'इनवाइट शेयर करें',
       'copy_message_btn': 'संदेश कॉपी करें',
       'message_copied_snack': 'संदेश कॉपी हो गया!',
+      'group_description_hint': 'यह ग्रुप किस लिए है?',
+      'add_from_groups_label': 'ग्रुप से जोड़ें',
+      'tap_to_rate_user_hint': 'किसी यूज़र को रेट करने के लिए टैप करें',
+      'rate_friend_badge': 'रेट करें',
+      'failed_to_load_community': 'समुदाय लोड नहीं हो सका',
+      'remove_from_community_tooltip': 'समुदाय से हटाएं',
 
       // Activity type display names
       'activity_type_wallet_topup': 'वॉलेट टॉप-अप',
