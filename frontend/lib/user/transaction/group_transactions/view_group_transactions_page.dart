@@ -1411,6 +1411,138 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
         context, MaterialPageRoute(builder: (_) => const CreateGroupPage()));
   }
 
+  // ── Currency picker ───────────────────────────────────────────────────────
+  void _showCurrencyPicker(BuildContext ctx) {
+    final currencies = currencyData?.currencies ?? kCurrencyFallbacks;
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: AppThemeColors.cardBg(ctx),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+      builder: (sheetCtx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: AppThemeColors.border(sheetCtx),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(children: [
+              const Icon(Icons.currency_exchange_rounded, color: AppColors.cyan, size: 20),
+              const SizedBox(width: 10),
+              Text('Currency Mode',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+                      color: AppThemeColors.primaryText(sheetCtx))),
+            ]),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: currencies.length,
+              itemBuilder: (_, i) {
+                final c = currencies[i];
+                final isSel = c['code'] == selectedCurrency;
+                return ListTile(
+                  leading: Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: isSel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.surfaceBg(sheetCtx),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(child: Text(c['symbol']!,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                            color: isSel ? AppColors.cyan : AppThemeColors.secondaryText(sheetCtx)))),
+                  ),
+                  title: Text('${c['code']}  ${c['label'] ?? c['code']}',
+                      style: TextStyle(fontSize: 14,
+                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                          color: AppThemeColors.primaryText(sheetCtx))),
+                  trailing: isSel ? const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 20) : null,
+                  onTap: () { setCurrency(c['code']!); Navigator.pop(sheetCtx); },
+                );
+              },
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(sheetCtx).padding.bottom + 12),
+        ],
+      ),
+    );
+  }
+
+  // ── Group Action Buttons (2×2 uniform grid) ────────────────────────────────
+  Widget _buildGroupActionButtons(Map<String, dynamic> group, String Function(String) t) {
+    Widget actionBtn({
+      required IconData icon,
+      required String label,
+      required List<Color> gradientColors,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: gradientColors.last.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3))],
+            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(icon, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(label,
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Column(children: [
+      Row(children: [
+        actionBtn(
+          icon: Icons.receipt_long_rounded,
+          label: t('generate_receipt_label'),
+          gradientColors: const [Color(0xFF43A047), Color(0xFF1B5E20)],
+          onTap: () => _showGroupReceiptOptionsDialog(group),
+        ),
+        const SizedBox(width: 10),
+        actionBtn(
+          icon: Icons.add_circle_outline_rounded,
+          label: t('add_expense_label'),
+          gradientColors: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
+          onTap: () => _showAddExpenseDialog(group),
+        ),
+      ]),
+      const SizedBox(height: 10),
+      Row(children: [
+        actionBtn(
+          icon: Icons.person_add_rounded,
+          label: t('invite_label'),
+          gradientColors: const [Color(0xFF26C6DA), Color(0xFF00838F)],
+          onTap: () => _shareGroupInvite(group),
+        ),
+        const SizedBox(width: 10),
+        actionBtn(
+          icon: Icons.note_add_rounded,
+          label: 'Share as Note',
+          gradientColors: const [Color(0xFF66BB6A), Color(0xFF2E7D32)],
+          onTap: () => _shareGroupAsNote(group),
+        ),
+      ]),
+    ]);
+  }
+
   // ── Share as Note ─────────────────────────────────────────────────────────
   void _shareGroupSummaryAsNote() {
     final buf = StringBuffer();
@@ -1622,9 +1754,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     final currentUserEmail = session.user?['email'];
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.sh(156)),
-        child: AppBar(
+      appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
           automaticallyImplyLeading: false,
@@ -1655,44 +1785,23 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
             ),
           ),
           actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Center(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selectedCurrency,
-                    dropdownColor: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(14),
-                    items: (currencyData?.currencies ?? _currencies)
-                        .map(
-                          (currency) => DropdownMenuItem(
-                            value: currency['code'],
-                            child: Text(
-                              '${currency['symbol']} ${currency['code']}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: AppThemeColors.primaryText(context),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setCurrency(value);
-                    },
-                  ),
-                ),
-              ),
-            ),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert_rounded, color: AppThemeColors.primaryText(context)),
               onSelected: (value) {
                 if (value == 'export_csv') _exportCsv();
                 if (value == 'export_pdf') _exportPdf();
                 if (value == 'share_as_note') _shareGroupSummaryAsNote();
+                if (value == 'currency_mode') _showCurrencyPicker(context);
               },
               itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: 'currency_mode',
+                  child: Row(children: [
+                    const Icon(Icons.currency_exchange_rounded, size: 18, color: AppColors.cyan),
+                    const SizedBox(width: 12),
+                    Text('Currency: $selectedCurrency'),
+                  ]),
+                ),
                 if (userGroups.isNotEmpty) ...[
                   const PopupMenuItem(
                     value: 'export_csv',
@@ -1723,7 +1832,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
             ),
           ],
         ),
-      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
@@ -2292,100 +2400,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                           ),
                                                           SizedBox(height: 16),
 
-                                                          // Action Buttons
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            children: [
-                                                              Container(
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  gradient:
-                                                                      LinearGradient(
-                                                                    colors: AppColors.tricolorGradientColors,
-                                                                    begin: Alignment
-                                                                        .topCenter,
-                                                                    end: Alignment
-                                                                        .bottomCenter,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              12),
-                                                                ),
-                                                                child:
-                                                                    ElevatedButton
-                                                                        .icon(
-                                                                  icon: Icon(
-                                                                      Icons
-                                                                          .receipt_long,
-                                                                      size: 18,
-                                                                      color: AppThemeColors
-                                                                          .primaryText(context)),
-                                                                  label: Text(
-                                                                      t('generate_receipt_label'),
-                                                                      style: TextStyle(
-                                                                          color:
-                                                                              AppThemeColors.primaryText(context))),
-                                                                  style: ElevatedButton
-                                                                      .styleFrom(
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .transparent,
-                                                                    shadowColor:
-                                                                        Colors
-                                                                            .transparent,
-                                                                    shape:
-                                                                        RoundedRectangleBorder(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              12),
-                                                                    ),
-                                                                  ),
-                                                                  onPressed:
-                                                                      () {
-                                                                    _showGroupReceiptOptionsDialog(
-                                                                        group);
-                                                                  },
-                                                                ),
-                                                              ),
-                                                              const SizedBox(width: 8),
-                                                              ElevatedButton.icon(
-                                                                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                                                                label: const Text('Add Expense', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: AppColors.cyan,
-                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                                ),
-                                                                onPressed: () => _showAddExpenseDialog(group),
-                                                              ),
-                                                              const SizedBox(width: 8),
-                                                              ElevatedButton.icon(
-                                                                icon: const Icon(Icons.share_rounded, size: 18, color: Colors.white),
-                                                                label: const Text('Invite', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: Colors.teal,
-                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                                ),
-                                                                onPressed: () => _shareGroupInvite(group),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          const SizedBox(height: 8),
-                                                          SizedBox(
-                                                            width: double.infinity,
-                                                            child: OutlinedButton.icon(
-                                                              icon: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 16),
-                                                              label: const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontWeight: FontWeight.w600)),
-                                                              style: OutlinedButton.styleFrom(
-                                                                side: const BorderSide(color: AppColors.tricolorGreen),
-                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                                              ),
-                                                              onPressed: () => _shareGroupAsNote(group),
-                                                            ),
-                                                          ),
+                                                          // Action Buttons — 2 × 2 grid
+                                                          _buildGroupActionButtons(group, t),
 
                                                           SizedBox(height: 16),
 

@@ -859,7 +859,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                           width: 2,
                         ),
                       ),
-                      prefixIcon: const Icon(Icons.attach_money),
+                      prefixIcon: const Icon(Icons.payments_rounded),
                       helperText: widget.isFullPayment
                           ? 'Paying the full remaining amount'
                           : (lenderOtpVerified && borrowerOtpVerified)

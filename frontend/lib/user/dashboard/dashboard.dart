@@ -573,215 +573,258 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   }
 
   void _showAppRatingDialog() {
-    int _selectedStars = 0;
-    showDialog(
+    bool isSuccess = false;
+    bool submitting = false;
+    int selectedStars = 0;
+
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
-              padding: EdgeInsets.all(ctx.sw(22)),
               decoration: BoxDecoration(
-                color: AppThemeColors.tinted(ctx,
-                    light: const Color(0xFFFCE4EC),
-                    dark: const Color(0xFF2A1A22)),
-                borderRadius: BorderRadius.circular(20),
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: StatefulBuilder(
-                builder: (context, setState) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.star, color: AppColors.cyan, size: ctx.sp(44)),
-                      SizedBox(height: ctx.sh(10)),
-                      Text(
-                        t('rate_our_app_title'),
-                        style: TextStyle(
-                          fontSize: ctx.sp(20),
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.cyan,
-                        ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: AppThemeColors.divider(ctx),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      SizedBox(height: ctx.sh(8)),
-                      Text(
-                        t('rate_app_feedback_desc'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: ctx.sp(15),
-                            color: AppThemeColors.secondaryText(ctx)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+                            .animate(animation),
+                        child: child,
                       ),
-                      SizedBox(height: 18),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(5, (i) {
-                          return IconButton(
-                            icon: Stack(
-                              children: <Widget>[
-                                Icon(
-                                  Icons.star,
-                                  color: i < _selectedStars
-                                      ? Colors.amber
-                                      : Colors.grey[300],
-                                  size: 36,
-                                ),
-                                Icon(
-                                  Icons.star_border,
-                                  color: AppThemeColors.primaryText(ctx),
-                                  size: 36,
-                                ),
-                              ],
-                            ),
-                            onPressed: () {
-                              setState(() => _selectedStars = i + 1);
-                            },
-                          );
-                        }),
-                      ),
-                      SizedBox(height: 18),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppThemeColors.cardBg(ctx),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(t('close'),
-                                style: TextStyle(
-                                    color: AppThemeColors.secondaryText(ctx),
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                          ElevatedButton(
-                            onPressed: _selectedStars > 0
-                                ? () async {
-                                    final res = await ApiClient.post(
-                                      '/api/rating',
-                                      body: {'rating': _selectedStars},
-                                    );
-                                    if (res.statusCode == 200) {
-                                      setState(() {
-                                        _hasRatedApp = true;
-                                      });
-                                      Navigator.of(ctx).pop();
-                                      _showThankYouDialog();
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                t('failed_submit_rating'))),
-                                      );
-                                    }
-                                  }
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppThemeColors.cardBg(ctx),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                            ),
-                            child: Text(t('submit'),
-                                style: TextStyle(
-                                    color: _selectedStars > 0
-                                        ? AppThemeColors.primaryText(ctx)
-                                        : AppThemeColors.mutedText(ctx),
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
+                    ),
+                    child: isSuccess
+                        ? _appRatingThankYouPhase(ctx, selectedStars)
+                        : _appRatingInputPhase(ctx, setSheet, selectedStars, submitting, (stars) {
+                            setSheet(() => selectedStars = stars);
+                          }, () async {
+                            if (selectedStars == 0 || submitting) return;
+                            setSheet(() => submitting = true);
+                            try {
+                              final res = await ApiClient.post('/api/rating', body: {'rating': selectedStars});
+                              if (res.statusCode == 200 && mounted) {
+                                setState(() => _hasRatedApp = true);
+                                setSheet(() { isSuccess = true; submitting = false; });
+                                Future.delayed(const Duration(milliseconds: 3200), () {
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                });
+                              } else {
+                                setSheet(() => submitting = false);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(t('failed_submit_rating'))),
+                                  );
+                                }
+                              }
+                            } catch (_) {
+                              setSheet(() => submitting = false);
+                            }
+                          }),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
-  void _showThankYouDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          padding: EdgeInsets.all(ctx.sw(26)),
-          decoration: BoxDecoration(
-            color: AppThemeColors.tinted(ctx,
-                light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.cyan.withValues(alpha: 0.15),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+  Widget _appRatingInputPhase(
+    BuildContext ctx,
+    StateSetter setSheet,
+    int selectedStars,
+    bool submitting,
+    void Function(int) onStarTap,
+    VoidCallback onSubmit,
+  ) {
+    return Padding(
+      key: const ValueKey('rating-input'),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShaderMask(
+            shaderCallback: (r) => const LinearGradient(
+              colors: [AppColors.cyan, AppColors.blue],
+            ).createShader(r),
+            child: const Icon(Icons.star_rounded, size: 48, color: Colors.white),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 12),
+          Text(
+            t('rate_our_app_title'),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t('rate_app_feedback_desc'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx), height: 1.4),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (i) {
+              final filled = i < selectedStars;
+              return GestureDetector(
+                onTap: () => onStarTap(i + 1),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                    child: Icon(
+                      filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                      key: ValueKey(filled),
+                      color: filled ? Colors.amber : AppThemeColors.mutedText(ctx),
+                      size: 40,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 24),
+          Row(
             children: [
-              Icon(Icons.celebration, color: AppColors.cyan, size: ctx.sp(52)),
-              SizedBox(height: ctx.sh(14)),
-              Text(
-                t('thank_you_rating_title'),
-                style: TextStyle(
-                  fontSize: ctx.sp(22),
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.cyan,
-                  letterSpacing: 1.2,
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppThemeColors.border(ctx)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(t('close'), style: TextStyle(color: AppThemeColors.secondaryText(ctx), fontWeight: FontWeight.w600)),
                 ),
-                textAlign: TextAlign.center,
               ),
-              SizedBox(height: ctx.sh(10)),
-              Text(
-                t('thank_you_rating_desc'),
-                style: TextStyle(
-                  fontSize: ctx.sp(15),
-                  color: AppThemeColors.secondaryText(ctx),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: ctx.sh(20)),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.cyan,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: ctx.sw(28), vertical: ctx.sh(12)),
-                ),
-                child: Text(
-                  t('continue'),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: ctx.sp(16),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: selectedStars > 0
+                        ? const LinearGradient(colors: [AppColors.cyan, AppColors.blue])
+                        : null,
+                    color: selectedStars == 0 ? AppThemeColors.surfaceBg(ctx) : null,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: selectedStars > 0 && !submitting ? onSubmit : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: submitting
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(
+                            t('submit'),
+                            style: TextStyle(
+                              color: selectedStars > 0 ? Colors.white : AppThemeColors.mutedText(ctx),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                   ),
                 ),
               ),
             ],
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _appRatingThankYouPhase(BuildContext ctx, int stars) {
+    return Padding(
+      key: const ValueKey('rating-thankyou'),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.elasticOut,
+            builder: (_, v, child) => Transform.scale(scale: v, child: child),
+            child: Container(
+              width: 72, height: 72,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+              ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 38),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            t('thank_you_rating_title'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.cyan),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t('thank_you_rating_desc'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx), height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Icon(
+                i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
+                color: i < stars ? Colors.amber : AppThemeColors.mutedText(ctx),
+                size: 28,
+              ),
+            )),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Text(t('continue'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

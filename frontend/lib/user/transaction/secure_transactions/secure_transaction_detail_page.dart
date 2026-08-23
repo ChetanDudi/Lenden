@@ -50,10 +50,14 @@ String _stCatLabel(String? key) {
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
   final bool isLending;
+  final String? initialCurrency;
+  final DisplayCurrencyData? currencyData;
   const SecureTransactionDetailPage({
     super.key,
     required this.transaction,
     required this.isLending,
+    this.initialCurrency,
+    this.currencyData,
   });
   @override
   State<SecureTransactionDetailPage> createState() =>
@@ -80,7 +84,10 @@ class _SecureTransactionDetailPageState
     } else {
       _t['favourite'] = <dynamic>[];
     }
-    loadCurrencies();
+    loadCurrencies(
+      seedData: widget.currencyData,
+      seedCode: widget.initialCurrency,
+    );
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -1465,7 +1472,7 @@ class _SecureTransactionDetailPageState
                             (t['amount'] as num?) ?? 0,
                             t['currency']?.toString()),
                         loc('principal_label'),
-                        Icons.attach_money,
+                        Icons.savings_rounded,
                         Colors.green),
                     if (t['interestType'] != null &&
                         t['interestRate'] != null)

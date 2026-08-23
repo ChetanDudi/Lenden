@@ -1355,68 +1355,232 @@ class _UserLoginPageState extends State<UserLoginPage> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppThemeColors.cardBg(ctx),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(t('referral_dialog_title')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(t('referral_dialog_body'),
-                  style: TextStyle(color: AppThemeColors.primaryText(ctx))),
-              const SizedBox(height: 16),
-              TextField(
-                controller: codeController,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  labelText: t('referral_code_hint'),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  errorText: errorText,
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            elevation: 20,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  colors: [AppColors.cyan, AppColors.blue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: applying ? null : () => Navigator.pop(ctx),
-              child: Text(t('referral_skip')),
-            ),
-            ElevatedButton(
-              onPressed: applying
-                  ? null
-                  : () async {
-                      final code = codeController.text.trim();
-                      if (code.isEmpty) { Navigator.pop(ctx); return; }
-                      setDialogState(() { applying = true; errorText = null; });
-                      try {
-                        final res = await ApiClient.post('/api/referral/apply-code', body: {'referralCode': code});
-                        final data = jsonDecode(res.body);
-                        if (res.statusCode == 200) {
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(t('referral_code_applied_toast')),
-                              duration: const Duration(seconds: 4),
-                            ));
-                          }
-                        } else {
-                          setDialogState(() { applying = false; errorText = data['error'] ?? t('referral_invalid_code'); });
-                        }
-                      } catch (_) {
-                        setDialogState(() { applying = false; errorText = t('referral_apply_network_error'); });
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.cyan,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Container(
+                padding: EdgeInsets.fromLTRB(ctx.sw(20), ctx.sw(26), ctx.sw(20), ctx.sw(18)),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.isDark(ctx)
+                      ? const Color(0xFF071B26)
+                      : const Color(0xFFEFF9FB),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Animated icon
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.elasticOut,
+                      builder: (_, v, child) => Transform.scale(scale: v, child: child),
+                      child: Container(
+                        width: ctx.sw(70),
+                        height: ctx.sw(70),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [AppColors.cyan, AppColors.blue],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.cyan.withValues(alpha: 0.38),
+                              blurRadius: 20,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.local_offer_rounded, color: Colors.white, size: 30),
+                      ),
+                    ),
+                    SizedBox(height: ctx.sh(14)),
+                    // Title
+                    Text(
+                      t('referral_dialog_title'),
+                      style: TextStyle(
+                        fontSize: ctx.sp(20),
+                        fontWeight: FontWeight.w800,
+                        color: AppThemeColors.primaryText(ctx),
+                        letterSpacing: 0.2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: ctx.sh(8)),
+                    // Body
+                    Text(
+                      t('referral_dialog_body'),
+                      style: TextStyle(
+                        fontSize: ctx.sp(13),
+                        color: AppThemeColors.secondaryText(ctx),
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: ctx.sh(20)),
+                    // Code field
+                    TextField(
+                      controller: codeController,
+                      textCapitalization: TextCapitalization.characters,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: ctx.sp(17),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 4,
+                        color: AppThemeColors.primaryText(ctx),
+                      ),
+                      decoration: InputDecoration(
+                        labelText: t('referral_code_hint'),
+                        labelStyle: TextStyle(
+                          color: AppThemeColors.secondaryText(ctx),
+                          fontSize: ctx.sp(12),
+                          letterSpacing: 0,
+                        ),
+                        filled: true,
+                        fillColor: AppThemeColors.cardBg(ctx),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: AppThemeColors.border(ctx)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: AppThemeColors.border(ctx)),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(14)),
+                          borderSide: BorderSide(color: AppColors.cyan, width: 2),
+                        ),
+                        errorText: errorText,
+                        errorStyle: TextStyle(fontSize: ctx.sp(11)),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: ctx.sw(16), vertical: ctx.sh(14)),
+                      ),
+                    ),
+                    SizedBox(height: ctx.sh(18)),
+                    // Apply button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: applying
+                            ? null
+                            : () async {
+                                final code = codeController.text.trim();
+                                if (code.isEmpty) { Navigator.pop(ctx); return; }
+                                setDialogState(() { applying = true; errorText = null; });
+                                try {
+                                  final res = await ApiClient.post(
+                                      '/api/referral/apply-code', body: {'referralCode': code});
+                                  final data = jsonDecode(res.body);
+                                  if (res.statusCode == 200) {
+                                    if (ctx.mounted) Navigator.pop(ctx);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Row(children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(5),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withValues(alpha: 0.2),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(Icons.check_circle_rounded,
+                                                  color: Colors.white, size: 16),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(t('referral_code_applied_title'),
+                                                      style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.w700,
+                                                          fontSize: 14)),
+                                                  Text(t('referral_code_applied_sub'),
+                                                      style: const TextStyle(
+                                                          color: Colors.white70, fontSize: 12)),
+                                                ],
+                                              ),
+                                            ),
+                                          ]),
+                                          backgroundColor: AppColors.blue,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(14)),
+                                          margin: const EdgeInsets.all(16),
+                                          duration: const Duration(seconds: 4),
+                                        ),
+                                      );
+                                    }
+                                  } else {
+                                    setDialogState(() {
+                                      applying = false;
+                                      errorText = data['error'] ?? t('referral_invalid_code');
+                                    });
+                                  }
+                                } catch (_) {
+                                  setDialogState(() {
+                                    applying = false;
+                                    errorText = t('referral_apply_network_error');
+                                  });
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          disabledBackgroundColor: AppColors.cyan.withValues(alpha: 0.55),
+                          padding: EdgeInsets.symmetric(vertical: ctx.sh(14)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          elevation: 4,
+                          shadowColor: AppColors.cyan.withValues(alpha: 0.4),
+                        ),
+                        child: applying
+                            ? const SizedBox(
+                                width: 20, height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text(t('referral_apply'),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: ctx.sp(15),
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.4,
+                                )),
+                      ),
+                    ),
+                    // Skip link
+                    TextButton(
+                      onPressed: applying ? null : () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppThemeColors.secondaryText(ctx),
+                        minimumSize: Size.zero,
+                        padding: EdgeInsets.symmetric(
+                            vertical: ctx.sh(6), horizontal: 12),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(t('referral_skip'),
+                          style: TextStyle(fontSize: ctx.sp(13), fontWeight: FontWeight.w500)),
+                    ),
+                  ],
+                ),
               ),
-              child: applying
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text(t('referral_apply'), style: const TextStyle(color: Colors.white)),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
     codeController.dispose();

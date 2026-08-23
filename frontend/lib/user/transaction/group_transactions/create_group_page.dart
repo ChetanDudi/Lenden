@@ -16,6 +16,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io' as dart_io;
 import '../../../utils/avatar_helpers.dart' as ah;
 import '../../../widgets/share_as_note_sheet.dart';
+import '../../../api_config.dart';
 
 class CreateGroupPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
@@ -32,6 +33,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final _descriptionController = TextEditingController();
   final _memberEmailController = TextEditingController();
   List<String> _memberEmails = [];
+  Map<String, Map<String, dynamic>> _memberUsers = {};
+  List<Map<String, dynamic>> _userGroups = [];
+  bool _loadingGroups = false;
   bool _creatingGroup = false;
   String? _error;
   String? _memberAddError;
@@ -172,14 +176,27 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       setState(() => _memberAddError = t('user_does_not_exist_cant_add'));
       return;
     }
+    final matchedFriend = _friends.firstWhere(
+      (f) => (f['email'] ?? '').toString().toLowerCase() == email.toLowerCase(),
+      orElse: () => {},
+    );
     setState(() {
       _memberEmails.add(email);
       _memberEmailController.clear();
+      if (matchedFriend.isNotEmpty) {
+        _memberUsers[email] = {
+          '_id': (matchedFriend['_id'] ?? '').toString(),
+          'name': (matchedFriend['name'] ?? matchedFriend['username'] ?? '').toString(),
+        };
+      }
     });
   }
 
   void _removeMemberEmail(String email) {
-    setState(() => _memberEmails.remove(email));
+    setState(() {
+      _memberEmails.remove(email);
+      _memberUsers.remove(email);
+    });
   }
 
   Future<void> _addMembersFromFriends() async {
@@ -551,7 +568,493 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
 
     if (mounted) {
-      setState(() => _memberEmails = tempSelected.toList());
+      final newMemberUsers = Map<String, Map<String, dynamic>>.from(_memberUsers);
+      for (final f in allFriends) {
+        final e = (f['email'] ?? '').toString();
+        if (tempSelected.contains(e)) {
+          newMemberUsers[e] = {
+            '_id': (f['_id'] ?? '').toString(),
+            'name': (f['name'] ?? f['username'] ?? '').toString(),
+          };
+        }
+      }
+      setState(() {
+        _memberEmails = tempSelected.toList();
+        _memberUsers = newMemberUsers;
+      });
+    }
+  }
+
+  Future<void> _loadUserGroups() async {
+    if (_userGroups.isNotEmpty || _loadingGroups) return;
+    setState(() => _loadingGroups = true);
+    try {
+      final res = await ApiClient.get('/api/group-transactions/user-groups');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        // API already filters to groups where user is creator or member — no extra filter needed
+        final allGroups = List<Map<String, dynamic>>.from(data['groups'] ?? []);
+        if (mounted) setState(() { _userGroups = allGroups; _loadingGroups = false; });
+      } else {
+        if (mounted) setState(() => _loadingGroups = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingGroups = false);
+    }
+  }
+
+  Color _parseGroupColor(dynamic colorStr) {
+    if (colorStr == null) return AppColors.blue;
+    try {
+      final hex = colorStr.toString().replaceFirst('#', '');
+      if (hex.length == 6) return Color(int.parse('FF$hex', radix: 16));
+      if (hex.length == 8) return Color(int.parse(hex, radix: 16));
+    } catch (_) {}
+    return AppColors.blue;
+  }
+
+  Widget _buildModeTab(BuildContext ctx, int current, int value, IconData icon, String label, VoidCallback onTap) {
+    final isActive = current == value;
+    return Expanded(child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isActive ? const LinearGradient(colors: [AppColors.cyan, AppColors.blue]) : null,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 16, color: isActive ? Colors.white : AppThemeColors.secondaryText(ctx)),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+            color: isActive ? Colors.white : AppThemeColors.secondaryText(ctx))),
+        ]),
+      ),
+    ));
+  }
+
+  Future<void> _addMembersFromGroups() async {
+    await _loadUserGroups();
+    if (!mounted) return;
+    if (_userGroups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No groups found. Create a group first.')),
+      );
+      return;
+    }
+
+    final myEmail = Provider.of<SessionProvider>(context, listen: false)
+        .user?['email']?.toString().toLowerCase() ?? '';
+
+    final tempSelected = Set<String>.from(_memberEmails);
+    final tempMemberUsers = Map<String, Map<String, dynamic>>.from(_memberUsers);
+    int modeTab = 0;
+    String? groupStatusMsg;
+
+    String getMemberEmail(Map m) {
+      final direct = m['email'];
+      if (direct != null && direct.toString().isNotEmpty) return direct.toString().toLowerCase().trim();
+      final user = m['user'];
+      if (user is Map) return (user['email'] ?? '').toString().toLowerCase().trim();
+      return '';
+    }
+    String getMemberName(Map m) {
+      final direct = m['name'] ?? m['username'];
+      if (direct != null && direct.toString().isNotEmpty) return direct.toString();
+      final user = m['user'];
+      if (user is Map) return (user['name'] ?? user['username'] ?? '').toString();
+      return '';
+    }
+    String getMemberId(Map m) {
+      final direct = m['_id'] ?? m['userId'];
+      if (direct != null && direct.toString().isNotEmpty) return direct.toString();
+      final user = m['user'];
+      if (user is Map) return (user['_id'] ?? '').toString();
+      return '';
+    }
+    List<Map> getGroupMembers(Map g) {
+      final raw = g['members'];
+      if (raw is! List) return [];
+      final members = raw.whereType<Map>().toList();
+      return members.where((m) {
+        if ((m['leftAt'] != null)) return false;
+        final me = getMemberEmail(m);
+        return me.isNotEmpty && me != myEmail;
+      }).toList();
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          // Pre-compute member list for Pick Members tab outside the widget tree to avoid IIFE-during-build issues
+          final List<Map<String, dynamic>> allPickMembers = [];
+          final Map<String, String> pickMemberGroupName = {};
+          if (modeTab == 1) {
+            final seen = <String>{};
+            for (final g in _userGroups) {
+              final gName = (g['title'] ?? 'Group').toString();
+              for (final m in getGroupMembers(g)) {
+                final me = getMemberEmail(m);
+                if (me.isNotEmpty && seen.add(me)) {
+                  allPickMembers.add(Map<String, dynamic>.from(m));
+                  pickMemberGroupName[me] = gName;
+                }
+              }
+            }
+          }
+
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (_, scrollCtrl) => Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
+                )),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.group_work_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Add from Your Groups', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                      Text('${_userGroups.length} group${_userGroups.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                    ])),
+                    if (tempSelected.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                        child: Text('${tempSelected.length} added', style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    const SizedBox(width: 8),
+                    IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(14)),
+                    child: Row(children: [
+                      _buildModeTab(ctx, modeTab, 0, Icons.group_rounded, 'Choose Group', () => setSheet(() { modeTab = 0; groupStatusMsg = null; })),
+                      _buildModeTab(ctx, modeTab, 1, Icons.person_search_rounded, 'Pick Members', () => setSheet(() { modeTab = 1; groupStatusMsg = null; })),
+                    ]),
+                  ),
+                ),
+                if (groupStatusMsg != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.green.withValues(alpha: 0.3))),
+                      child: Row(children: [
+                        const Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(groupStatusMsg!, style: const TextStyle(color: Colors.green, fontSize: 13))),
+                      ]),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                Expanded(
+                  child: modeTab == 0
+                    ? ListView.separated(
+                        controller: scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: _userGroups.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, gi) {
+                          final g = _userGroups[gi];
+                          final gId = (g['_id'] ?? '').toString();
+                          final gName = (g['title'] ?? 'Group').toString();
+                          final gColor = _parseGroupColor(g['color']);
+                          final members = getGroupMembers(g);
+                          final gImgUrl = gId.isNotEmpty ? '${ApiConfig.baseUrl}/api/group-transactions/$gId/image' : null;
+
+                          return Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.surfaceBg(ctx),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: AppThemeColors.border(ctx)),
+                            ),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Row(children: [
+                                Container(
+                                  width: 48, height: 48,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(colors: [gColor.withValues(alpha: 0.8), gColor], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: gImgUrl != null
+                                      ? Image.network(gImgUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Center(child: Text(gName.isNotEmpty ? gName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))))
+                                      : Center(child: Text(gName.isNotEmpty ? gName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(gName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                                  Text('${members.length} member${members.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                                ])),
+                                SizedBox(
+                                  width: 44,
+                                  height: 24,
+                                  child: members.isEmpty ? const SizedBox() : Stack(
+                                    children: List.generate(
+                                      members.length > 4 ? 4 : members.length, (si) {
+                                        final m = members[si];
+                                        final mId = getMemberId(m);
+                                        final mName = getMemberName(m);
+                                        final initials = mName.isNotEmpty ? mName[0].toUpperCase() : '?';
+                                        return Positioned(
+                                          left: si * 14.0,
+                                          child: Container(
+                                            width: 24, height: 24,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.cyan.withValues(alpha: 0.15),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: AppThemeColors.cardBg(ctx), width: 1.5),
+                                            ),
+                                            child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                              Center(child: Text(initials, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                                              if (mId.isNotEmpty)
+                                                Image.network('${ApiConfig.baseUrl}/api/users/$mId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                            ])),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ]),
+                              const SizedBox(height: 10),
+                              Builder(builder: (ctx2) {
+                                final allAdded = members.isNotEmpty && members.every((m) {
+                                  final me = getMemberEmail(m);
+                                  return me.isEmpty || tempSelected.contains(me);
+                                });
+                                return SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: allAdded
+                                          ? Colors.red.withValues(alpha: 0.10)
+                                          : AppColors.cyan.withValues(alpha: 0.12),
+                                      foregroundColor: allAdded ? Colors.red : AppColors.cyan,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                    ),
+                                    icon: Icon(allAdded ? Icons.remove_circle_outline_rounded : Icons.group_add_rounded, size: 16),
+                                    label: Text(allAdded ? 'Remove All' : 'Add All Members', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    onPressed: () {
+                                      if (allAdded) {
+                                        int removed = 0;
+                                        for (final m in members) {
+                                          final me = getMemberEmail(m);
+                                          if (me.isEmpty) continue;
+                                          if (tempSelected.remove(me)) { tempMemberUsers.remove(me); removed++; }
+                                        }
+                                        setSheet(() => groupStatusMsg = '$removed member${removed == 1 ? '' : 's'} removed');
+                                      } else {
+                                        int added = 0, skipped = 0;
+                                        for (final m in members) {
+                                          final me = getMemberEmail(m);
+                                          if (me.isEmpty) continue;
+                                          if (tempSelected.contains(me)) { skipped++; continue; }
+                                          tempSelected.add(me);
+                                          tempMemberUsers[me] = {'_id': getMemberId(m), 'name': getMemberName(m)};
+                                          added++;
+                                        }
+                                        String msg = '$added added';
+                                        if (skipped > 0) msg += ', $skipped already in group';
+                                        setSheet(() => groupStatusMsg = msg);
+                                      }
+                                    },
+                                  ),
+                                );
+                              }),
+                            ]),
+                          );
+                        },
+                      )
+                    : Column(children: [
+                        if (allPickMembers.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${allPickMembers.length} member${allPickMembers.length == 1 ? '' : 's'} across all groups',
+                                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx)),
+                                ),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.cyan,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: Icon(
+                                    allPickMembers.every((m) => tempSelected.contains(getMemberEmail(m)))
+                                        ? Icons.deselect_rounded
+                                        : Icons.select_all_rounded,
+                                    size: 15,
+                                  ),
+                                  label: Text(
+                                    allPickMembers.every((m) => tempSelected.contains(getMemberEmail(m)))
+                                        ? 'Deselect All'
+                                        : 'Select All',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                  onPressed: () {
+                                    final allSelected = allPickMembers.every((m) => tempSelected.contains(getMemberEmail(m)));
+                                    if (allSelected) {
+                                      setSheet(() {
+                                        for (final m in allPickMembers) {
+                                          final me = getMemberEmail(m);
+                                          tempSelected.remove(me);
+                                          tempMemberUsers.remove(me);
+                                        }
+                                      });
+                                    } else {
+                                      setSheet(() {
+                                        for (final m in allPickMembers) {
+                                          final me = getMemberEmail(m);
+                                          if (me.isNotEmpty && !tempSelected.contains(me)) {
+                                            tempSelected.add(me);
+                                            tempMemberUsers[me] = {'_id': getMemberId(m), 'name': getMemberName(m)};
+                                          }
+                                        }
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        Expanded(child: ListView.separated(
+                          controller: scrollCtrl,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                          itemCount: allPickMembers.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, mi) {
+                            final m = allPickMembers[mi];
+                            final me = getMemberEmail(m);
+                            final mName = getMemberName(m);
+                            final mId = getMemberId(m);
+                            final fromGroup = pickMemberGroupName[me] ?? '';
+                            final initials = mName.isNotEmpty ? mName[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
+                            final isSelected = tempSelected.contains(me);
+
+                            return GestureDetector(
+                              onTap: () {
+                                if (isSelected) {
+                                  setSheet(() { tempSelected.remove(me); tempMemberUsers.remove(me); });
+                                } else {
+                                  tempMemberUsers[me] = {'_id': mId, 'name': mName};
+                                  setSheet(() => tempSelected.add(me));
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.surfaceBg(ctx),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: isSelected ? AppColors.cyan.withValues(alpha: 0.5) : AppThemeColors.border(ctx)),
+                                ),
+                                child: Row(children: [
+                                  Container(
+                                    width: 44, height: 44,
+                                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.15), shape: BoxShape.circle),
+                                    child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                      Center(child: Text(initials, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                                      if (mId.isNotEmpty)
+                                        Image.network('${ApiConfig.baseUrl}/api/users/$mId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                    ])),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text(mName.isNotEmpty ? mName : me, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+                                    Text(mName.isNotEmpty ? me : '', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx)), overflow: TextOverflow.ellipsis),
+                                    if (fromGroup.isNotEmpty)
+                                      Text('from: $fromGroup', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
+                                  ])),
+                                  Checkbox(
+                                    value: isSelected,
+                                    activeColor: AppColors.cyan,
+                                    onChanged: (_) {
+                                      if (isSelected) {
+                                        setSheet(() { tempSelected.remove(me); tempMemberUsers.remove(me); });
+                                      } else {
+                                        tempMemberUsers[me] = {'_id': mId, 'name': mName};
+                                        setSheet(() => tempSelected.add(me));
+                                      }
+                                    },
+                                  ),
+                                ]),
+                              ),
+                            );
+                          },
+                        )),
+                      ]),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(
+                        tempSelected.isEmpty ? 'Done' : 'Done (${tempSelected.length})',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (mounted) {
+      setState(() {
+        _memberEmails = tempSelected.toList();
+        _memberUsers = tempMemberUsers;
+      });
     }
   }
 
@@ -618,45 +1121,115 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Future<void> _offerShareGroupInvite(Map<String, dynamic> group) async {
     final groupName = (group['title'] ?? 'the group').toString();
+    final groupColor = _parseGroupColor(group['color']);
     final appLink = await fetchAppInviteLink();
     if (!mounted) return;
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Share Group Invite'),
-        content: Text('Invite others to join "$groupName". If they\'re not on LenDen yet, the invite link helps them sign up through your referral.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Skip'),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.share_rounded, size: 16),
-            label: const Text('Share Invite'),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              String msg = '👥 Join "$groupName" on LenDen!\n📱 Download the app and ask the group admin for the join code.';
-              if (appLink.isNotEmpty) {
-                msg += '\n------------------\n$appLink';
-              }
-              await Share.share(msg, subject: 'Join $groupName on LenDen');
-              ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
-            },
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.note_add_rounded, size: 16),
-            label: const Text('Share as Note'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.tricolorGreen),
-            onPressed: () {
-              Navigator.pop(ctx);
-              final content = StringBuffer();
-              content.writeln('Group: $groupName');
-              content.writeln('Download LenDen and ask the group admin for the join code.');
-              if (appLink.isNotEmpty) content.writeln('App: $appLink');
-              showShareAsNoteSheet(context, title: 'Join $groupName on LenDen', content: content.toString().trim());
-            },
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
+            )),
+            const SizedBox(height: 22),
+            // Group icon with animated gradient
+            Container(
+              width: 78, height: 78,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [groupColor, AppColors.blue],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [BoxShadow(color: groupColor.withValues(alpha: 0.40), blurRadius: 18, offset: const Offset(0, 7))],
+              ),
+              child: const Icon(Icons.group_rounded, color: Colors.white, size: 38),
+            ),
+            const SizedBox(height: 16),
+            Text('Group Created!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+            const SizedBox(height: 6),
+            Text(
+              '"$groupName" is ready. Share the invite so friends can join!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx), height: 1.4),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('via referral invite link', style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w500)),
+            ),
+            const SizedBox(height: 26),
+            // Share Invite button (gradient)
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.30), blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
+                label: const Text('Share Invite Link', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  String msg = '👥 Join "$groupName" on LenDen!\n📱 Download the app and ask the group admin for the join code.';
+                  if (appLink.isNotEmpty) msg += '\n------------------\n$appLink';
+                  await Share.share(msg, subject: 'Join $groupName on LenDen');
+                  ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Share as Note
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  side: const BorderSide(color: AppColors.tricolorGreen),
+                  foregroundColor: AppColors.tricolorGreen,
+                ),
+                icon: const Icon(Icons.note_add_rounded, size: 18),
+                label: const Text('Share as Note', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  final content = StringBuffer();
+                  content.writeln('Group: $groupName');
+                  content.writeln('Download LenDen and ask the group admin for the join code.');
+                  if (appLink.isNotEmpty) content.writeln('App: $appLink');
+                  showShareAsNoteSheet(context, title: 'Join $groupName on LenDen', content: content.toString().trim());
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Skip for now', style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -846,25 +1419,45 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
   }
 
+  Widget _buildLimitRow({required IconData icon, required Color color, required Color bgColor, required String label}) {
+    return Row(children: [
+      Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(9)),
+        child: Icon(icon, size: 17, color: color),
+      ),
+      const SizedBox(width: 10),
+      Expanded(child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color))),
+    ]);
+  }
+
+  Widget _profileStyleField({required IconData icon, required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppThemeColors.border(context)),
+      ),
+      child: Row(children: [
+        const SizedBox(width: 14),
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.cyan, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: child),
+        const SizedBox(width: 8),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
-    final inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: AppThemeColors.border(context), width: 1.5),
-    );
-    final focusedBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.cyan, width: 2),
-    );
-    final decoration = InputDecoration(
-      filled: true,
-      fillColor: AppThemeColors.surfaceBg(context),
-      border: inputBorder,
-      enabledBorder: inputBorder,
-      focusedBorder: focusedBorder,
-      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-    );
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
@@ -975,6 +1568,49 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               ),
             ),
 
+            // Limit info banner
+            Consumer<SessionProvider>(
+              builder: (context, session, _) {
+                if (session.hasFeature('group_creation')) return const SizedBox.shrink();
+                final freeLeft = session.freeGroupsRemaining ?? 0;
+                final dailyLeft = _dailyGroupRemaining;
+                if (freeLeft <= 0 && (dailyLeft == null || dailyLeft > 0)) return const SizedBox.shrink();
+                return Column(children: [
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppThemeColors.border(context)),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 3))],
+                    ),
+                    child: Column(
+                      children: [
+                        if (freeLeft > 0)
+                          _buildLimitRow(
+                            icon: Icons.card_giftcard_rounded,
+                            color: Colors.green.shade600,
+                            bgColor: Colors.green.withValues(alpha: 0.12),
+                            label: '$freeLeft free group creation${freeLeft == 1 ? '' : 's'} remaining',
+                          ),
+                        if (freeLeft > 0 && dailyLeft != null) const SizedBox(height: 8),
+                        if (dailyLeft != null)
+                          _buildLimitRow(
+                            icon: dailyLeft <= 0 ? Icons.hourglass_empty_rounded : Icons.today_rounded,
+                            color: dailyLeft <= 0 ? Colors.orange.shade700 : Colors.blue.shade600,
+                            bgColor: (dailyLeft <= 0 ? Colors.orange : Colors.blue).withValues(alpha: 0.12),
+                            label: dailyLeft <= 0
+                                ? 'Daily limit reached — resets tomorrow'
+                                : 'Daily limit remaining: $dailyLeft',
+                          ),
+                      ],
+                    ),
+                  ),
+                ]);
+              },
+            ),
+
             if (_error != null) ...[
               const SizedBox(height: 14),
               Container(
@@ -1003,28 +1639,37 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             const SizedBox(height: 22),
 
             // Group title
-            TextField(
-              controller: _titleController,
-              style: TextStyle(color: AppThemeColors.primaryText(context)),
-              decoration: decoration.copyWith(
-                labelText: t('group_title_label'),
-                prefixIcon: Icon(Icons.title,
-                    color: AppThemeColors.secondaryText(context)),
+            _profileStyleField(
+              icon: Icons.title_rounded,
+              child: TextField(
+                controller: _titleController,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
+                  labelText: t('group_title_label'),
+                  labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
 
             const SizedBox(height: 14),
 
             // Group description (optional)
-            TextField(
-              controller: _descriptionController,
-              style: TextStyle(color: AppThemeColors.primaryText(context)),
-              maxLines: 2,
-              decoration: decoration.copyWith(
-                labelText: 'Description (optional)',
-                hintText: 'What is this group for?',
-                prefixIcon: Icon(Icons.notes_rounded,
-                    color: AppThemeColors.secondaryText(context)),
+            _profileStyleField(
+              icon: Icons.notes_rounded,
+              child: TextField(
+                controller: _descriptionController,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                maxLines: 2,
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)',
+                  hintText: 'What is this group for?',
+                  labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
+                  hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
 
@@ -1136,16 +1781,20 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _memberEmailController,
-                    style: TextStyle(color: AppThemeColors.primaryText(context)),
-                    decoration: decoration.copyWith(
-                      hintText: t('enter_email_one_at_a_time'),
-                      prefixIcon: Icon(Icons.email_outlined,
-                          color: AppThemeColors.secondaryText(context)),
+                  child: _profileStyleField(
+                    icon: Icons.email_outlined,
+                    child: TextField(
+                      controller: _memberEmailController,
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
+                      decoration: InputDecoration(
+                        hintText: t('enter_email_one_at_a_time'),
+                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      onSubmitted: (_) => _addMemberEmail(),
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    onSubmitted: (_) => _addMemberEmail(),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1196,22 +1845,29 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             ],
 
             const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
+            Row(children: [
+              TextButton.icon(
                 onPressed: _loadingFriends ? null : _addMembersFromFriends,
                 icon: _loadingFriends
-                    ? const SizedBox(
-                        width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan),
-                      )
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
                     : const Icon(Icons.people, color: AppColors.cyan),
                 label: Text(
                   _loadingFriends ? 'Loading...' : t('add_from_friends_label'),
                   style: const TextStyle(color: AppColors.cyan),
                 ),
               ),
-            ),
+              const SizedBox(width: 4),
+              TextButton.icon(
+                onPressed: _loadingGroups ? null : _addMembersFromGroups,
+                icon: _loadingGroups
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                    : const Icon(Icons.group_work_rounded, color: AppColors.cyan),
+                label: Text(
+                  _loadingGroups ? 'Loading...' : 'Add from Groups',
+                  style: const TextStyle(color: AppColors.cyan),
+                ),
+              ),
+            ]),
 
             if (_memberAddError != null)
               Padding(
@@ -1223,16 +1879,42 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
-                runSpacing: 4,
+                runSpacing: 8,
                 children: _memberEmails.map((e) {
                   final blocked = _isBlocked(e);
-                  return Chip(
-                    avatar: blocked ? const Icon(Icons.block_rounded, size: 14, color: Colors.red) : null,
-                    label: Text(e, style: TextStyle(fontSize: 13, color: blocked ? Colors.red.shade700 : null)),
-                    onDeleted: () => _removeMemberEmail(e),
-                    backgroundColor: blocked ? Colors.red.shade50 : Colors.blue.shade50,
-                    side: blocked ? BorderSide(color: Colors.red.shade300) : null,
-                    deleteIconColor: Colors.red.shade300,
+                  final info = _memberUsers[e];
+                  final userId = info?['_id'] ?? '';
+                  final displayName = (info?['name'] ?? '').toString().trim();
+                  final nameLabel = displayName.isNotEmpty ? displayName.split(' ')[0] : e.split('@')[0];
+                  final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : e[0].toUpperCase();
+                  return Container(
+                    padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+                    decoration: BoxDecoration(
+                      color: blocked ? Colors.red.shade50 : AppColors.cyan.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: blocked ? Colors.red.shade300 : AppColors.cyan.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        width: 30, height: 30,
+                        decoration: BoxDecoration(
+                          color: blocked ? Colors.red.shade100 : AppColors.cyan.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                          Center(child: Text(initials, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: blocked ? Colors.red : AppColors.cyan))),
+                          if (userId.isNotEmpty && !blocked)
+                            Image.network('${ApiConfig.baseUrl}/api/users/$userId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                        ])),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(nameLabel, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: blocked ? Colors.red.shade700 : AppThemeColors.primaryText(context))),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => _removeMemberEmail(e),
+                        child: Icon(Icons.close_rounded, size: 16, color: blocked ? Colors.red.shade400 : AppThemeColors.mutedText(context)),
+                      ),
+                    ]),
                   );
                 }).toList(),
               ),
@@ -1253,26 +1935,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (!session.hasFeature('group_creation') && (session.freeGroupsRemaining ?? 0) > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          t('free_group_creations_remaining').replaceFirst(
-                              '{count}', '${session.freeGroupsRemaining}'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.green),
-                        ),
-                      ),
-                    if (!session.hasFeature('group_creation') && _dailyGroupRemaining != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          t('daily_limit_remaining_label').replaceFirst(
-                              '{count}', '$_dailyGroupRemaining'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.orange),
-                        ),
-                      ),
                     ElevatedButton(
                       onPressed: _creatingGroup || !canCreate ? null : _createGroup,
                       style: ElevatedButton.styleFrom(

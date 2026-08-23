@@ -230,25 +230,18 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final numericAmount = (amount ?? 0).toDouble();
     final sourceCurrency = (originalCurrency ?? 'INR').toUpperCase();
     final targetCurrency = selectedCurrency.toUpperCase();
-    final canConvert = currencyData?.canConvert(
-          sourceCurrency,
-          targetCurrency,
-        ) ??
-        (sourceCurrency == targetCurrency);
+    final canConvert = currencyData?.canConvert(sourceCurrency, targetCurrency)
+        ?? (sourceCurrency == targetCurrency);
     if (!canConvert) {
-      final originalSymbol =
-          currencyData?.symbolFor(sourceCurrency) ?? sourceCurrency;
-      return '$originalSymbol${numericAmount.toStringAsFixed(2)} $sourceCurrency';
+      final symbol = currencyData?.symbolFor(sourceCurrency)
+          ?? currencySymbolFor(sourceCurrency);
+      return '$symbol${numericAmount.toStringAsFixed(2)}';
     }
-    final converted = currencyData?.convert(
-          numericAmount,
-          sourceCurrency,
-          targetCurrency,
-        ) ??
-        numericAmount;
-    final symbol =
-        currencyData?.symbolFor(targetCurrency) ?? targetCurrency;
-    return '$symbol${converted.toStringAsFixed(2)} $targetCurrency';
+    final converted = currencyData?.convert(numericAmount, sourceCurrency, targetCurrency)
+        ?? numericAmount;
+    final symbol = currencyData?.symbolFor(targetCurrency)
+        ?? currencySymbolFor(targetCurrency);
+    return '$symbol${converted.toStringAsFixed(2)}';
   }
 
   bool _hasMissingConversionForSecureTransactions() {
@@ -492,6 +485,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
             builder: (_) => SecureTransactionDetailPage(
               transaction: Map<String, dynamic>.from(t),
               isLending: isLending,
+              initialCurrency: selectedCurrency,
+              currencyData: currencyData,
             ),
           ),
         );
@@ -617,7 +612,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                     // Amount (always visible - most important)
                     Row(
                       children: [
-                        Icon(Icons.attach_money,
+                        Icon(Icons.payments_rounded,
                             color: isLending ? Colors.green : Colors.red.shade700, size: 20),
                         SizedBox(width: 6),
                         Text(
@@ -769,9 +764,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                       Builder(builder: (context) {
                         final double dueAmt = _calculateRemainingWithInterest(t);
                         final bool hasInterest = t['interestType'] != null && t['interestRate'] != null;
-                        final String txSymbol = currencyData?.symbolFor(
-                              (t['currency'] ?? 'INR').toString(),
-                            ) ?? currencySymbolFor(t['currency'] as String?);
+                        final String displayDue = _formatDisplayAmount(dueAmt, t['currency']?.toString());
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -781,7 +774,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                                     color: hasInterest ? Colors.deepOrange : Colors.teal),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${tr('amount_due_label')}: $txSymbol${dueAmt.toStringAsFixed(2)}',
+                                  '${tr('amount_due_label')}: $displayDue',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -803,7 +796,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Colors.white),
                                 label: Text(
-                                  '${tr('pay_now_label')}  •  $txSymbol${dueAmt.toStringAsFixed(2)}',
+                                  '${tr('pay_now_label')}  •  $displayDue',
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                 ),
                                 style: ElevatedButton.styleFrom(
@@ -1859,49 +1852,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     };
   }
 
-  Widget _buildStatusLegend() {
-    final t = AppLocalizations.of(context).t;
-    Widget item(Color color, IconData icon, String label) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withValues(alpha: 0.22)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          item(Colors.grey, Icons.hourglass_empty, t('uncleared_label')),
-          item(Colors.orange, Icons.check_circle_outline, t('you_cleared_label')),
-          item(Colors.blue, Icons.people_alt_outlined, t('other_cleared_label')),
-          item(Colors.green, Icons.verified, t('fully_cleared_label')),
-        ],
-      ),
-    );
-  }
-
   List<Widget> _buildFilteredTransactionCards({int? limit}) {
     final tr = AppLocalizations.of(context).t;
     List<Widget> widgets = [];
@@ -2102,6 +2052,71 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
           Text('$borrowedCount borrowed', style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(context))),
         ])),
       ]),
+    );
+  }
+
+  // ── Currency picker ───────────────────────────────────────────────────────
+  void _showCurrencyPicker(BuildContext ctx) {
+    final currencies = currencyData?.currencies ?? kCurrencyFallbacks;
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: AppThemeColors.cardBg(ctx),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+      builder: (sheetCtx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: AppThemeColors.border(sheetCtx),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(children: [
+              const Icon(Icons.currency_exchange_rounded, color: AppColors.cyan, size: 20),
+              const SizedBox(width: 10),
+              Text('Currency Mode',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+                      color: AppThemeColors.primaryText(sheetCtx))),
+            ]),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: currencies.length,
+              itemBuilder: (_, i) {
+                final c = currencies[i];
+                final isSel = c['code'] == selectedCurrency;
+                return ListTile(
+                  leading: Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: isSel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.surfaceBg(sheetCtx),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(child: Text(c['symbol']!,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                            color: isSel ? AppColors.cyan : AppThemeColors.secondaryText(sheetCtx)))),
+                  ),
+                  title: Text('${c['code']}  ${c['label'] ?? c['code']}',
+                      style: TextStyle(fontSize: 14,
+                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                          color: AppThemeColors.primaryText(sheetCtx))),
+                  trailing: isSel ? const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 20) : null,
+                  onTap: () { setCurrency(c['code']!); Navigator.pop(sheetCtx); },
+                );
+              },
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(sheetCtx).padding.bottom + 12),
+        ],
+      ),
     );
   }
 
@@ -2345,8 +2360,17 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
               if (value == 'export_csv') _exportCsv();
               if (value == 'export_pdf') _exportPdf();
               if (value == 'share_as_note') _shareAsNote();
+              if (value == 'currency_mode') _showCurrencyPicker(context);
             },
             itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'currency_mode',
+                child: Row(children: [
+                  const Icon(Icons.currency_exchange_rounded, size: 18, color: AppColors.cyan),
+                  const SizedBox(width: 12),
+                  Text('Currency: $selectedCurrency'),
+                ]),
+              ),
               if (lending.isNotEmpty || borrowing.isNotEmpty) ...[
                 const PopupMenuItem(
                   value: 'export_csv',
@@ -2436,7 +2460,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                     _buildMonthlySummary(),
                     _buildFilterToolbar(),
                     _buildActiveFilterSummary(),
-                    _buildStatusLegend(),
                     if (_displayCurrencyError != null ||
                         _hasMissingConversionForSecureTransactions())
                       Padding(
@@ -2470,20 +2493,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                           ),
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            loc('show_in_label'),
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(width: 10),
-                          buildCurrencySelector(),
-                        ],
-                      ),
-                    ),
                     SizedBox(height: 8),
                     Column(
                       children: [

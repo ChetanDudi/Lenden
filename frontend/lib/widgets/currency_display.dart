@@ -2,9 +2,11 @@
 export '../utils/display_currency_helper.dart';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'app_colors.dart';
 import '../utils/theme_helper.dart';
 import '../utils/display_currency_helper.dart';
+import '../utils/currency_provider.dart';
 
 /// Default currency list shown before the API response arrives.
 const kCurrencyFallbacks = <Map<String, String>>[
@@ -61,40 +63,51 @@ mixin CurrencyDisplayMixin<T extends StatefulWidget> on State<T> {
   /// The loaded currency conversion data (null while loading or on error).
   DisplayCurrencyData? get currencyData => _cData;
 
-  /// The currently selected display currency code (default 'INR').
+  /// The currently selected display currency code (default from global setting).
   String get selectedCurrency => _cCode;
+
+  /// Returns the global default currency from CurrencyProvider, or 'INR' as fallback.
+  String _globalDefault() {
+    try {
+      return context.read<CurrencyProvider>().defaultCurrency;
+    } catch (_) {
+      return 'INR';
+    }
+  }
 
   /// Load supported currencies from the network.
   /// Pass [seedData] + [seedCode] to skip the network call — useful in sheet
   /// widgets that inherit data from their parent page.
-  /// Pass [onError] to surface a localised error message in the UI.
+  /// When [seedCode] is null, the global default currency from settings is used.
   Future<void> loadCurrencies({
     DisplayCurrencyData? seedData,
-    String seedCode = 'INR',
+    String? seedCode,
     void Function(String? message)? onError,
   }) async {
+    final effectiveCode = seedCode ?? _globalDefault();
     if (seedData != null) {
       if (!mounted) return;
       setState(() {
         _cData = seedData;
-        _cCode = seedCode;
+        _cCode = effectiveCode;
       });
       return;
     }
+    if (mounted) setState(() => _cCode = effectiveCode);
     try {
       final data = await DisplayCurrencyHelper.load();
       if (!mounted) return;
       setState(() {
         _cData = data;
         if (!data.currencies.any((c) => c['code'] == _cCode)) {
-          _cCode = 'INR';
+          _cCode = _globalDefault();
         }
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _cData = null;
-        _cCode = 'INR';
+        _cCode = _globalDefault();
       });
       onError?.call(null);
     }

@@ -692,21 +692,30 @@ class _CreateEditQuickTransactionPageState
     }
   }
 
-  Widget _buildStylishField({required Widget child}) {
+  Widget _buildStylishField({required Widget child, IconData? icon, Color? iconColor}) {
+    final resolvedIconColor = iconColor ?? AppColors.cyan;
     return Container(
       decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppThemeColors.border(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: child,
+      child: icon != null
+          ? Row(children: [
+              const SizedBox(width: 14),
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: resolvedIconColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: resolvedIconColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: child),
+              const SizedBox(width: 4),
+            ])
+          : child,
     );
   }
 
@@ -745,43 +754,61 @@ class _CreateEditQuickTransactionPageState
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Profile-style header
             Container(
-              padding: const EdgeInsets.fromLTRB(4, 16, 20, 16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Row(
-                children: [
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 12),
+              color: AppThemeColors.cardBg(context),
+              child: Column(children: [
+                Row(children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context), size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    isEditing ? Icons.edit : Icons.add_circle_outline,
-                    color: AppThemeColors.primaryText(context),
-                    size: 26,
-                  ),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      isEditing
-                          ? t('edit_quick_transaction_title')
-                          : t('new_quick_transaction_title'),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppThemeColors.primaryText(context),
-                      ),
+                      isEditing ? t('edit_quick_transaction_title') : t('new_quick_transaction_title'),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
                     ),
                   ),
-                ],
-              ),
+                ]),
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.cyan.withValues(alpha: 0.12), AppColors.blue.withValues(alpha: 0.08)],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(isEditing ? Icons.edit_rounded : Icons.receipt_long_rounded, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(
+                          isEditing ? t('edit_quick_transaction_title') : t('new_quick_transaction_title'),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isEditing ? 'Update transaction details below' : 'Fill in the details to record a transaction',
+                          style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
+                        ),
+                      ])),
+                    ]),
+                  ),
+                ),
+              ]),
             ),
 
             // Form content
@@ -855,45 +882,34 @@ class _CreateEditQuickTransactionPageState
 
                       // Currency
                       _buildStylishField(
+                        icon: Icons.currency_exchange_rounded,
                         child: DropdownButtonFormField<String>(
                           value: _currency,
                           items: _currencies
                               .map((c) => DropdownMenuItem(
                                     value: c['code'],
-                                    child:
-                                        Text('${c['symbol']} ${c['code']}'),
+                                    child: Text('${c['symbol']} ${c['code']}'),
                                   ))
                               .toList(),
-                          onChanged: (val) =>
-                              setState(() => _currency = val ?? 'INR'),
+                          onChanged: (val) => setState(() => _currency = val ?? 'INR'),
                           decoration: InputDecoration(
                             labelText: t('currency'),
-                            prefixIcon: Icon(Icons.currency_exchange,
-                                color: AppColors.cyan),
                             border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
                       // Amount
                       _buildStylishField(
+                        icon: Icons.payments_rounded,
                         child: TextFormField(
                           controller: _amountController,
                           decoration: InputDecoration(
                             labelText: '${t('amount')} (${_currencySymbol()})',
-                            prefixIcon: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Text(
-                                _currencySymbol(),
-                                style: const TextStyle(
-                                  color: AppColors.cyan,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                             border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           keyboardType: TextInputType.number,
                           validator: (value) {
@@ -904,17 +920,17 @@ class _CreateEditQuickTransactionPageState
                           },
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
                       // Description
                       _buildStylishField(
+                        icon: Icons.notes_rounded,
                         child: TextFormField(
                           controller: _descriptionController,
                           decoration: InputDecoration(
                             labelText: t('description'),
-                            prefixIcon: const Icon(Icons.description,
-                                color: AppColors.cyan),
                             border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           maxLines: 2,
                           validator: (value) {
@@ -925,22 +941,23 @@ class _CreateEditQuickTransactionPageState
                           },
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
                       // Your email (read-only)
                       _buildStylishField(
+                        icon: Icons.person_rounded,
+                        iconColor: AppThemeColors.mutedText(context),
                         child: TextFormField(
                           initialValue: userEmail,
                           enabled: false,
                           decoration: InputDecoration(
                             labelText: t('your_email'),
-                            prefixIcon:
-                                const Icon(Icons.person, color: Colors.grey),
                             border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
                       // On LenDen / Not on LenDen toggle (only for create)
                       if (!isEditing)
@@ -972,15 +989,13 @@ class _CreateEditQuickTransactionPageState
                       // Counterparty email OR name
                       if (!_isExternalUser) ...[
                         _buildStylishField(
+                          icon: Icons.alternate_email_rounded,
+                          iconColor: isEditing ? AppThemeColors.mutedText(context) : AppColors.cyan,
                           child: TextFormField(
                             controller: _counterpartyEmailController,
                             enabled: !isEditing,
                             decoration: InputDecoration(
                               labelText: t('counterparty_email'),
-                              prefixIcon: Icon(Icons.person_outline,
-                                  color: isEditing
-                                      ? Colors.grey
-                                      : AppColors.cyan),
                               suffixIcon: _loadingFriends
                                   ? const Padding(
                                       padding: EdgeInsets.all(12),
@@ -990,11 +1005,12 @@ class _CreateEditQuickTransactionPageState
                                       ),
                                     )
                                   : IconButton(
-                                      icon: Icon(Icons.people,
+                                      icon: Icon(Icons.people_rounded,
                                           color: isEditing ? Colors.grey : AppColors.cyan),
                                       onPressed: isEditing ? null : _pickFriend,
                                     ),
                               border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             validator: (value) {
                               if (_isExternalUser) return null;
@@ -1030,16 +1046,15 @@ class _CreateEditQuickTransactionPageState
                         ],
                       ] else ...[
                         _buildStylishField(
+                          icon: Icons.person_off_rounded,
+                          iconColor: isEditing ? AppThemeColors.mutedText(context) : Colors.orange,
                           child: TextFormField(
                             controller: _counterpartyNameController,
                             enabled: !isEditing,
                             decoration: InputDecoration(
                               labelText: 'Counterparty Name',
-                              prefixIcon: Icon(
-                                Icons.person_off_rounded,
-                                color: isEditing ? Colors.grey : Colors.orange,
-                              ),
                               border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
                               helperText: 'This person is not on LenDen',
                               helperStyle: TextStyle(color: Colors.orange.shade700, fontSize: 11),
                             ),
@@ -1057,6 +1072,7 @@ class _CreateEditQuickTransactionPageState
 
                       // Role
                       _buildStylishField(
+                        icon: Icons.swap_horiz_rounded,
                         child: DropdownButtonFormField<String>(
                           value: _role,
                           items: [
@@ -1069,20 +1085,19 @@ class _CreateEditQuickTransactionPageState
                               child: Text(t('borrowing_you_took_money')),
                             ),
                           ],
-                          onChanged: (val) =>
-                              setState(() => _role = val ?? 'lender'),
+                          onChanged: (val) => setState(() => _role = val ?? 'lender'),
                           decoration: InputDecoration(
                             labelText: t('your_position'),
-                            prefixIcon: const Icon(Icons.people,
-                                color: AppColors.cyan),
                             border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
                       // Category
                       _buildStylishField(
+                        icon: Icons.label_rounded,
                         child: DropdownButtonFormField<String>(
                           value: _category,
                           items: const [
@@ -1103,8 +1118,8 @@ class _CreateEditQuickTransactionPageState
                           onChanged: (val) => setState(() => _category = val ?? 'other'),
                           decoration: InputDecoration(
                             labelText: t('category'),
-                            prefixIcon: const Icon(Icons.label_outline_rounded, color: AppColors.cyan),
                             border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),

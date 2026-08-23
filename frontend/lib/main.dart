@@ -28,6 +28,7 @@ import 'utils/app_lock_service.dart';
 import 'widgets/app_lock_screen.dart';
 import 'utils/theme_provider.dart';
 import 'utils/locale_provider.dart';
+import 'utils/currency_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/theme_helper.dart';
@@ -52,6 +53,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => SessionProvider()),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => LocaleProvider()),
+          ChangeNotifierProvider(create: (_) => CurrencyProvider()..load()),
         ],
         child: const AppInitializer(),
       ),

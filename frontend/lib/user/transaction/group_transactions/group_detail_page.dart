@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/currency_display.dart';
+import '../../../utils/currency_provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -88,7 +90,8 @@ class GroupDetailPage extends StatefulWidget {
   State<GroupDetailPage> createState() => _GroupDetailPageState();
 }
 
-class _GroupDetailPageState extends State<GroupDetailPage> {
+class _GroupDetailPageState extends State<GroupDetailPage>
+    with CurrencyDisplayMixin<GroupDetailPage> {
   late Map<String, dynamic> _group;
   bool _loading = false;
   bool _uploadingImage = false;
@@ -104,6 +107,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     _userEmail = session.user?['email'] ?? '';
     final creatorEmail = _emailOf(_group['creator']).toLowerCase();
     _isCreator = creatorEmail == _userEmail!.toLowerCase();
+    loadCurrencies();
   }
 
   Future<void> _refresh() async {
@@ -1089,6 +1093,19 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                   color: Colors.white, strokeWidth: 2)),
                         ),
                       IconButton(
+                        icon: const Icon(Icons.currency_exchange_rounded, color: Colors.white),
+                        onPressed: () {
+                          final currencies = currencyData?.currencies ?? kCurrencyFallbacks;
+                          CurrencyProvider.showPickerSheet(
+                            context,
+                            currencies: currencies,
+                            selected: selectedCurrency,
+                            onSelect: setCurrency,
+                          );
+                        },
+                        tooltip: 'Currency',
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.refresh, color: Colors.white),
                         onPressed: _refresh,
                         tooltip: t('refresh_label'),
@@ -1472,7 +1489,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '₹${net.abs().toStringAsFixed(2)}',
+                                            '${currencySymbolFor(selectedCurrency)}${formatAmount(net.abs(), from: 'INR')}',
                                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: amtColor),
                                           ),
                                           if (isMe && isOwes && payTo != null) ...[
@@ -1587,7 +1604,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            '₹${amt.toStringAsFixed(2)}',
+                                            '${currencySymbolFor(selectedCurrency)}${formatAmount(amt, from: 'INR')}',
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
@@ -1702,16 +1719,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 (e['amount'] ?? 0).toString();
                             final currency =
                                 e['currency'] ?? 'INR';
-                            final currencySymbol =
-                                currency == 'INR'
-                                    ? '₹'
-                                    : currency == 'USD'
-                                        ? '\$'
-                                        : currency == 'EUR'
-                                            ? '€'
-                                            : currency == 'GBP'
-                                                ? '£'
-                                                : currency;
+                            final currencySymbol = currencySymbolFor(currency.toString());
                             return _tricolorBorderBox(
                               margin: const EdgeInsets.only(bottom: 10),
                               radius: 16,

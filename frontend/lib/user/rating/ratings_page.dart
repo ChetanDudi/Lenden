@@ -28,14 +28,6 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   bool loading = true;
   String? error;
 
-  final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _commentController = TextEditingController();
-  double _selectedRating = 5;
-  String? _submitError;
-  bool _submitting = false;
-  bool _showSuccess = false;
-
   final _searchController = TextEditingController();
   String? _searchError;
   double? _searchedAvgRating;
@@ -57,17 +49,12 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     fetchRatings();
     fetchRatingActivities();
     _fetchFriends();
-    _usernameController.addListener(() {
-      if (_showSuccess) setState(() => _showSuccess = false);
-    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
-    _usernameController.dispose();
-    _commentController.dispose();
     super.dispose();
   }
 
@@ -116,25 +103,6 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         setState(() => _friends = List<Map<String, dynamic>>.from(data['friends'] ?? []));
       }
     } catch (_) {}
-  }
-
-  Future<void> submitRating() async {
-    final t = AppLocalizations.of(context).t;
-    if (!_formKey.currentState!.validate()) return;
-    setState(() { _submitting = true; _submitError = null; _showSuccess = false; });
-    final res = await ApiClient.post('/api/ratings', body: {
-      'usernameOrEmail': _usernameController.text.trim(),
-      'rating': _selectedRating,
-      'comment': _commentController.text.trim(),
-    });
-    if (res.statusCode == 201) {
-      setState(() { _showSuccess = true; _usernameController.clear(); _selectedRating = 5; });
-      _commentController.clear();
-      fetchRatings();
-    } else {
-      setState(() => _submitError = json.decode(res.body)['error'] ?? t('failed_to_submit_rating'));
-    }
-    setState(() => _submitting = false);
   }
 
   Future<void> _searchUserRating() async {
@@ -577,6 +545,338 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
 
   // ─── Tab: Rate ───────────────────────────────────────────────────────────────
 
+  void _showRatingSheet({String? prefillUsername}) {
+    final usernameCtrl = TextEditingController(text: prefillUsername ?? '');
+    final commentCtrl = TextEditingController();
+    double localRating = 5;
+    bool isSuccess = false;
+    bool submitting = false;
+    String? submitError;
+    String submittedFor = '';
+    double submittedStars = 5;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final t = AppLocalizations.of(ctx).t;
+          final ratedIds = ratingsGiven.map((r) => r['ratee']?.toString() ?? '').toSet();
+          final unrated = _friends.where((f) {
+            final fid = (f['_id'] ?? '').toString();
+            return fid.isNotEmpty && !ratedIds.contains(fid);
+          }).toList();
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                child: isSuccess
+                  ? _ratingThankYouPhase(ctx, submittedFor, submittedStars)
+                  : SingleChildScrollView(
+                      key: const ValueKey('input'),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(child: Container(
+                              width: 40, height: 4,
+                              decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
+                            )),
+                            const SizedBox(height: 16),
+                            Row(children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(Icons.star_rounded, color: Colors.white, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(t('rate_another_user_title'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                                Text('Share your experience', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                              ])),
+                              IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                            ]),
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: usernameCtrl,
+                              style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                              decoration: InputDecoration(
+                                labelText: t('username_or_email_label'),
+                                prefixIcon: const Icon(Icons.person_search_outlined),
+                                filled: true,
+                                fillColor: AppThemeColors.surfaceBg(ctx),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.cyan, width: 1.5)),
+                              ),
+                            ),
+                            if (unrated.isNotEmpty) ...[
+                              const SizedBox(height: 14),
+                              Text('Quick select:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppThemeColors.mutedText(ctx))),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                height: 72,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: unrated.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                  itemBuilder: (_, i) {
+                                    final f = unrated[i];
+                                    final fId = (f['_id'] ?? '').toString();
+                                    final fName = (f['name'] ?? f['username'] ?? '').toString();
+                                    final fUsername = (f['username'] ?? '').toString();
+                                    final initials = fName.isNotEmpty ? fName[0].toUpperCase() : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
+                                    final isSelected = usernameCtrl.text == fUsername;
+                                    return GestureDetector(
+                                      onTap: () { usernameCtrl.text = fUsername; setSheet(() {}); },
+                                      child: Column(children: [
+                                        Container(
+                                          width: 44, height: 44,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.cyan.withValues(alpha: 0.15),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: isSelected ? AppColors.cyan : Colors.transparent, width: 2.5),
+                                          ),
+                                          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                            Center(child: Text(initials, style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 16))),
+                                            if (fId.isNotEmpty)
+                                              Image.network('${ApiConfig.baseUrl}/api/users/$fId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                          ])),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        SizedBox(
+                                          width: 52,
+                                          child: Text(fUsername,
+                                            style: TextStyle(fontSize: 10, color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx)),
+                                            textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        ),
+                                      ]),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 24),
+                            Center(child: Column(children: [
+                              Text(t('give_rating_as_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(ctx))),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(5, (i) => GestureDetector(
+                                  onTap: () => setSheet(() => localRating = (i + 1).toDouble()),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: Icon(
+                                      i < localRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                      color: i < localRating ? Colors.amber : AppThemeColors.divider(ctx),
+                                      size: 46,
+                                    ),
+                                  ),
+                                )),
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: (localRating >= 4 ? Colors.green : Colors.orange).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  localRating == 5 ? t('excellent_label') : localRating >= 4 ? t('great_label') :
+                                  localRating >= 3 ? t('good_label') : localRating >= 2 ? t('fair_label') : t('poor_label'),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: localRating >= 4 ? Colors.green : Colors.orange),
+                                ),
+                              ),
+                            ])),
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: commentCtrl,
+                              maxLines: 3,
+                              maxLength: 200,
+                              style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                              decoration: InputDecoration(
+                                hintText: t('share_your_experience_placeholder'),
+                                filled: true,
+                                fillColor: AppThemeColors.surfaceBg(ctx),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.cyan, width: 1.5)),
+                                counterStyle: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 11),
+                              ),
+                            ),
+                            if (submitError != null) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                ),
+                                child: Row(children: [
+                                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                                  const SizedBox(width: 8),
+                                  Flexible(child: Text(submitError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                                ]),
+                              ),
+                            ],
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4))],
+                                ),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(vertical: 15),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: submitting ? null : () async {
+                                    if (usernameCtrl.text.trim().isEmpty) {
+                                      setSheet(() => submitError = t('required'));
+                                      return;
+                                    }
+                                    setSheet(() { submitting = true; submitError = null; });
+                                    final res = await ApiClient.post('/api/ratings', body: {
+                                      'usernameOrEmail': usernameCtrl.text.trim(),
+                                      'rating': localRating,
+                                      'comment': commentCtrl.text.trim(),
+                                    });
+                                    if (!ctx.mounted) return;
+                                    if (res.statusCode == 201) {
+                                      submittedFor = usernameCtrl.text.trim();
+                                      submittedStars = localRating;
+                                      setSheet(() { isSuccess = true; submitting = false; });
+                                      fetchRatings();
+                                      Future.delayed(const Duration(milliseconds: 3200), () {
+                                        if (ctx.mounted) Navigator.pop(ctx);
+                                      });
+                                    } else {
+                                      final body = jsonDecode(res.body);
+                                      setSheet(() {
+                                        submitError = body['error'] ?? t('failed_to_submit_rating');
+                                        submitting = false;
+                                      });
+                                    }
+                                  },
+                                  child: submitting
+                                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : Text(t('submit_rating_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ),
+            ),
+          );
+        },
+      ),
+    ).then((_) {
+      usernameCtrl.dispose();
+      commentCtrl.dispose();
+    });
+  }
+
+  Widget _ratingThankYouPhase(BuildContext ctx, String ratedFor, double stars) {
+    final t = AppLocalizations.of(ctx).t;
+    return Container(
+      key: const ValueKey('success'),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 44),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(child: Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
+          )),
+          const SizedBox(height: 32),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.elasticOut,
+            builder: (_, v, child) => Transform.scale(scale: v, child: child),
+            child: Container(
+              width: 84, height: 84,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 10))],
+              ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 46),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text('Thank You!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+          const SizedBox(height: 6),
+          Text(t('rating_submitted_successfully'), style: TextStyle(color: AppThemeColors.secondaryText(ctx), fontSize: 15), textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Icon(
+                i < stars.floor() ? Icons.star_rounded : (i < stars ? Icons.star_half_rounded : Icons.star_outline_rounded),
+                color: Colors.amber, size: 34,
+              ),
+            )),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+            ),
+            child: Text('@$ratedFor', style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600, fontSize: 15)),
+          ),
+          const SizedBox(height: 36),
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+              ),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(t('done'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRateTab() {
     final t = AppLocalizations.of(context).t;
     final ratedIds = ratingsGiven.map((r) => r['ratee']?.toString() ?? '').toSet();
@@ -586,150 +886,127 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 12, bottom: 24),
-      child: _sectionCard(
-        t('rate_another_user_title').toUpperCase(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_showSuccess)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 14),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+      padding: const EdgeInsets.only(top: 16, bottom: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GestureDetector(
+            onTap: () => _showRatingSheet(),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 6))],
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(19)),
+                child: Row(children: [
+                  Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: const Icon(Icons.star_rounded, color: Colors.white, size: 28),
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                    const SizedBox(width: 8),
-                    Text(t('rating_submitted_successfully'),
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
-                  ]),
-                ),
-              Form(
-                key: _formKey,
+                  const SizedBox(width: 16),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(t('rate_another_user_title'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+                    const SizedBox(height: 3),
+                    Text('Tap to rate a user', style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
+                  ])),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    child: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.cyan),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          if (unrated.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _sectionCard(
+              t('friends_to_rate_label').toUpperCase(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Tap a friend to rate them', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: unrated.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (_, i) {
+                        final f = unrated[i];
+                        final fId = (f['_id'] ?? '').toString();
+                        final fName = (f['name'] ?? f['username'] ?? '').toString();
+                        final fUsername = (f['username'] ?? '').toString();
+                        final initials = fName.isNotEmpty ? fName[0].toUpperCase() : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
+                        return GestureDetector(
+                          onTap: () => _showRatingSheet(prefillUsername: fUsername),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Stack(children: [
+                              Container(
+                                width: 54, height: 54,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.3), blurRadius: 8)],
+                                ),
+                                child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                  Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+                                  if (fId.isNotEmpty)
+                                    Image.network('${ApiConfig.baseUrl}/api/users/$fId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                ])),
+                              ),
+                              Positioned(right: 0, bottom: 0, child: Container(
+                                width: 18, height: 18,
+                                decoration: const BoxDecoration(color: Colors.amber, shape: BoxShape.circle),
+                                child: const Icon(Icons.star_rounded, size: 10, color: Colors.white),
+                              )),
+                            ]),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              width: 62,
+                              child: Text(fName.isNotEmpty ? fName.split(' ')[0] : fUsername,
+                                style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w500),
+                                textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+                              child: const Text('Rate', style: TextStyle(fontSize: 9, color: Colors.amber, fontWeight: FontWeight.bold)),
+                            ),
+                          ]),
+                        );
+                      },
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ],
+          if (ratingsGiven.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _sectionCard(
+              t('ratings_given_label').toUpperCase(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _usernameController,
-                      style: TextStyle(color: AppThemeColors.primaryText(context)),
-                      decoration: InputDecoration(
-                        labelText: t('username_or_email_label'),
-                        prefixIcon: const Icon(Icons.person_search_outlined),
-                        filled: true,
-                        fillColor: AppThemeColors.surfaceBg(context),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
-                        ),
-                      ),
-                      validator: (val) => val == null || val.isEmpty ? t('required') : null,
-                    ),
-                    if (unrated.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Text(t('friends_to_rate_label'),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.mutedText(context))),
-                      const SizedBox(height: 8),
-                      _friendsAvatarList(unrated, onTap: (username) {
-                        _usernameController.text = username;
-                        if (_showSuccess) setState(() => _showSuccess = false);
-                      }),
-                    ],
-                    const SizedBox(height: 20),
-                    Text(t('give_rating_as_label'),
-                      style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
-                    const SizedBox(height: 10),
-                    Center(
-                      child: Column(
-                        children: [
-                          StatefulBuilder(
-                            builder: (context, _) => _interactiveStars(
-                              context, _selectedRating,
-                              (val) => setState(() => _selectedRating = val),
-                              size: 40,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _selectedRating == 5 ? t('excellent_label') :
-                            _selectedRating >= 4 ? t('great_label') :
-                            _selectedRating >= 3 ? t('good_label') :
-                            _selectedRating >= 2 ? t('fair_label') : t('poor_label'),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16,
-                              color: _selectedRating >= 4 ? Colors.green : Colors.orange,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(t('comment_optional_label'),
-                        style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context), fontSize: 13)),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _commentController,
-                      maxLines: 3,
-                      maxLength: 200,
-                      style: TextStyle(color: AppThemeColors.primaryText(context)),
-                      decoration: InputDecoration(
-                        hintText: t('share_your_experience_placeholder'),
-                        filled: true,
-                        fillColor: AppThemeColors.surfaceBg(context),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
-                        ),
-                        counterStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
-                      ),
-                    ),
-                    if (_submitError != null)
-                      Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 16),
-                          const SizedBox(width: 8),
-                          Flexible(child: Text(_submitError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                        ]),
-                      ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.cyan,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          elevation: 0,
-                        ),
-                        onPressed: _submitting ? null : submitRating,
-                        child: _submitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Text(t('submit_rating_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
-                      ),
-                    ),
-                  ],
+                  children: ratingsGiven.take(3).map((r) =>
+                    _ratingCard(Map<String, dynamic>.from(r), isGiven: true)).toList(),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+          ],
+        ],
       ),
     );
   }

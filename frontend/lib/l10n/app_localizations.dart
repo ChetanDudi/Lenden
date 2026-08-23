@@ -890,6 +890,9 @@ class AppLocalizations {
       'referral_apply': 'Apply',
       'referral_code_applied_toast':
           "Referral code applied! You'll earn bonus coins after your first transaction.",
+      'referral_code_applied_title': 'Referral code applied!',
+      'referral_code_applied_sub':
+          "Bonus coins will be credited after your first transaction.",
       'referral_apply_network_error': 'Could not apply code. Try again.',
       'referral_invalid_code': 'Invalid code',
       'referral_bonus_title': 'Referral Bonus!',
@@ -5276,6 +5279,9 @@ class AppLocalizations {
       'referral_apply': 'लागू करें',
       'referral_code_applied_toast':
           'रेफरल कोड लागू हुआ! आपके पहले लेन-देन के बाद बोनस कॉइन मिलेंगे।',
+      'referral_code_applied_title': 'रेफरल कोड लागू हुआ!',
+      'referral_code_applied_sub':
+          'आपके पहले लेन-देन के बाद बोनस कॉइन जोड़े जाएंगे।',
       'referral_apply_network_error': 'कोड लागू नहीं हो सका। पुनः प्रयास करें।',
       'referral_invalid_code': 'अमान्य कोड',
       'referral_bonus_title': 'रेफरल बोनस!',

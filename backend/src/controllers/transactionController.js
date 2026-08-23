@@ -1247,11 +1247,8 @@ exports.verifyPartialPaymentOTP = async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Each party can only verify their own OTP — prevents one user from verifying the other's side.
-    if (cleanEmail !== req.user.email.toLowerCase().trim()) {
-      return res.status(403).json({ error: 'You can only verify your own email OTP.' });
-    }
-
+    // The payment initiator may enter both OTPs (the other party shares their OTP verbally/in-person).
+    // We only require the email to belong to this transaction — the OTP itself is validated below.
     let role;
     if (transaction.userEmail.toLowerCase() === cleanEmail) {
       role = transaction.role;

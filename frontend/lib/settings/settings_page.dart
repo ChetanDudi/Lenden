@@ -20,6 +20,8 @@ import 'app_lock_setup_page.dart';
 import 'set_wallet_pin_page.dart';
 import '../utils/theme_provider.dart';
 import '../utils/locale_provider.dart';
+import '../utils/currency_provider.dart';
+import '../widgets/currency_display.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/theme_helper.dart';
 import '../widgets/search_tab_bar.dart';
@@ -146,6 +148,16 @@ class _SettingsPageState extends State<SettingsPage> {
     if (selected != null) {
       await themeProvider.setThemeMode(selected);
     }
+  }
+
+  void _showCurrencyPicker(BuildContext ctx) {
+    final currencyProvider = Provider.of<CurrencyProvider>(ctx, listen: false);
+    CurrencyProvider.showPickerSheet(
+      ctx,
+      currencies: kCurrencyFallbacks,
+      selected: currencyProvider.defaultCurrency,
+      onSelect: (code) => currencyProvider.setDefaultCurrency(code),
+    );
   }
 
   Future<void> _showLanguagePicker(BuildContext ctx) async {
@@ -320,6 +332,12 @@ class _SettingsPageState extends State<SettingsPage> {
           ['language', 'hindi', 'english', 'locale', 'translation'],
           Icons.language_outlined,
           action: (ctx) => _showLanguagePicker(ctx),
+        ),
+        _SettingsEntry(
+          'Default Currency',
+          ['currency', 'default currency', 'display currency', 'money', 'inr', 'usd', 'eur', 'exchange'],
+          Icons.currency_exchange_rounded,
+          action: (ctx) => _showCurrencyPicker(ctx),
         ),
         _SettingsEntry(
           'Due Date Calendar',
@@ -900,6 +918,17 @@ class _SettingsPageState extends State<SettingsPage> {
                             icon: Icons.language_outlined,
                             subtitle: label,
                             onTap: () => _showLanguagePicker(context),
+                          );
+                        },
+                      ),
+                      Consumer<CurrencyProvider>(
+                        builder: (context, currencyProvider, _) {
+                          return _buildTile(
+                            context,
+                            title: 'Default Currency',
+                            icon: Icons.currency_exchange_rounded,
+                            subtitle: currencyProvider.defaultCurrency,
+                            onTap: () => _showCurrencyPicker(context),
                           );
                         },
                       ),

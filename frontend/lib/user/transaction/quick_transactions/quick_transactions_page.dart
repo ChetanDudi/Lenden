@@ -1883,6 +1883,70 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     );
   }
 
+  void _showCurrencyPicker(BuildContext ctx) {
+    final currencies = currencyData?.currencies ?? kCurrencyFallbacks;
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: AppThemeColors.cardBg(ctx),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+      builder: (sheetCtx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: AppThemeColors.border(sheetCtx),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(children: [
+              const Icon(Icons.currency_exchange_rounded, color: AppColors.cyan, size: 20),
+              const SizedBox(width: 10),
+              Text('Currency Mode',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+                      color: AppThemeColors.primaryText(sheetCtx))),
+            ]),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: currencies.length,
+              itemBuilder: (_, i) {
+                final c = currencies[i];
+                final isSel = c['code'] == selectedCurrency;
+                return ListTile(
+                  leading: Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: isSel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.surfaceBg(sheetCtx),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(child: Text(c['symbol']!,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                            color: isSel ? AppColors.cyan : AppThemeColors.secondaryText(sheetCtx)))),
+                  ),
+                  title: Text('${c['code']}  ${c['label'] ?? c['code']}',
+                      style: TextStyle(fontSize: 14,
+                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                          color: AppThemeColors.primaryText(sheetCtx))),
+                  trailing: isSel ? const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 20) : null,
+                  onTap: () { setCurrency(c['code']!); Navigator.pop(sheetCtx); },
+                );
+              },
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(sheetCtx).padding.bottom + 12),
+        ],
+      ),
+    );
+  }
+
   void _showSortOptions() {
     final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
@@ -2020,8 +2084,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                 onTap: _showSortOptions,
               ),
               const SizedBox(width: 6),
-              // Currency selector
-              buildCurrencySelector(),
             ],
           ),
           const SizedBox(height: 8),
@@ -2218,9 +2280,20 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                   case 'recurring':
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringTemplatesPage()));
                     break;
+                  case 'currency_mode':
+                    _showCurrencyPicker(context);
+                    break;
                 }
               },
               itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'currency_mode',
+                  child: Row(children: [
+                    const Icon(Icons.currency_exchange_rounded, size: 18, color: AppColors.cyan),
+                    const SizedBox(width: 12),
+                    Text('Currency: $selectedCurrency'),
+                  ]),
+                ),
                 PopupMenuItem(
                   value: 'group_contact',
                   child: Row(children: [
