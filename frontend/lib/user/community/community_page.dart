@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/wave_widget.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
+import '../../utils/responsive.dart';
 import '../../api_config.dart';
 import 'create_community_page.dart';
 
@@ -154,23 +156,6 @@ class _CommunityPageState extends State<CommunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      appBar: AppBar(
-        title: const Text('Communities', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppThemeColors.cardBg(context),
-        foregroundColor: AppThemeColors.primaryText(context),
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.link_rounded),
-            tooltip: 'Join with code',
-            onPressed: _joinWithCode,
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.cyan,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
@@ -180,22 +165,76 @@ class _CommunityPageState extends State<CommunityPage> {
           if (result != null) _load();
         },
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
-          : _error != null
-              ? _buildError()
-              : _communities.isEmpty
-                  ? _buildEmpty()
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      color: AppColors.cyan,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                        itemCount: _communities.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _buildCard(_communities[i]),
-                      ),
+      body: Stack(
+        children: [
+          // Top wave banner
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: ClipPath(
+              clipper: const DeeperTopWaveClipper(),
+              child: Container(
+                height: context.sh(70),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Header row: back + title + join
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SafeArea(
+              child: Row(children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Communities',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
                     ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.link_rounded, color: Colors.white),
+                  tooltip: 'Join with code',
+                  onPressed: _joinWithCode,
+                ),
+              ]),
+            ),
+          ),
+          // Content below wave
+          Padding(
+            padding: const EdgeInsets.only(top: 80),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
+                : _error != null
+                    ? _buildError()
+                    : _communities.isEmpty
+                        ? _buildEmpty()
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            color: AppColors.cyan,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                              itemCount: _communities.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (_, i) => _buildCard(_communities[i]),
+                            ),
+                          ),
+          ),
+        ],
+      ),
     );
   }
 
