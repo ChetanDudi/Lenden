@@ -48,8 +48,6 @@ import 'widgets/dashboard_clipper.dart';
 import 'widgets/dashboard_analytics_card.dart';
 import 'widgets/dashboard_option_card.dart';
 import '../community/community_page.dart';
-import '../community/create_community_page.dart';
-import '../../api_config.dart';
 import 'widgets/dashboard_greeting_card.dart';
 
 enum _QuickActionsViewStyle {
@@ -91,8 +89,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   double? _netLent;
   double? _netBorrowed;
   List<Map<String, dynamic>> _savingsGoals = [];
-  List<Map<String, dynamic>> _communities = [];
-  bool _loadingCommunities = false;
   bool _hasRatedApp = false;
   bool _ratingDialogShown = false;
   bool _useCompactTransactionOptions = true;
@@ -482,20 +478,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     } catch (_) {}
   }
 
-  Future<void> _loadCommunities() async {
-    if (!mounted) return;
-    setState(() => _loadingCommunities = true);
-    try {
-      final res = await ApiClient.get('/api/communities');
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() => _communities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
-      }
-    } catch (_) {} finally {
-      if (mounted) setState(() => _loadingCommunities = false);
-    }
-  }
+  Future<void> _loadCommunities() async {}
 
   Future<void> showTransactionForm() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
@@ -2407,242 +2390,44 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     ];
   }
 
-  Color _communityParseColor(dynamic c) {
-    try {
-      if (c is String && c.startsWith('#')) {
-        return Color(int.parse('FF${c.replaceFirst('#', '')}', radix: 16));
-      }
-    } catch (_) {}
-    return AppColors.cyan;
-  }
-
   Widget _buildCommunitiesSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppThemeColors.border(context)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Colors.orange, Colors.white, Colors.green],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Section header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 12, 0),
-          child: Row(children: [
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.hub_rounded, size: 17, color: Colors.white),
-            ),
-            const SizedBox(width: 10),
-            Text('Communities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-            const Spacer(),
-            if (_communities.isNotEmpty)
-              TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
-                style: TextButton.styleFrom(foregroundColor: AppColors.cyan, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4)),
-                child: const Text('See All', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              ),
-          ]),
-        ),
-        const SizedBox(height: 14),
-
-        if (_loadingCommunities)
-          SizedBox(
-            height: 130,
-            child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))),
-          )
-        else if (_communities.isEmpty)
-          _buildCommunityEmptyState()
-        else
-          SizedBox(
-            height: 148,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              itemCount: _communities.length + 1,
-              itemBuilder: (_, i) {
-                if (i == _communities.length) return _buildCreateCommunityCard();
-                return _buildCommunityMiniCard(_communities[i]);
-              },
-            ),
-          ),
-
-        const SizedBox(height: 16),
-
-        // Bottom action row
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(42),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  side: const BorderSide(color: AppColors.cyan),
-                  foregroundColor: AppColors.cyan,
-                ),
-                icon: const Icon(Icons.link_rounded, size: 16),
-                label: const Text('Join with Code', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, minimumSize: const Size.fromHeight(42), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                  icon: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                  label: const Text('Create', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  onPressed: () async {
-                    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
-                    if (result != null) _loadCommunities();
-                  },
-                ),
-              ),
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  Widget _buildCommunityEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.cyan.withValues(alpha: 0.06), AppColors.blue.withValues(alpha: 0.06)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.cyan.withValues(alpha: 0.15)),
+          color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(children: [
-          Container(
-            width: 50, height: 50,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Icon(Icons.hub_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('No communities yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context))),
-            const SizedBox(height: 4),
-            Text('Organize your groups under one community — office, family, college & more.', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), height: 1.4)),
-          ])),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildCommunityMiniCard(Map<String, dynamic> c) {
-    final id = (c['_id'] ?? '').toString();
-    final name = (c['name'] ?? 'Community').toString();
-    final color = _communityParseColor(c['color']);
-    final members = (c['members'] as List?)?.length ?? 0;
-    final groups = (c['groups'] as List?)?.length ?? 0;
-    final initials = name.isNotEmpty ? name[0].toUpperCase() : 'C';
-    final imgUrl = id.isNotEmpty ? '${ApiConfig.baseUrl}/api/communities/$id/image' : null;
-
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
-      child: Container(
-        width: 148,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: AppThemeColors.surfaceBg(context),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppThemeColors.border(context)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Color top bar with avatar
-          Container(
-            height: 72,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            ),
-            child: Center(
-              child: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: imgUrl != null
-                      ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))))
-                      : Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
-                ),
-              ),
-            ),
-          ),
-          // Info
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 5),
-              Row(children: [
-                Icon(Icons.folder_shared_rounded, size: 11, color: AppThemeColors.mutedText(context)),
-                const SizedBox(width: 3),
-                Text('$groups grp', style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
-                const SizedBox(width: 8),
-                Icon(Icons.people_rounded, size: 11, color: AppThemeColors.mutedText(context)),
-                const SizedBox(width: 3),
-                Text('$members', style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
-              ]),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(children: [
+              Icon(Icons.hub_rounded, color: AppColors.cyan),
+              const SizedBox(width: 8),
+              Text('Communities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan)),
             ]),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildCreateCommunityCard() {
-    return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
-        if (result != null) _loadCommunities();
-      },
-      child: Container(
-        width: 120,
-        margin: const EdgeInsets.only(right: 4),
-        decoration: BoxDecoration(
-          color: AppColors.cyan.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25), style: BorderStyle.solid),
-        ),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-              borderRadius: BorderRadius.circular(13),
+            ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.cyan,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('View'),
             ),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 10),
-          Text('Create', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.cyan)),
-          const SizedBox(height: 2),
-          Text('Community', style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
-        ]),
+          ],
+        ),
       ),
     );
   }

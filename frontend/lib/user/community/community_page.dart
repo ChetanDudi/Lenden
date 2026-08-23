@@ -48,7 +48,17 @@ class _CommunityPageState extends State<CommunityPage> {
     }
   }
 
+  Color _parseColor(dynamic c) {
+    try {
+      if (c is String && c.startsWith('#')) {
+        return Color(int.parse('FF${c.replaceFirst('#', '')}', radix: 16));
+      }
+    } catch (_) {}
+    return AppColors.cyan;
+  }
+
   Future<void> _joinWithCode() async {
+    _joinCodeCtrl.clear();
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -62,20 +72,21 @@ class _CommunityPageState extends State<CommunityPage> {
           ),
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 20),
-            Container(
-              width: 60, height: 60,
+            Container(width: 52, height: 52,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-                borderRadius: BorderRadius.circular(18),
+                color: AppColors.cyan.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(Icons.link_rounded, color: Colors.white, size: 28),
+              child: const Icon(Icons.link_rounded, color: AppColors.cyan, size: 26),
             ),
             const SizedBox(height: 14),
             Text('Join a Community', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
             const SizedBox(height: 6),
-            Text('Enter the 6-character invite code', style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx))),
+            Text('Enter the invite code shared by the community admin', textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx))),
             const SizedBox(height: 20),
             Container(
               decoration: BoxDecoration(
@@ -122,10 +133,12 @@ class _CommunityPageState extends State<CommunityPage> {
                       _joinCodeCtrl.clear();
                       _load();
                     } else {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(d['error'] ?? 'Failed to join'), backgroundColor: Colors.red));
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(d['error'] ?? 'Failed to join'), backgroundColor: Colors.red));
                     }
                   } catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
                   }
                 },
                 child: const Text('Join Community', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -135,16 +148,6 @@ class _CommunityPageState extends State<CommunityPage> {
         ),
       ),
     );
-  }
-
-  Color _parseColor(dynamic c) {
-    try {
-      if (c is String && c.startsWith('#')) {
-        final hex = c.replaceFirst('#', '');
-        return Color(int.parse('FF$hex', radix: 16));
-      }
-    } catch (_) {}
-    return AppColors.cyan;
   }
 
   @override
@@ -180,13 +183,7 @@ class _CommunityPageState extends State<CommunityPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
           : _error != null
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 12),
-                  ElevatedButton(onPressed: _load, child: const Text('Retry')),
-                ]))
+              ? _buildError()
               : _communities.isEmpty
                   ? _buildEmpty()
                   : RefreshIndicator(
@@ -195,71 +192,83 @@ class _CommunityPageState extends State<CommunityPage> {
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                         itemCount: _communities.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (_, i) => _buildCard(_communities[i]),
                       ),
                     ),
     );
   }
 
-  Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 90, height: 90,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
-            ),
-            child: const Icon(Icons.hub_rounded, size: 44, color: Colors.white),
-          ),
-          const SizedBox(height: 24),
-          Text('No Communities Yet', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-          const SizedBox(height: 10),
-          Text(
-            'Communities let you organize multiple groups under one roof — office, family, college, and more.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context), height: 1.5),
-          ),
-          const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                icon: const Icon(Icons.add_rounded, color: Colors.white),
-                label: const Text('Create Community', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                onPressed: () async {
-                  final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
-                  if (result != null) _load();
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), side: const BorderSide(color: AppColors.cyan), foregroundColor: AppColors.cyan),
-              icon: const Icon(Icons.link_rounded, size: 18),
-              label: const Text('Join with Invite Code', style: TextStyle(fontWeight: FontWeight.w600)),
-              onPressed: _joinWithCode,
-            ),
-          ),
-        ]),
+  Widget _buildError() {
+    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 56, height: 56,
+        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.error_outline, size: 28, color: Colors.red)),
+      const SizedBox(height: 14),
+      Text(_error!, style: TextStyle(color: AppThemeColors.secondaryText(context))),
+      const SizedBox(height: 12),
+      ElevatedButton(
+        onPressed: _load,
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        child: const Text('Retry'),
       ),
-    );
+    ]));
+  }
+
+  Widget _buildEmpty() {
+    return Center(child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: AppColors.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: const Icon(Icons.hub_rounded, size: 36, color: AppColors.cyan),
+        ),
+        const SizedBox(height: 20),
+        Text('No Communities Yet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+        const SizedBox(height: 8),
+        Text('Organize multiple groups under one community — office, family, college, and more.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context), height: 1.5)),
+        const SizedBox(height: 28),
+        SizedBox(width: double.infinity,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Create Community', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              onPressed: () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
+                if (result != null) _load();
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(width: double.infinity,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              side: BorderSide(color: AppThemeColors.border(context)),
+              foregroundColor: AppThemeColors.primaryText(context)),
+            icon: Icon(Icons.link_rounded, size: 18, color: AppThemeColors.secondaryText(context)),
+            label: const Text('Join with Invite Code', style: TextStyle(fontWeight: FontWeight.w600)),
+            onPressed: _joinWithCode,
+          ),
+        ),
+      ]),
+    ));
   }
 
   Widget _buildCard(Map<String, dynamic> c) {
-    final id = c['_id']?.toString() ?? '';
+    final id = (c['_id'] ?? '').toString();
     final name = (c['name'] ?? 'Community').toString();
     final desc = (c['description'] ?? '').toString();
     final color = _parseColor(c['color']);
@@ -271,57 +280,55 @@ class _CommunityPageState extends State<CommunityPage> {
     return GestureDetector(
       onTap: () {
         // TODO: navigate to community_detail_page
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Community detail coming soon'), duration: Duration(seconds: 1)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Community detail coming soon'), duration: Duration(seconds: 1)));
       },
       child: Container(
         decoration: BoxDecoration(
           color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppThemeColors.border(context)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 3))],
+          border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Color header strip with avatar
-          Container(
-            height: 72,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              child: Row(children: [
-                Container(
-                  width: 50, height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: imgUrl != null
-                        ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold))))
-                        : Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold))),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text(name, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                  if (desc.isNotEmpty)
-                    Text(desc, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12), overflow: TextOverflow.ellipsis, maxLines: 1),
-                ])),
-                const Icon(Icons.chevron_right_rounded, color: Colors.white),
-              ]),
-            ),
-          ),
-          // Stats row
+        child: Column(children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              // Avatar box — community color as bg tint
+              Container(
+                width: 46, height: 46,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: imgUrl != null
+                      ? Image.network(imgUrl, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(child: Text(initials,
+                            style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold))))
+                      : Center(child: Text(initials,
+                          style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold))),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(context))),
+                if (desc.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(desc, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ])),
+              const Icon(Icons.chevron_right_rounded, size: 20),
+            ]),
+          ),
+          Divider(height: 1, indent: 76, color: AppThemeColors.border(context).withValues(alpha: 0.4)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             child: Row(children: [
-              _statChip(Icons.group_rounded, '$members member${members == 1 ? '' : 's'}', color),
-              const SizedBox(width: 10),
-              _statChip(Icons.folder_shared_rounded, '$groups group${groups == 1 ? '' : 's'}', AppColors.blue),
+              _statRow(Icons.folder_shared_rounded, '$groups group${groups == 1 ? '' : 's'}'),
+              const SizedBox(width: 20),
+              _statRow(Icons.people_rounded, '$members member${members == 1 ? '' : 's'}'),
             ]),
           ),
         ]),
@@ -329,19 +336,11 @@ class _CommunityPageState extends State<CommunityPage> {
     );
   }
 
-  Widget _statChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
-      ]),
-    );
+  Widget _statRow(IconData icon, String label) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 14, color: AppThemeColors.secondaryText(context)),
+      const SizedBox(width: 5),
+      Text(label, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w500)),
+    ]);
   }
 }
