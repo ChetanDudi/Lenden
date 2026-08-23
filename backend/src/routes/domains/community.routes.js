@@ -8,6 +8,8 @@ module.exports = (router, { auth, upload }) => {
   router.patch('/communities/:id', auth, ctrl.updateCommunity);
   router.delete('/communities/:id', auth, ctrl.deleteCommunity);
   router.post('/communities/:id/groups', auth, ctrl.addGroupToCommunity);
+  router.delete('/communities/:id/groups/:groupId', auth, ctrl.removeGroupFromCommunity);
+  router.get('/communities/:id/balance', auth, ctrl.getCommunityBalance);
   router.post('/communities/:id/image', auth, upload.single('image'), ctrl.uploadImage);
   router.get('/communities/:id/image', ctrl.getImage);
 };

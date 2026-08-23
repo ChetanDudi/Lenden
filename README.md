@@ -42,6 +42,7 @@ Lenden/
         │   ├── budget/
         │   ├── calendar/
         │   ├── chats/
+        │   ├── community/
         │   ├── connections/
         │   ├── digitise/
         │   ├── support/
@@ -131,6 +132,25 @@ Shared expense tracking for groups of any size.
 - **Favourites**
 - **Group chat** (Socket.IO, encrypted)
 - Create with LenDen Coins
+
+---
+
+### Communities
+
+Organize multiple groups into shared communities — for offices, friend circles, trips, or any recurring group of people.
+
+- **Create a community** (name, description, color, photo)
+- **Join by invite code** — 6-character code; admin shares it with members
+- **Admin / Member roles** — admins manage groups and community settings; members can view
+- **Link groups to a community** — a group can belong to multiple communities simultaneously
+- **Manage from group detail** — assign or remove a group from communities directly within the group view
+- **Community balance** — see your total net balance across all groups in the community, with per-group breakdown
+- **Overview tab** — community identity card, balance card, invite code card
+- **Groups tab** — list of linked groups with colored borders; admins can add or remove groups
+- **Members tab** — member roster with role badges, "You" indicator, and invite-code share shortcut
+- **Edit community** — admins can update name, description, and color
+- **Upload community photo** — admins can set a community avatar
+- **Delete community** — admin-only; unlinks all groups automatically
 
 ---
 

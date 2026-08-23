@@ -85,7 +85,8 @@ exports.createGroupWithCoins = async (req, res) => {
   const GROUP_COST = pricing.groupCreationCost;
   const GROUP_DAILY_LIMIT = 1;
   try {
-    const { title, memberEmails, color } = req.body;
+    const { title, memberEmails, color, communityIds } = req.body;
+    const validCommunityIds = Array.isArray(communityIds) ? communityIds.filter(Boolean) : (communityIds ? [communityIds] : []);
     const creator = await User.findById(req.user._id).select(
       'email blockedUsers lenDenCoins freeGroupsRemaining'
     );
@@ -169,7 +170,13 @@ exports.createGroupWithCoins = async (req, res) => {
     memberIds.unshift(creator._id.toString());
     
     const members = memberIds.map(id => ({ user: id }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, color });
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, color, communityIds: validCommunityIds });
+    if (validCommunityIds.length > 0) {
+      try {
+        const Community = require('../models/community');
+        await Community.updateMany({ _id: { $in: validCommunityIds } }, { $addToSet: { groups: group._id } });
+      } catch (_) {}
+    }
     const referralReward = await processReferralRewardOnFirstCreation(creator._id);
     // Populate members and creator for response
     const populatedGroup = await GroupTransaction.findById(group._id)
@@ -224,7 +231,8 @@ exports.createGroupWithCoins = async (req, res) => {
 
 exports.createGroup = async (req, res) => {
   try {
-    const { title, memberEmails, color, communityId } = req.body;
+    const { title, memberEmails, color, communityIds } = req.body;
+    const validCommunityIds = Array.isArray(communityIds) ? communityIds.filter(Boolean) : (communityIds ? [communityIds] : []);
     const creator = await User.findById(req.user._id).select(
       'email blockedUsers'
     );
@@ -281,11 +289,11 @@ exports.createGroup = async (req, res) => {
     memberIds.unshift(creator._id.toString());
     
     const members = memberIds.map(id => ({ user: id }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, color, communityId: communityId || null });
-    if (communityId) {
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, color, communityIds: validCommunityIds });
+    if (validCommunityIds.length > 0) {
       try {
         const Community = require('../models/community');
-        await Community.findByIdAndUpdate(communityId, { $addToSet: { groups: group._id } });
+        await Community.updateMany({ _id: { $in: validCommunityIds } }, { $addToSet: { groups: group._id } });
       } catch (_) {}
     }
     const referralReward = await processReferralRewardOnFirstCreation(creator._id);
@@ -2692,3 +2700,81 @@ function _emailOf(field) {
   if (typeof field === 'object' && field.email) return field.email;
   return field.toString();
 }
+
+// Get communities a group belongs to
+exports.getGroupCommunities = async (req, res) => {
+  try {
+    const group = await GroupTransaction.findById(req.params.groupId).select('communityIds members creator');
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    const isMember = group.members.some(m => m.user.toString() === req.user._id.toString());
+    const isCreator = group.creator.toString() === req.user._id.toString();
+    if (!isMember && !isCreator) return res.status(403).json({ error: 'Not a member' });
+    const Community = require('../models/community');
+    const communities = await Community.find({ _id: { $in: group.communityIds } })
+      .select('name color inviteCode members').lean();
+    res.json({ communities });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Add group to a community (must be admin of that community)
+exports.addGroupToCommunityFromGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { communityId } = req.body;
+    const Community = require('../models/community');
+    const community = await Community.findById(communityId);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'You must be an admin of that community' });
+    const group = await GroupTransaction.findById(groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    // Link group ↔ community
+    const alreadyIn = group.communityIds.map(id => id.toString()).includes(communityId);
+    if (!alreadyIn) {
+      group.communityIds.push(communityId);
+      await group.save();
+    }
+
+    let communitySaved = false;
+    if (!community.groups.map(id => id.toString()).includes(groupId)) {
+      community.groups.push(group._id);
+      communitySaved = true;
+    }
+
+    // Auto-add active group members who aren't already in the community
+    const existingMemberIds = new Set(community.members.map(m => m.user.toString()));
+    const activeGroupMembers = group.members.filter(m => !m.leftAt);
+    for (const gm of activeGroupMembers) {
+      if (!existingMemberIds.has(gm.user.toString())) {
+        community.members.push({ user: gm.user, role: 'member', invitedBy: req.user._id });
+        existingMemberIds.add(gm.user.toString());
+        communitySaved = true;
+      }
+    }
+
+    if (communitySaved) await community.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Remove group from a community (must be admin of that community)
+exports.removeGroupFromCommunityFromGroup = async (req, res) => {
+  try {
+    const { groupId, communityId } = req.params;
+    const Community = require('../models/community');
+    const community = await Community.findById(communityId);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'You must be an admin of that community' });
+    await GroupTransaction.findByIdAndUpdate(groupId, { $pull: { communityIds: communityId } });
+    await Community.findByIdAndUpdate(communityId, { $pull: { groups: groupId } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};

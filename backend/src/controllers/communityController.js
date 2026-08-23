@@ -38,12 +38,29 @@ exports.getMyCommunities = async (req, res) => {
 exports.getCommunity = async (req, res) => {
   try {
     const community = await Community.findById(req.params.id)
-      .populate('members.user', 'name email username')
       .populate('creator', 'name email username')
       .populate('groups', 'title color description')
       .select('-communityImage');
 
     if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    // Sync: add any active group members not yet in community members
+    const existingMemberIds = new Set(community.members.map(m => m.user.toString()));
+    let needsSave = false;
+    for (const groupRef of community.groups) {
+      const group = await GroupTransaction.findById(groupRef._id).select('members');
+      if (!group) continue;
+      for (const gm of group.members.filter(m => !m.leftAt)) {
+        if (!existingMemberIds.has(gm.user.toString())) {
+          community.members.push({ user: gm.user, role: 'member' });
+          existingMemberIds.add(gm.user.toString());
+          needsSave = true;
+        }
+      }
+    }
+    if (needsSave) await community.save();
+
+    await community.populate('members.user', 'name email username');
     const isMember = community.members.some(m => m.user._id.toString() === req.user._id.toString());
     if (!isMember) return res.status(403).json({ error: 'Not a member of this community' });
     res.json({ community });
@@ -102,14 +119,63 @@ exports.addGroupToCommunity = async (req, res) => {
     const group = await GroupTransaction.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
+    // Link group ↔ community
     const gidStr = group._id.toString();
     if (!community.groups.map(g => g.toString()).includes(gidStr)) {
       community.groups.push(group._id);
-      await community.save();
-      group.communityId = community._id;
+    }
+    if (!group.communityIds.map(id => id.toString()).includes(req.params.id)) {
+      group.communityIds.push(community._id);
       await group.save();
     }
+
+    // Auto-add active group members who aren't already in the community
+    const existingMemberIds = new Set(community.members.map(m => m.user.toString()));
+    const activeGroupMembers = group.members.filter(m => !m.leftAt);
+    for (const gm of activeGroupMembers) {
+      if (!existingMemberIds.has(gm.user.toString())) {
+        community.members.push({ user: gm.user, role: 'member', invitedBy: req.user._id });
+        existingMemberIds.add(gm.user.toString());
+      }
+    }
+
+    await community.save();
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.removeGroupFromCommunity = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+    await Community.findByIdAndUpdate(req.params.id, { $pull: { groups: req.params.groupId } });
+    await GroupTransaction.findByIdAndUpdate(req.params.groupId, { $pull: { communityIds: req.params.id } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.getCommunityBalance = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id)
+      .populate({ path: 'groups', select: 'title color balances' });
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isMember = community.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ error: 'Not a member' });
+    const uid = req.user._id.toString();
+    let totalBalance = 0;
+    const groupBalances = (community.groups || []).map(g => {
+      const bal = (g.balances || []).find(b => b.user.toString() === uid);
+      const amount = bal?.balance ?? 0;
+      totalBalance += amount;
+      return { groupId: g._id, title: g.title, color: g.color, balance: amount };
+    });
+    res.json({ totalBalance, groups: groupBalances });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -151,7 +217,7 @@ exports.deleteCommunity = async (req, res) => {
 
     // Unlink all groups
     if (community.groups.length > 0) {
-      await GroupTransaction.updateMany({ _id: { $in: community.groups } }, { $unset: { communityId: '' } });
+      await GroupTransaction.updateMany({ _id: { $in: community.groups } }, { $pull: { communityIds: community._id } });
     }
     await community.deleteOne();
     res.json({ success: true });

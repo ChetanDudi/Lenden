@@ -38,6 +38,11 @@ module.exports = (router, { auth, otpVerifyLimiter, budgetCheck, handleUsage, up
   router.post('/group-transactions/:groupId/receipt', auth, groupTransactionController.generateGroupReceipt);
   router.get('/group-transactions/:groupId/stats', auth, groupTransactionController.getGroupStats);
 
+  // Communities (group-side management)
+  router.get('/group-transactions/:groupId/communities', auth, groupTransactionController.getGroupCommunities);
+  router.post('/group-transactions/:groupId/communities', auth, groupTransactionController.addGroupToCommunityFromGroup);
+  router.delete('/group-transactions/:groupId/communities/:communityId', auth, groupTransactionController.removeGroupFromCommunityFromGroup);
+
   // Join codes
   router.post('/group-transactions/join', auth, groupTransactionController.joinByCode);
   router.post('/group-transactions/:groupId/join-code', auth, groupTransactionController.generateJoinCode);

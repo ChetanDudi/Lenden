@@ -98,6 +98,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   String? _error;
   String? _userEmail;
   bool _isCreator = false;
+  List<Map<String, dynamic>> _communities = [];
 
   @override
   void initState() {
@@ -108,6 +109,259 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final creatorEmail = _emailOf(_group['creator']).toLowerCase();
     _isCreator = creatorEmail == _userEmail!.toLowerCase();
     loadCurrencies();
+    _loadCommunities();
+  }
+
+  Color _parseCommunityColor(dynamic c) {
+    try {
+      if (c is String && c.startsWith('#')) {
+        return Color(int.parse('FF${c.replaceFirst('#', '')}', radix: 16));
+      }
+    } catch (_) {}
+    return AppColors.cyan;
+  }
+
+  Future<void> _loadCommunities() async {
+    try {
+      final res = await ApiClient.get('/api/group-transactions/${widget.groupId}/communities');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (mounted) setState(() => _communities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
+      }
+    } catch (_) {}
+  }
+
+  void _showCommunitiesSheet() async {
+    List<Map<String, dynamic>> adminCommunities = [];
+    try {
+      final res = await ApiClient.get('/api/communities');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final uid = Provider.of<SessionProvider>(context, listen: false).user?['_id']?.toString() ?? '';
+        final all = List<Map<String, dynamic>>.from(data['communities'] ?? []);
+        final groupCommunityIds = _communities.map((c) => (c['_id'] ?? '').toString()).toSet();
+        adminCommunities = all.where((c) {
+          final cId = (c['_id'] ?? '').toString();
+          if (groupCommunityIds.contains(cId)) return false;
+          final members = (c['members'] as List?) ?? [];
+          return members.any((m) => (m['user'] is Map ? (m['user'] as Map)['_id'] : m['user'])?.toString() == uid && m['role'] == 'admin');
+        }).toList();
+      }
+    } catch (_) {}
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Container(
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(ctx),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + MediaQuery.of(ctx).padding.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            Row(children: [
+              Container(width: 40, height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.groups_rounded, color: Colors.white, size: 20)),
+              const SizedBox(width: 12),
+              Text(AppLocalizations.of(ctx).t('communities_title'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(ctx))),
+              const Spacer(),
+              if (adminCommunities.isNotEmpty)
+                TextButton.icon(
+                  icon: const Icon(Icons.add_rounded, size: 16, color: AppColors.cyan),
+                  label: Text(AppLocalizations.of(ctx).t('add'), style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w700)),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await _showAddToCommunityPicker(adminCommunities);
+                  },
+                ),
+            ]),
+            const SizedBox(height: 12),
+            if (_communities.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(width: 56, height: 56,
+                    decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppThemeColors.border(ctx))),
+                    child: Icon(Icons.groups_outlined, size: 28, color: AppThemeColors.mutedText(ctx))),
+                  const SizedBox(height: 10),
+                  Text(AppLocalizations.of(ctx).t('not_in_any_community_label'),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(ctx))),
+                  if (adminCommunities.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                      label: Text(AppLocalizations.of(ctx).t('add_to_community_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await _showAddToCommunityPicker(adminCommunities);
+                      },
+                    ),
+                  ],
+                ]),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.45),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _communities.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) {
+                    final c = _communities[i];
+                    final cId = (c['_id'] ?? '').toString();
+                    final cName = (c['name'] ?? 'Community').toString();
+                    final cColor = _parseCommunityColor(c['color']);
+                    final cMembers = (c['members'] as List?) ?? [];
+                    final uid = Provider.of<SessionProvider>(ctx, listen: false).user?['_id']?.toString() ?? '';
+                    final isAdmin = cMembers.any((m) =>
+                      (m['user'] is Map ? (m['user'] as Map)['_id'] : m['user'])?.toString() == uid && m['role'] == 'admin');
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppThemeColors.surfaceBg(ctx),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: cColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(children: [
+                        Container(width: 38, height: 38,
+                          decoration: BoxDecoration(color: cColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                          child: Center(child: Text(cName.isNotEmpty ? cName[0].toUpperCase() : 'C',
+                            style: TextStyle(color: cColor, fontWeight: FontWeight.bold, fontSize: 16)))),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(cName, style: TextStyle(fontWeight: FontWeight.w600,
+                            color: AppThemeColors.primaryText(ctx)))),
+                        if (isAdmin)
+                          GestureDetector(
+                            onTap: () async {
+                              Navigator.pop(ctx);
+                              try {
+                                final r = await ApiClient.delete(
+                                  '/api/group-transactions/${widget.groupId}/communities/$cId');
+                                if (r.statusCode == 200) {
+                                  _loadCommunities();
+                                  _showSnack(AppLocalizations.of(context).t('removed_from_community_snack'), success: true);
+                                } else {
+                                  _showError(jsonDecode(r.body)['error'] ?? 'Failed');
+                                }
+                              } catch (e) { _showError(e.toString()); }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8)),
+                              child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.red, size: 18),
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: cColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                            child: Text(AppLocalizations.of(ctx).t('role_member_badge'), style: TextStyle(color: cColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ),
+                      ]),
+                    );
+                  },
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddToCommunityPicker(List<Map<String, dynamic>> communities) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + MediaQuery.of(ctx).padding.bottom),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          Row(children: [
+            Container(width: 40, height: 40,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 20)),
+            const SizedBox(width: 12),
+            Text(AppLocalizations.of(ctx).t('add_to_community_label'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(ctx))),
+          ]),
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.45),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: communities.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                final c = communities[i];
+                final cId = (c['_id'] ?? '').toString();
+                final cName = (c['name'] ?? 'Community').toString();
+                final cColor = _parseCommunityColor(c['color']);
+                return GestureDetector(
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      final r = await ApiClient.post(
+                        '/api/group-transactions/${widget.groupId}/communities',
+                        body: {'communityId': cId},
+                      );
+                      if (r.statusCode == 200) {
+                        _loadCommunities();
+                        _showSnack(AppLocalizations.of(context).t('group_added_community_snack'), success: true);
+                      } else {
+                        _showError(jsonDecode(r.body)['error'] ?? 'Failed');
+                      }
+                    } catch (e) { _showError(e.toString()); }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.surfaceBg(ctx),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(children: [
+                      Container(width: 38, height: 38,
+                        decoration: BoxDecoration(color: cColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                        child: Center(child: Text(cName.isNotEmpty ? cName[0].toUpperCase() : 'C',
+                          style: TextStyle(color: cColor, fontWeight: FontWeight.bold, fontSize: 16)))),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(cName, style: TextStyle(fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(ctx)))),
+                      Icon(Icons.add_circle_outline_rounded, color: AppColors.cyan, size: 20),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 
   Future<void> _refresh() async {
@@ -1342,6 +1596,13 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                           );
                         },
                       ),
+                      _serviceChip(
+                        icon: Icons.groups_rounded,
+                        label: t('communities_title'),
+                        color: const Color(0xFF0277BD),
+                        badge: _communities.isNotEmpty ? _communities.length : null,
+                        onTap: _showCommunitiesSheet,
+                      ),
                       if (_isCreator)
                         _serviceChip(
                           icon: Icons.link_rounded,
@@ -1402,6 +1663,58 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                 ),
 
                 const SizedBox(height: 16),
+
+                // ── Communities strip ────────────────────────────────
+                if (_communities.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(children: [
+                      const Icon(Icons.groups_rounded, size: 15, color: AppColors.cyan),
+                      const SizedBox(width: 6),
+                      Text(t('communities_title'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.cyan)),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: _showCommunitiesSheet,
+                        child: Text(t('manage_communities_link'), style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 38,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _communities.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final c = _communities[i];
+                        final cName = (c['name'] ?? 'Community').toString();
+                        final cColor = _parseCommunityColor(c['color']);
+                        return GestureDetector(
+                          onTap: _showCommunitiesSheet,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: cColor.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: cColor.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Container(width: 16, height: 16,
+                                decoration: BoxDecoration(color: cColor, shape: BoxShape.circle),
+                                child: Center(child: Text(cName.isNotEmpty ? cName[0].toUpperCase() : 'C',
+                                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)))),
+                              const SizedBox(width: 6),
+                              Text(cName, style: TextStyle(color: cColor, fontWeight: FontWeight.w700, fontSize: 12)),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // ── Who Owes What ────────────────────────────────────
                 Builder(builder: (context) {
