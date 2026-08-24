@@ -22,6 +22,7 @@ const List<SubscriptionFeature> kSubscriptionFeatures = [
   SubscriptionFeature('reports', 'feature_reports_label', Icons.bar_chart),
   SubscriptionFeature('budget_planning', 'feature_budget_planning_label', Icons.pie_chart),
   SubscriptionFeature('smart_insights', 'feature_smart_insights_label', Icons.auto_awesome),
+  SubscriptionFeature('community_feed', 'feature_community_feed_label', Icons.forum_rounded),
 ];
 
 List<String> get kAllSubscriptionFeatureKeys =>

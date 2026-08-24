@@ -2653,6 +2653,7 @@ class AppLocalizations {
       'feature_reports_label': 'Full Reports & Analytics',
       'feature_budget_planning_label': 'Budget Planning & Savings Goals',
       'feature_smart_insights_label': 'AI Smart Insights & Predictions',
+      'feature_community_feed_label': 'Community Feed & Posts',
       'plan_includes_label': 'This plan includes',
       'no_features_selected_message': 'No features selected for this plan yet.',
       'select_plan_features_label': 'What does this subscription allow?',
@@ -7041,6 +7042,7 @@ class AppLocalizations {
       'feature_reports_label': 'पूर्ण रिपोर्ट्स और एनालिटिक्स',
       'feature_budget_planning_label': 'बजट प्लानिंग और बचत लक्ष्य',
       'feature_smart_insights_label': 'AI स्मार्ट इनसाइट्स और भविष्यवाणियां',
+      'feature_community_feed_label': 'कम्युनिटी फीड और पोस्ट',
       'plan_includes_label': 'इस प्लान में शामिल है',
       'no_features_selected_message':
           'इस प्लान के लिए अभी तक कोई सुविधा चुनी नहीं गई है।',

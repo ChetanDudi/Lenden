@@ -4,10 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/app_colors.dart';
-import '../../widgets/wave_widget.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
-import '../../utils/responsive.dart';
+import '../../utils/community_helpers.dart';
 import '../../api_config.dart';
 import '../../session.dart';
 import '../../l10n/app_localizations.dart';
@@ -31,13 +30,14 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   bool _loading = true;
   String? _error;
   double _totalBalance = 0;
+  double _netBalance = 0;
   List<Map<String, dynamic>> _groupBalances = [];
   bool _loadingBalance = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     if (widget.initialData != null) _community = widget.initialData!;
     _load();
   }
@@ -71,7 +71,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
       if (res.statusCode == 200) {
         final d = jsonDecode(res.body);
         if (mounted) setState(() {
-          _totalBalance = (d['totalBalance'] ?? 0).toDouble();
+          _totalBalance = (d['totalSplits'] ?? 0).toDouble();
+          _netBalance = (d['netBalance'] ?? 0).toDouble();
           _groupBalances = List<Map<String, dynamic>>.from(d['groups'] ?? []);
         });
       }
@@ -626,100 +627,123 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     }
 
     final communityColor = _communityColor;
-    final lighterColor = Color.lerp(communityColor, Colors.white, 0.25) ?? communityColor;
     final initials = _name.isNotEmpty ? _name[0].toUpperCase() : 'C';
     final imgUrl = '${ApiConfig.baseUrl}/api/communities/${widget.communityId}/image';
+    final defImg = defaultCommunityImageUrl(_name);
+    final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      body: Stack(
-        children: [
-          // Wave with community color
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: ClipPath(
-              clipper: const DeeperTopWaveClipper(),
-              child: Container(
-                height: context.sh(70),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [communityColor, lighterColor],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Header: back + name + settings
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: SafeArea(
-              child: Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                Expanded(
-                  child: Text(
-                    _name,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold,
-                      letterSpacing: 0.3,
-                      shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+      body: Column(children: [
+        // ── Hero image banner ──────────────────────────────────────────
+        SizedBox(
+          height: 220 + topPad,
+          child: Stack(fit: StackFit.expand, children: [
+            // Background image (community photo or keyword default)
+            Image.network(imgUrl, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Image.network(defImg, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [communityColor, Color.lerp(communityColor, Colors.black, 0.4)!],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
                     ),
                   ),
+                ))),
+            // Dark gradient overlay so text is readable
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0x55000000), Color(0xDD000000)],
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
                 ),
-                if (_isAdmin)
+              ),
+            ),
+            // SafeArea content: top row + bottom info
+            SafeArea(
+              child: Column(children: [
+                // Top row: back / settings / share
+                Row(children: [
                   IconButton(
-                    icon: const Icon(Icons.settings_rounded, color: Colors.white),
-                    onPressed: _showSettings,
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                if (_inviteCode.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.share_rounded, color: Colors.white),
-                    onPressed: _showShareSheet,
-                  ),
+                  const Spacer(),
+                  if (_isAdmin)
+                    IconButton(
+                      icon: const Icon(Icons.settings_rounded, color: Colors.white),
+                      onPressed: _showSettings,
+                    ),
+                  if (_inviteCode.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.share_rounded, color: Colors.white),
+                      onPressed: _showShareSheet,
+                    ),
+                ]),
+                const Spacer(),
+                // Community info overlay
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_name, style: const TextStyle(color: Colors.white, fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(color: Colors.black54, blurRadius: 6)])),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
+                      const SizedBox(width: 5),
+                      Text('${_members.length} member${_members.length == 1 ? '' : 's'}  ·  ${_groups.length} group${_groups.length == 1 ? '' : 's'}',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    ]),
+                    if ((_community['description'] ?? '').toString().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text((_community['description'] ?? '').toString(),
+                        maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white60, fontSize: 12,
+                          fontStyle: FontStyle.italic, height: 1.4)),
+                    ],
+                  ]),
+                ),
               ]),
             ),
+          ]),
+        ),
+
+        // ── Tab bar ────────────────────────────────────────────────────
+        Container(
+          color: AppThemeColors.cardBg(context),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: communityColor,
+            unselectedLabelColor: AppThemeColors.secondaryText(context),
+            indicatorColor: communityColor,
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [
+              Tab(text: AppLocalizations.of(context).t('tab_overview')),
+              Tab(text: AppLocalizations.of(context).t('tab_groups')),
+              Tab(text: AppLocalizations.of(context).t('tab_members')),
+              const Tab(text: 'Feed'),
+            ],
           ),
-          // Content
-          Positioned(
-            top: 78, left: 0, right: 0, bottom: 0,
-            child: Column(children: [
-              // Tab bar
-              Container(
-                color: AppThemeColors.cardBg(context),
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: communityColor,
-                  unselectedLabelColor: AppThemeColors.secondaryText(context),
-                  indicatorColor: communityColor,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                  tabs: [
-                    Tab(text: AppLocalizations.of(context).t('tab_overview')),
-                    Tab(text: AppLocalizations.of(context).t('tab_groups')),
-                    Tab(text: AppLocalizations.of(context).t('tab_members')),
-                  ],
-                ),
-              ),
-              // Tab content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildOverview(communityColor, initials, imgUrl),
-                    _buildGroupsTab(communityColor),
-                    _buildMembersTab(communityColor),
-                  ],
-                ),
-              ),
-            ]),
+        ),
+
+        // ── Tab content ────────────────────────────────────────────────
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildOverview(communityColor, initials, imgUrl),
+              _buildGroupsTab(communityColor),
+              _buildMembersTab(communityColor),
+              _buildFeedTab(communityColor),
+            ],
           ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 
@@ -741,7 +765,9 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   borderRadius: BorderRadius.circular(15),
                   child: Image.network(imgUrl, fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Center(child: Text(initials,
-                      style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.bold)))),
+                      style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.bold),
+                    )),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -757,42 +783,50 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
             Row(children: [
               _miniStat(color, Icons.folder_shared_rounded, '${_groups.length}', AppLocalizations.of(context).t('tab_groups')),
               const SizedBox(width: 10),
-              _miniStat(const Color(0xFF8B5CF6), Icons.people_rounded, '${_members.length}', AppLocalizations.of(context).t('tab_members')),
+              _miniStat(color, Icons.people_rounded, '${_members.length}', AppLocalizations.of(context).t('tab_members')),
             ]),
           ]),
 
           const SizedBox(height: 12),
 
-          // Balance card
+          // Splits card — shows the total amount this user was split across all community groups
           _card(children: [
             Row(children: [
               Container(width: 38, height: 38,
                 decoration: BoxDecoration(
-                  color: (_totalBalance >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.10),
+                  color: color.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(_totalBalance >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                  size: 20, color: _totalBalance >= 0 ? Colors.green : Colors.red)),
+                child: Icon(Icons.receipt_long_rounded, size: 20, color: color)),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(AppLocalizations.of(context).t('my_community_balance_label'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                Text('MY TOTAL SPLITS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
                     color: AppThemeColors.mutedText(context), letterSpacing: 1.2)),
                 const SizedBox(height: 2),
                 _loadingBalance
                     ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: color))
-                    : Text(
-                        '${_totalBalance >= 0 ? '+' : ''}₹${_totalBalance.abs().toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
-                          color: _totalBalance >= 0 ? Colors.green : Colors.red),
-                      ),
+                    : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('₹${_totalBalance.toStringAsFixed(2)}',
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+                        const SizedBox(height: 4),
+                        if (_netBalance > 0.005)
+                          Text('YOU OWE  ₹${_netBalance.abs().toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red))
+                        else if (_netBalance < -0.005)
+                          Text('YOU ARE OWED  ₹${_netBalance.abs().toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF00897B)))
+                        else
+                          const Text('ALL SETTLED',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00897B))),
+                      ]),
               ])),
             ]),
             if (_groupBalances.isNotEmpty) ...[
               const SizedBox(height: 14),
               Divider(height: 1, color: AppThemeColors.border(context)),
               const SizedBox(height: 10),
-              ..._groupBalances.where((g) => g['balance'] != 0).map((g) {
-                final bal = (g['balance'] ?? 0).toDouble();
+              ..._groupBalances.where((g) => (g['amount'] ?? 0) != 0).map((g) {
+                final amt = (g['amount'] ?? 0).toDouble();
                 final gColor = _parseColor(g['color']);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -804,9 +838,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     const SizedBox(width: 10),
                     Expanded(child: Text((g['title'] ?? '').toString(),
                       style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w500))),
-                    Text('${bal >= 0 ? '+' : ''}₹${bal.abs().toStringAsFixed(0)}',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
-                        color: bal >= 0 ? Colors.green : Colors.red)),
+                    Text('₹${amt.toStringAsFixed(0)}',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: gColor)),
                   ]),
                 );
               }),
@@ -983,17 +1016,27 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                leading: Container(
-                  width: 42, height: 42,
-                  decoration: BoxDecoration(
-                    color: (role == 'admin' ? color : AppThemeColors.surfaceBg(context)),
-                    borderRadius: BorderRadius.circular(12),
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 42, height: 42,
+                    child: Image.network(
+                      '${ApiConfig.baseUrl}/api/users/${(user['_id'] ?? '').toString()}/profile-image',
+                      width: 42, height: 42, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: (role == 'admin' ? color : AppThemeColors.surfaceBg(context)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(child: Text(
+                          mName.isNotEmpty ? mName[0].toUpperCase() : 'M',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
+                            color: role == 'admin' ? Colors.white : AppThemeColors.secondaryText(context)),
+                        )),
+                      ),
+                    ),
                   ),
-                  child: Center(child: Text(
-                    mName.isNotEmpty ? mName[0].toUpperCase() : 'M',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
-                      color: role == 'admin' ? Colors.white : AppThemeColors.secondaryText(context)),
-                  )),
                 ),
                 title: Row(children: [
                   Flexible(child: Text(mName, style: TextStyle(fontWeight: FontWeight.w700,
@@ -1062,5 +1105,128 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
         ]),
       ]),
     ));
+  }
+
+  // ─── FEED TAB ────────────────────────────────────────────────────────────────
+  Widget _buildFeedTab(Color color) {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final hasAccess = session.hasFeature('community_feed');
+    final userId = session.user?['_id']?.toString() ?? '';
+
+    if (!hasAccess) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(20)),
+              child: Icon(Icons.lock_rounded, color: color, size: 34),
+            ),
+            const SizedBox(height: 20),
+            Text('Community Feed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 8),
+            Text('Subscribe to post and view community\nupdates in the feed.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                  minimumSize: const Size(200, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0,
+                ),
+                icon: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 18),
+                label: const Text('Upgrade to Subscribe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () => _showSnack('Subscribe to access Community Feed', icon: Icons.info_outline_rounded),
+              ),
+            ),
+          ]),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(context),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppThemeColors.border(context)),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(children: [
+            Row(children: [
+              _profileAvatar(userId, size: 38, color: color),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.surfaceBg(context),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppThemeColors.border(context)),
+                  ),
+                  child: Text('Write a post…',
+                    style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: color,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+                onPressed: () => _showSnack('Community feed coming soon!'),
+                child: const Text('Publish Post', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 40),
+        Center(child: Column(children: [
+          Container(width: 64, height: 64,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
+            child: Icon(Icons.forum_outlined, color: color, size: 30)),
+          const SizedBox(height: 14),
+          Text('Community feed coming soon',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
+          const SizedBox(height: 6),
+          Text('Post updates and connect with\nyour community members.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
+        ])),
+      ],
+    );
+  }
+
+  Widget _profileAvatar(String userId, {double size = 38, Color? color}) {
+    final fallback = color ?? AppColors.cyan;
+    if (userId.isEmpty) {
+      return Container(
+        width: size, height: size,
+        decoration: BoxDecoration(color: fallback.withValues(alpha: 0.10), shape: BoxShape.circle),
+        child: Icon(Icons.person_rounded, color: fallback, size: size * 0.5),
+      );
+    }
+    return ClipOval(
+      child: Image.network(
+        '${ApiConfig.baseUrl}/api/users/$userId/profile-image',
+        width: size, height: size, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: size, height: size,
+          decoration: BoxDecoration(color: fallback.withValues(alpha: 0.10), shape: BoxShape.circle),
+          child: Icon(Icons.person_rounded, color: fallback, size: size * 0.5),
+        ),
+      ),
+    );
   }
 }

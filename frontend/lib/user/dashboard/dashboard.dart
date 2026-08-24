@@ -1314,23 +1314,22 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
                     const SizedBox(height: 16),
 
-                    // Horizontally scrollable nav row (add more items here in the future)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                    // Nav row — fills full width; wrap in SingleChildScrollView if more items are added
+                    Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          _buildDashNavCard(
+                          Expanded(child: _buildDashNavCard(
                             icon: Icons.people,
                             label: t('counterparties'),
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CounterpartiesPage())),
-                          ),
+                          )),
                           const SizedBox(width: 12),
-                          _buildDashNavCard(
+                          Expanded(child: _buildDashNavCard(
                             icon: Icons.hub_rounded,
                             label: t('communities_title'),
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
-                          ),
+                          )),
                         ],
                       ),
                     ),
@@ -2343,6 +2342,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -2353,13 +2353,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
         child: Container(
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: AppColors.cyan, size: 22),
               const SizedBox(width: 10),

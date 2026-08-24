@@ -171,9 +171,10 @@ exports.createGroupWithCoins = async (req, res) => {
     const memberIds = users.map(u => u._id.toString());
     // Always add creator as the first member
     memberIds.unshift(creator._id.toString());
-    
+
     const members = memberIds.map(id => ({ user: id }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, color, communityIds: validCommunityIds });
+    const balances = memberIds.map(id => ({ user: id, balance: 0 }));
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds });
     if (validCommunityIds.length > 0) {
       try {
         const Community = require('../models/community');
@@ -293,9 +294,10 @@ exports.createGroup = async (req, res) => {
     const memberIds = users.map(u => u._id.toString());
     // Always add creator as the first member
     memberIds.unshift(creator._id.toString());
-    
+
     const members = memberIds.map(id => ({ user: id }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, color, communityIds: validCommunityIds });
+    const balances = memberIds.map(id => ({ user: id, balance: 0 }));
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds });
     if (validCommunityIds.length > 0) {
       try {
         const Community = require('../models/community');
@@ -764,18 +766,20 @@ exports.addExpense = async (req, res) => {
 
     group.expenses.push(expenseData);
 
-    // Update balances - only for selected members
+    // Update balances - only for selected members (create entry if missing)
     splitArr.forEach(s => {
-      const bal = group.balances.find(b => b.user.toString() === s.user.toString());
-      if (bal) bal.balance += s.amount;
+      let bal = group.balances.find(b => b.user.toString() === s.user.toString());
+      if (!bal) { bal = { user: s.user, balance: 0 }; group.balances.push(bal); }
+      bal.balance += s.amount;
     });
     // Credit the effective payer (may differ from requesting user)
     const payerMember = populatedActiveMembers.find(
       m => m.user && typeof m.user === 'object' && m.user.email === effectiveAddedBy
     );
     const payerUserId = payerMember ? (payerMember.user._id || payerMember.user) : userId;
-    const payerBal = group.balances.find(b => b.user.toString() === payerUserId.toString());
-    if (payerBal) payerBal.balance -= amount;
+    let payerBal = group.balances.find(b => b.user.toString() === payerUserId.toString());
+    if (!payerBal) { payerBal = { user: payerUserId, balance: 0 }; group.balances.push(payerBal); }
+    payerBal.balance -= amount;
     
     await group.save();
     

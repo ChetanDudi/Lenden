@@ -2327,34 +2327,37 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             ],
 
             const SizedBox(height: 4),
-            Row(children: [
-              TextButton.icon(
-                onPressed: _loadingFriends ? null : _addMembersFromFriends,
-                icon: _loadingFriends
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
-                    : const Icon(Icons.people, color: AppColors.cyan),
-                label: Text(
-                  _loadingFriends ? t('loading') : t('add_from_friends_label'),
-                  style: const TextStyle(color: AppColors.cyan),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                TextButton.icon(
+                  onPressed: _loadingFriends ? null : _addMembersFromFriends,
+                  icon: _loadingFriends
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                      : const Icon(Icons.people, color: AppColors.cyan),
+                  label: Text(
+                    _loadingFriends ? t('loading') : t('add_from_friends_label'),
+                    style: const TextStyle(color: AppColors.cyan),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              TextButton.icon(
-                onPressed: _loadingGroups ? null : _addMembersFromGroups,
-                icon: _loadingGroups
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
-                    : const Icon(Icons.group_work_rounded, color: AppColors.cyan),
-                label: Text(
-                  _loadingGroups ? t('loading') : t('add_from_groups_label'),
-                  style: const TextStyle(color: AppColors.cyan),
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: _loadingGroups ? null : _addMembersFromGroups,
+                  icon: _loadingGroups
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                      : const Icon(Icons.group_work_rounded, color: AppColors.cyan),
+                  label: Text(
+                    _loadingGroups ? t('loading') : t('add_from_groups_label'),
+                    style: const TextStyle(color: AppColors.cyan),
+                  ),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: _addMembersFromCommunities,
-                icon: const Icon(Icons.hub_rounded, color: AppColors.cyan),
-                label: const Text('Add from Communities', style: TextStyle(color: AppColors.cyan)),
-              ),
-            ]),
+                TextButton.icon(
+                  onPressed: _addMembersFromCommunities,
+                  icon: const Icon(Icons.hub_rounded, color: AppColors.cyan),
+                  label: const Text('Add from Communities', style: TextStyle(color: AppColors.cyan)),
+                ),
+              ]),
+            ),
 
             if (_memberAddError != null)
               Padding(

@@ -2449,6 +2449,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       'reports':             Color(0xFFD81B60),
       'budget_planning':     Color(0xFF6D4C41),
       'smart_insights':      Color(0xFF5E35B1),
+      'community_feed':      Color(0xFF7C3AED),
     };
     final visible = _heroExpanded ? kSubscriptionFeatures : kSubscriptionFeatures.take(4).toList();
     final remaining = kSubscriptionFeatures.length - 4;
@@ -2962,6 +2963,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       'reports':             Color(0xFFD81B60),
       'budget_planning':     Color(0xFF6D4C41),
       'smart_insights':      Color(0xFF5E35B1),
+      'community_feed':      Color(0xFF7C3AED),
     };
 
     final included = kSubscriptionFeatures

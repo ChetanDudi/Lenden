@@ -2,6 +2,29 @@ const Community = require('../models/community');
 const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
 
+function defaultCommunityImageUrl(name) {
+  const n = (name || '').toLowerCase();
+  const categories = [
+    ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&fit=crop&auto=format', ['spirit','reiki','heal','meditat','yoga','chakra','zen','mantra','divine']],
+    ['https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&fit=crop&auto=format', ['art','craft','paint','design','creat','draw','sculpt']],
+    ['https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=800&fit=crop&auto=format', ['crypto','bitcoin','invest','finance','stock','trade','nft','web3']],
+    ['https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&fit=crop&auto=format', ['fit','gym','sport','workout','run','muscle','athlet']],
+    ['https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&fit=crop&auto=format', ['food','cook','recipe','kitchen','bake','chef']],
+    ['https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&fit=crop&auto=format', ['travel','trip','adventur','journey','tour','wander','explore']],
+    ['https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&fit=crop&auto=format', ['music','band','song','concert','guitar','sing']],
+    ['https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&fit=crop&auto=format', ['tech','code','program','dev','software','hack','data','ai','ml']],
+    ['https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=800&fit=crop&auto=format', ['crystal','gem','stone','mineral','quartz','tarot']],
+    ['https://images.unsplash.com/photo-1511895426328-dc8714191011?w=800&fit=crop&auto=format', ['family','home','parent','child','baby','mom','dad']],
+    ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&fit=crop&auto=format', ['business','office','work','career','professional','entrepreneur']],
+    ['https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&fit=crop&auto=format', ['study','learn','educat','student','college','school']],
+    ['https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=800&fit=crop&auto=format', ['pet','animal','dog','cat','bird']],
+  ];
+  for (const [url, keywords] of categories) {
+    if (keywords.some(k => n.includes(k))) return url;
+  }
+  return 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&fit=crop&auto=format';
+}
+
 exports.createCommunity = async (req, res) => {
   try {
     const { name, description, color } = req.body;
@@ -163,19 +186,26 @@ exports.removeGroupFromCommunity = async (req, res) => {
 exports.getCommunityBalance = async (req, res) => {
   try {
     const community = await Community.findById(req.params.id)
-      .populate({ path: 'groups', select: 'title color balances' });
+      .populate({ path: 'groups', select: 'title color expenses balances' });
     if (!community) return res.status(404).json({ error: 'Community not found' });
     const isMember = community.members.some(m => m.user.toString() === req.user._id.toString());
     if (!isMember) return res.status(403).json({ error: 'Not a member' });
     const uid = req.user._id.toString();
-    let totalBalance = 0;
-    const groupBalances = (community.groups || []).map(g => {
-      const bal = (g.balances || []).find(b => b.user.toString() === uid);
-      const amount = bal?.balance ?? 0;
-      totalBalance += amount;
-      return { groupId: g._id, title: g.title, color: g.color, balance: amount };
+    let totalSplits = 0;
+    let netBalance = 0;
+    const groups = (community.groups || []).map(g => {
+      let amount = 0;
+      (g.expenses || []).forEach(exp => {
+        const split = (exp.split || []).find(s => s.user && s.user.toString() === uid);
+        if (split) amount += split.amount || 0;
+      });
+      totalSplits += amount;
+      const balEntry = (g.balances || []).find(b => b.user && b.user.toString() === uid);
+      const groupNet = balEntry ? (balEntry.balance || 0) : 0;
+      netBalance += groupNet;
+      return { groupId: g._id, title: g.title, color: g.color, amount, netBalance: groupNet };
     });
-    res.json({ totalBalance, groups: groupBalances });
+    res.json({ totalSplits, netBalance, groups });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -200,8 +230,11 @@ exports.uploadImage = async (req, res) => {
 
 exports.getImage = async (req, res) => {
   try {
-    const community = await Community.findById(req.params.id).select('communityImage communityImageMimeType');
-    if (!community || !community.communityImage) return res.status(404).end();
+    const community = await Community.findById(req.params.id).select('communityImage communityImageMimeType name');
+    if (!community) return res.status(404).end();
+    if (!community.communityImage) {
+      return res.redirect(defaultCommunityImageUrl(community.name));
+    }
     res.set('Content-Type', community.communityImageMimeType);
     res.send(community.communityImage);
   } catch (e) {
