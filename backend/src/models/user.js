@@ -241,6 +241,7 @@ const userSchema = new mongoose.Schema({
     twoFactorAuth: { type: Boolean, default: false },
     loginNotifications: { type: Boolean, default: true },
     deviceManagement: { type: Boolean, default: true },
+    allowDirectGroupAdd: { type: Boolean, default: true },
     sessionTimeout: {
       type: Number,
       default: 30 // in minutes, 0 means never timeout

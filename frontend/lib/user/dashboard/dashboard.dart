@@ -478,6 +478,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     } catch (_) {}
   }
 
+  // No-op: dashboard shows a nav card that links to CommunityPage — no community
+  // data is rendered here, so nothing to load.
   Future<void> _loadCommunities() async {}
 
   Future<void> showTransactionForm() async {
@@ -1312,73 +1314,24 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
                     const SizedBox(height: 16),
 
-                    // Counterparties entry card
-                    Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppThemeColors.tinted(context,
-                              light: const Color(0xFFE0F7FA),
-                              dark: const Color(0xFF0F2E33)),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.people,
-                                        color: AppColors.cyan),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      t('counterparties'),
-                                      style: TextStyle(
-                                        fontSize: context.sp(16),
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.cyan,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const CounterpartiesPage(),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.cyan,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: Text(t('view_label')),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
+                    // Horizontally scrollable nav row (add more items here in the future)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          _buildDashNavCard(
+                            icon: Icons.people,
+                            label: t('counterparties'),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CounterpartiesPage())),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildDashNavCard(
+                            icon: Icons.hub_rounded,
+                            label: t('communities_title'),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -1495,8 +1448,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                           ),
                           const SizedBox(height: 14),
                           _buildTransactionOptionsLayout(),
-                          const SizedBox(height: 28),
-                          _buildCommunitiesSection(),
                         ],
                       ),
                     ),
@@ -2388,43 +2339,33 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     ];
   }
 
-  Widget _buildCommunitiesSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+  Widget _buildDashNavCard({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Colors.orange, Colors.white, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(children: [
-              Icon(Icons.hub_rounded, color: AppColors.cyan),
-              const SizedBox(width: 8),
-              Text('Communities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan)),
-            ]),
-            ElevatedButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.cyan,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('View'),
-            ),
-          ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.cyan, size: 22),
+              const SizedBox(width: 10),
+              Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.cyan)),
+            ],
+          ),
         ),
       ),
     );

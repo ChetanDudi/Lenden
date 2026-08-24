@@ -1125,6 +1125,8 @@ class AppLocalizations {
       'login_notifications_title': 'Login Notifications',
       'login_notifications_desc':
           'Get notified by email when someone logs into your account',
+      'allow_direct_group_add_title': 'Allow Direct Group Add',
+      'allow_direct_group_add_desc': 'Let others add you to groups directly. Turn off to require an invite link instead.',
       'device_management_title': 'Device Management',
       'device_management_desc': 'Allow multiple devices to access your account',
       'session_timeout_title': 'Session Timeout',
@@ -5589,6 +5591,8 @@ class AppLocalizations {
       'login_notifications_title': 'लॉगिन सूचनाएं',
       'login_notifications_desc':
           'जब कोई आपके खाते में लॉगिन करे तो ईमेल द्वारा सूचित हों',
+      'allow_direct_group_add_title': 'सीधे ग्रुप में जोड़ने की अनुमति',
+      'allow_direct_group_add_desc': 'दूसरों को आपको सीधे ग्रुप में जोड़ने दें। बंद करने पर इन्वाइट लिंक ज़रूरी होगा।',
       'device_management_title': 'डिवाइस प्रबंधन',
       'device_management_desc':
           'कई डिवाइसों को अपने खाते तक पहुंचने की अनुमति दें',

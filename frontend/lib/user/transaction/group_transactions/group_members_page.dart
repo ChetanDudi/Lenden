@@ -7,6 +7,8 @@ import '../../../utils/api_client.dart';
 import '../../../api_config.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import '../../../session.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -77,6 +79,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   String? _error;
   String _filter = 'active';
   final _addEmailCtrl = TextEditingController();
+  List<Map<String, dynamic>> _userCommunities = [];
 
   @override
   void initState() {
@@ -129,7 +132,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     }
   }
 
-  Future<void> _addMember(String email) async {
+  Future<void> _addMember(String email, {bool silent = false}) async {
     final res = await ApiClient.post(
       '/api/group-transactions/${widget.groupId}/add-member',
       body: {'email': email.trim().toLowerCase()},
@@ -138,8 +141,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     final t = AppLocalizations.of(context).t;
     final body = jsonDecode(res.body);
     if (res.statusCode == 200 || res.statusCode == 201) {
-      _showSnack(t('member_added_message'), success: true);
-      _refresh();
+      if (!silent) {
+        _showSnack(t('member_added_message'), success: true);
+        _refresh();
+      }
     } else {
       _showError(body['error'] ?? t('failed_to_add_member_message'));
     }
@@ -216,6 +221,284 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       setState(() => _loading = false);
       final body = jsonDecode(res.body);
       _showError(body['error'] ?? t('failed_to_remove_member_message'));
+    }
+  }
+
+  Future<void> _loadCommunities() async {
+    try {
+      final res = await ApiClient.get('/api/communities');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _userCommunities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _showCommunityMemberPicker() async {
+    if (_userCommunities.isEmpty) {
+      await _loadCommunities();
+      if (!mounted) return;
+    }
+    if (_userCommunities.isEmpty) {
+      _showError('No communities found. Join or create a community first.');
+      return;
+    }
+
+    final myEmail = Provider.of<SessionProvider>(context, listen: false)
+        .user?['email']?.toString().toLowerCase() ?? '';
+
+    final List<String> picked = [];
+    int modeTab = 0;
+    String? statusMsg;
+
+    String getCMemberEmail(Map m) {
+      final u = m['user'];
+      if (u is Map) return (u['email'] ?? '').toString().toLowerCase().trim();
+      return '';
+    }
+    String getCMemberName(Map m) {
+      final u = m['user'];
+      if (u is Map) return (u['name'] ?? u['username'] ?? '').toString();
+      return '';
+    }
+    List<Map> getCMembers(Map c) {
+      final raw = c['members'];
+      if (raw is! List) return [];
+      return raw.whereType<Map>().where((m) {
+        final e = getCMemberEmail(m);
+        return e.isNotEmpty && e != myEmail;
+      }).toList();
+    }
+    Color parseCColor(dynamic v) {
+      try {
+        if (v is String && v.startsWith('#')) return Color(int.parse('FF${v.replaceFirst('#', '')}', radix: 16));
+      } catch (_) {}
+      return AppColors.cyan;
+    }
+
+    Widget buildModeTab(BuildContext ctx, int current, int value, IconData icon, String label, VoidCallback onTap) {
+      final isActive = current == value;
+      return Expanded(child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            gradient: isActive ? const LinearGradient(colors: [AppColors.cyan, AppColors.blue]) : null,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 16, color: isActive ? Colors.white : AppThemeColors.secondaryText(ctx)),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isActive ? Colors.white : AppThemeColors.secondaryText(ctx))),
+          ]),
+        ),
+      ));
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final List<Map<String, dynamic>> allPickMembers = [];
+          if (modeTab == 1) {
+            final seen = <String>{};
+            for (final c in _userCommunities) {
+              for (final m in getCMembers(c)) {
+                final me = getCMemberEmail(m);
+                if (me.isNotEmpty && seen.add(me)) allPickMembers.add(Map<String, dynamic>.from(m));
+              }
+            }
+          }
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (_, scrollCtrl) => Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]), borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.hub_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Add from Communities', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                      Text('${_userCommunities.length} communit${_userCommunities.length == 1 ? 'y' : 'ies'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                    ])),
+                    if (picked.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                        child: Text('${picked.length} selected', style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    const SizedBox(width: 8),
+                    IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(14)),
+                    child: Row(children: [
+                      buildModeTab(ctx, modeTab, 0, Icons.hub_rounded, 'Choose Community', () => setSheet(() { modeTab = 0; statusMsg = null; })),
+                      buildModeTab(ctx, modeTab, 1, Icons.person_search_rounded, 'Pick Members', () => setSheet(() { modeTab = 1; statusMsg = null; })),
+                    ]),
+                  ),
+                ),
+                if (statusMsg != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.green.withValues(alpha: 0.3))),
+                      child: Row(children: [
+                        const Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(statusMsg!, style: const TextStyle(color: Colors.green, fontSize: 13))),
+                      ]),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                Expanded(
+                  child: modeTab == 0
+                    ? ListView.separated(
+                        controller: scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: _userCommunities.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, ci) {
+                          final c = _userCommunities[ci];
+                          final cName = (c['name'] ?? 'Community').toString();
+                          final cMembers = getCMembers(c);
+                          final cColor = parseCColor(c['color']);
+                          final allAdded = cMembers.isNotEmpty && cMembers.every((m) => picked.contains(getCMemberEmail(m)));
+                          return Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppThemeColors.border(ctx))),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Row(children: [
+                                Container(
+                                  width: 44, height: 44,
+                                  decoration: BoxDecoration(gradient: LinearGradient(colors: [cColor.withValues(alpha: 0.8), cColor], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(13)),
+                                  child: Center(child: Text(cName.isNotEmpty ? cName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(cName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                                  Text('${cMembers.length} member${cMembers.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                                ])),
+                                TextButton.icon(
+                                  onPressed: cMembers.isEmpty ? null : () => setSheet(() {
+                                    if (allAdded) {
+                                      for (final m in cMembers) picked.remove(getCMemberEmail(m));
+                                      statusMsg = 'Deselected all from $cName';
+                                    } else {
+                                      int added = 0;
+                                      for (final m in cMembers) {
+                                        final me = getCMemberEmail(m);
+                                        if (me.isNotEmpty && !picked.contains(me)) { picked.add(me); added++; }
+                                      }
+                                      statusMsg = 'Selected $added from $cName';
+                                    }
+                                  }),
+                                  icon: Icon(allAdded ? Icons.remove_circle_outline : Icons.group_add, size: 16, color: allAdded ? Colors.orange : AppColors.cyan),
+                                  label: Text(allAdded ? 'Deselect All' : 'Add All', style: TextStyle(fontSize: 12, color: allAdded ? Colors.orange : AppColors.cyan)),
+                                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                                ),
+                              ]),
+                              if (cMembers.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8, runSpacing: 6,
+                                  children: cMembers.map((m) {
+                                    final me = getCMemberEmail(m);
+                                    final mn = getCMemberName(m);
+                                    final isSel = picked.contains(me);
+                                    return GestureDetector(
+                                      onTap: () => setSheet(() { if (isSel) picked.remove(me); else picked.add(me); }),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: isSel ? AppColors.cyan.withValues(alpha: 0.15) : AppThemeColors.cardBg(ctx),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: isSel ? AppColors.cyan : AppThemeColors.border(ctx)),
+                                        ),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          if (isSel) ...[const Icon(Icons.check, size: 12, color: AppColors.cyan), const SizedBox(width: 4)],
+                                          Text(mn.isNotEmpty ? mn.split(' ')[0] : me.split('@')[0],
+                                            style: TextStyle(fontSize: 12, color: isSel ? AppColors.cyan : AppThemeColors.primaryText(ctx), fontWeight: isSel ? FontWeight.w600 : FontWeight.normal)),
+                                        ]),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ]),
+                          );
+                        },
+                      )
+                    : ListView.separated(
+                        controller: scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: allPickMembers.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final m = allPickMembers[i];
+                          final me = getCMemberEmail(m);
+                          final mn = getCMemberName(m);
+                          final isSel = picked.contains(me);
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
+                              child: Text(mn.isNotEmpty ? mn[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold)),
+                            ),
+                            title: Text(mn.isNotEmpty ? mn : me, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(ctx))),
+                            subtitle: mn.isNotEmpty ? Text(me, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
+                            trailing: Checkbox(value: isSel, activeColor: AppColors.cyan, onChanged: (_) => setSheet(() { if (isSel) picked.remove(me); else picked.add(me); })),
+                            onTap: () => setSheet(() { if (isSel) picked.remove(me); else picked.add(me); }),
+                          );
+                        },
+                      ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 4),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(picked.isEmpty ? 'Done' : 'Add ${picked.length} Member${picked.length == 1 ? '' : 's'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+
+    // Add each picked community member to the group silently, then refresh once
+    for (final email in picked) {
+      if (!mounted) break;
+      await _addMember(email, silent: true);
+    }
+    if (mounted && picked.isNotEmpty) {
+      _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', success: true);
+      await _refresh();
     }
   }
 
@@ -312,6 +595,17 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                       _addMember(email);
                     },
                   ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showCommunityMemberPicker();
+                  },
+                  icon: const Icon(Icons.hub_rounded, color: AppColors.cyan, size: 18),
+                  label: const Text('Add from Communities', style: TextStyle(color: AppColors.cyan, fontSize: 14)),
                 ),
               ),
             ],

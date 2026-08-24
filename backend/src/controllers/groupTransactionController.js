@@ -381,15 +381,20 @@ exports.addMember = async (req, res) => {
     
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    
+
     // Check if trying to add the group creator
     if (user._id.toString() === group.creator.toString()) {
       return res.status(400).json({ error: 'Group creator is already a member by default' });
     }
-    
-    // Check if user is already an active member
+
+    // Check if user is already an active member (no action needed, clear error)
     if (group.members.some(m => m.user.toString() === user._id.toString() && !m.leftAt)) {
       return res.status(400).json({ error: 'User already a member' });
+    }
+
+    // Respect target user's group-add privacy setting only for genuinely new adds
+    if (user.privacySettings?.allowDirectGroupAdd === false) {
+      return res.status(403).json({ error: 'This user has restricted direct group additions. You can share an invite link with them instead.' });
     }
     
     // Check if user was previously removed and handle re-adding

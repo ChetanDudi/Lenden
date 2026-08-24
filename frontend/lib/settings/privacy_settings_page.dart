@@ -75,6 +75,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   bool _twoFactorAuth = false;
   bool _loginNotifications = true;
   bool _deviceManagement = true;
+  bool _allowDirectGroupAdd = true;
   String _sessionTimeout = '30'; // minutes
 
   List<Map<String, dynamic>> _devices = [];
@@ -108,6 +109,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           _twoFactorAuth = settings['twoFactorAuth'] ?? false;
           _loginNotifications = settings['loginNotifications'] ?? true;
           _deviceManagement = settings['deviceManagement'] ?? true;
+          _allowDirectGroupAdd = settings['allowDirectGroupAdd'] ?? true;
           _sessionTimeout = settings['sessionTimeout']?.toString() ?? '30';
         });
       }
@@ -143,6 +145,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           'twoFactorAuth': _twoFactorAuth,
           'loginNotifications': _loginNotifications,
           'deviceManagement': _deviceManagement,
+          'allowDirectGroupAdd': _allowDirectGroupAdd,
           'sessionTimeout': int.parse(_sessionTimeout),
         },
       );
@@ -686,6 +689,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                         Icons.notifications_active_outlined,
                         _loginNotifications,
                         (value) => setState(() => _loginNotifications = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
+                        t('allow_direct_group_add_title'),
+                        t('allow_direct_group_add_desc'),
+                        Icons.group_add_outlined,
+                        _allowDirectGroupAdd,
+                        (value) => setState(() => _allowDirectGroupAdd = value),
                       ),
                       _buildSwitchTile(
                         context,

@@ -391,6 +391,7 @@ const getPrivacySettings = async (req, res) => {
       loginNotifications: user.privacySettings?.loginNotifications ?? true,
       deviceManagement: user.privacySettings?.deviceManagement ?? true,
       sessionTimeout: user.privacySettings?.sessionTimeout ?? 30,
+      allowDirectGroupAdd: user.privacySettings?.allowDirectGroupAdd ?? true,
     };
 
     res.json(settings);
@@ -414,6 +415,7 @@ const updatePrivacySettings = async (req, res) => {
       loginNotifications,
       deviceManagement,
       sessionTimeout,
+      allowDirectGroupAdd,
     } = req.body;
 
     const updatePayload = {
@@ -428,6 +430,7 @@ const updatePrivacySettings = async (req, res) => {
         loginNotifications,
         deviceManagement,
         ...(typeof sessionTimeout === 'number' && { sessionTimeout }),
+        ...(typeof allowDirectGroupAdd === 'boolean' && { allowDirectGroupAdd }),
       },
     };
 
