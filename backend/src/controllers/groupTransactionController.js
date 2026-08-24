@@ -1082,7 +1082,61 @@ exports.getUserGroups = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
-}; 
+};
+
+exports.getGroupById = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { groupId } = req.params;
+    const g = await GroupTransaction.findById(groupId)
+      .populate('members.user', 'email name')
+      .populate('creator', 'email');
+    if (!g) return res.status(404).json({ error: 'Group not found' });
+    const obj = g.toObject();
+    const processedExpenses = await processExpenses(obj.expenses);
+    const totalAmountInr = processedExpenses.reduce((sum, e) => sum + Number(e.amountInr || 0), 0);
+    const myMemberEntry = (obj.members || []).find(
+      (m) => m && m.user && m.user._id && m.user._id.toString() === userId.toString()
+    );
+    const userStatus = myMemberEntry && myMemberEntry.leftAt ? 'left' : 'joined';
+    let userPendingBalance = 0;
+    for (const expense of processedExpenses) {
+      for (const splitItem of expense.split || []) {
+        const splitUserId = splitItem.user?._id?.toString?.() || splitItem.user?.toString?.() || '';
+        if (splitUserId === userId.toString() && !splitItem.settled) {
+          userPendingBalance += Number(splitItem.amountInr || splitItem.amount || 0);
+        }
+      }
+    }
+    res.json({
+      _id: obj._id,
+      title: obj.title,
+      description: obj.description || '',
+      groupImageUrl: obj.groupImage
+        ? `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image?v=${new Date(obj.updatedAt).getTime()}`
+        : null,
+      creator: obj.creator ? { _id: obj.creator._id, email: obj.creator.email } : null,
+      members: (obj.members || [])
+        .map((m) => m && m.user ? { _id: m.user._id, email: m.user.email, name: m.user.name || '', joinedAt: m.joinedAt, leftAt: m.leftAt } : null)
+        .filter((m) => m !== null),
+      expenses: processedExpenses,
+      totalExpenses: processedExpenses.length,
+      totalAmountInr: Number(totalAmountInr.toFixed(2)),
+      balances: obj.balances || [],
+      memberPayments: obj.memberPayments || [],
+      color: obj.color,
+      favourite: obj.favourite || [],
+      messageCount: obj.messageCount || 0,
+      createdAt: obj.createdAt,
+      updatedAt: obj.updatedAt,
+      userStatus,
+      userPendingBalance: Number(userPendingBalance.toFixed(2)),
+      joinCode: obj.joinCode || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
 
 exports.toggleGroupFavourite = async (req, res) => {
   try {

@@ -502,7 +502,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
         if (email.contains('@')) return email;
       }
     }
-    return direct;
+    return (direct == 'Deleted Account' || RegExp(r'^[0-9a-f]{24}$').hasMatch(direct)) ? 'Deleted Account' : direct;
   }
 
   String _currencySymbol(String? c) {

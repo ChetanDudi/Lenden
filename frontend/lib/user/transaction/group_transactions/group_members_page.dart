@@ -10,16 +10,25 @@ import '../../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 
+final _oidRe = RegExp(r'^[0-9a-f]{24}$');
 String _emailOf(dynamic field) {
   if (field == null) return '-';
-  if (field is Map) return (field['email'] ?? '-').toString();
-  return field.toString();
+  if (field is Map) {
+    final e = (field['email'] ?? '').toString();
+    return _oidRe.hasMatch(e) || e.isEmpty ? (field['name']?.toString().isNotEmpty == true ? field['name'].toString() : 'Deleted Account') : e;
+  }
+  final s = field.toString();
+  return _oidRe.hasMatch(s) ? 'Deleted Account' : s;
 }
 
 String _nameOf(dynamic field) {
   if (field == null) return '';
-  if (field is Map) return (field['name'] ?? '').toString();
-  return '';
+  if (field is Map) {
+    final n = (field['name'] ?? '').toString();
+    return _oidRe.hasMatch(n) ? 'Deleted Account' : n;
+  }
+  final s = field.toString();
+  return _oidRe.hasMatch(s) ? 'Deleted Account' : '';
 }
 
 Widget _tricolorBorderBox({

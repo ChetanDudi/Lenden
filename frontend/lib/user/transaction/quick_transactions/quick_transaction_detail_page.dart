@@ -165,10 +165,10 @@ class _QuickTransactionDetailPageState
     return <String, dynamic>{};
   }
 
-  String get _counterpartyEmail =>
-      (_counterparty['email'] ?? '').toString();
-  String get _counterpartyName =>
-      (_counterparty['name'] ?? _counterparty['username'] ?? '').toString();
+  static final _oidRe = RegExp(r'^[0-9a-f]{24}$');
+  static String _clean(dynamic v, String fb) { final s = (v ?? '').toString(); return s.isEmpty || _oidRe.hasMatch(s) ? fb : s; }
+  String get _counterpartyEmail => _clean(_counterparty['email'], '');
+  String get _counterpartyName => _clean(_counterparty['name'] ?? _counterparty['username'], 'Deleted Account');
 
   bool get _canEdit => !_cleared;
   bool get _canRequestSettle =>

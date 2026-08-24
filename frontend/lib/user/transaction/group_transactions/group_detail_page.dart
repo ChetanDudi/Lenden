@@ -70,10 +70,15 @@ Widget _tricolorBorderBox({
   );
 }
 
+final _oidRe = RegExp(r'^[0-9a-f]{24}$');
 String _emailOf(dynamic field) {
   if (field == null) return '-';
-  if (field is Map) return (field['email'] ?? '-').toString();
-  return field.toString();
+  if (field is Map) {
+    final e = (field['email'] ?? '').toString();
+    return _oidRe.hasMatch(e) || e.isEmpty ? (field['name']?.toString().isNotEmpty == true ? field['name'].toString() : 'Deleted Account') : e;
+  }
+  final s = field.toString();
+  return _oidRe.hasMatch(s) ? 'Deleted Account' : s;
 }
 
 class GroupDetailPage extends StatefulWidget {
@@ -110,6 +115,30 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     _isCreator = creatorEmail == _userEmail!.toLowerCase();
     loadCurrencies();
     _loadCommunities();
+    // If initialGroup is a stub (from community page — no members/expenses), fetch full data
+    final hasFullData = (_group['members'] is List) && (_group['expenses'] is List);
+    if (!hasFullData) _loadGroup();
+  }
+
+  Future<void> _loadGroup() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final res = await ApiClient.get('/api/group-transactions/${widget.groupId}/detail');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _group = Map<String, dynamic>.from(data);
+          final creatorEmail = _emailOf(_group['creator']).toLowerCase();
+          _isCreator = creatorEmail == _userEmail!.toLowerCase();
+          _loading = false;
+        });
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Color _parseCommunityColor(dynamic c) {
@@ -535,16 +564,17 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   }
 
   String _resolveEmail(dynamic userField) {
+    if (userField == null) return 'Deleted Account';
     final direct = _emailOf(userField);
+    if (direct == 'Deleted Account') return 'Deleted Account';
     if (direct.contains('@')) return direct;
+    // direct is a raw ObjectId string — try to look up in members
     for (final m in List<dynamic>.from(_group['members'] ?? [])) {
-      // Primary: member sub-doc _id IS the user ObjectId
       final memberId = (m['_id'] ?? '').toString();
       if (memberId.isNotEmpty && memberId == direct) {
         final email = (m['email'] ?? '').toString();
         if (email.contains('@')) return email;
       }
-      // Fallback: member has a separate user field
       final mUser = m['user'];
       final mId = mUser is Map
           ? (mUser['_id'] ?? mUser['id'] ?? '').toString()
@@ -554,7 +584,8 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         if (email.contains('@')) return email;
       }
     }
-    return direct;
+    // ObjectId with no matching member = deleted user
+    return _oidRe.hasMatch(direct) ? 'Deleted Account' : direct;
   }
 
   Color get _groupColor {
@@ -1802,7 +1833,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '${currencySymbolFor(selectedCurrency)}${formatAmount(net.abs(), from: 'INR')}',
+                                            formatAmount(net.abs(), from: 'INR'),
                                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: amtColor),
                                           ),
                                           if (isMe && isOwes && payTo != null) ...[
@@ -1917,7 +1948,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            '${currencySymbolFor(selectedCurrency)}${formatAmount(amt, from: 'INR')}',
+                                            formatAmount(amt, from: 'INR'),
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,

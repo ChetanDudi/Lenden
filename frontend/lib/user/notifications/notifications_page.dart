@@ -623,9 +623,10 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             ..._incomingRequests.map((request) {
               final from = request['from'] ?? {};
               final isRemoving = _removingRequestIds.contains(request['_id']);
-              final title =
-                  (from['name'] ?? from['username'] ?? t('new_request_label')).toString();
-              final subtitle = (from['email'] ?? '').toString();
+              final _oid = RegExp(r'^[0-9a-f]{24}$');
+              String _cleanUser(dynamic v, String fb) { final s = (v ?? '').toString(); return s.isEmpty || _oid.hasMatch(s) ? fb : s; }
+              final title = _cleanUser(from['name'] ?? from['username'], t('new_request_label'));
+              final subtitle = _cleanUser(from['email'], '');
               return AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
                 opacity: isRemoving ? 0.4 : 1,

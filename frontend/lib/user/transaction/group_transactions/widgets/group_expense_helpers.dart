@@ -1,10 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../../widgets/app_colors.dart';
 
+final _oidRe = RegExp(r'^[0-9a-f]{24}$');
 String emailOf(dynamic field) {
   if (field == null) return '-';
-  if (field is Map) return (field['email'] ?? '-').toString();
-  return field.toString();
+  if (field is Map) {
+    final e = (field['email'] ?? '').toString();
+    return _oidRe.hasMatch(e) || e.isEmpty ? (field['name']?.toString().isNotEmpty == true ? field['name'].toString() : 'Deleted Account') : e;
+  }
+  final s = field.toString();
+  return _oidRe.hasMatch(s) ? 'Deleted Account' : s;
 }
 
 String fmtDateTime(dynamic dt) {

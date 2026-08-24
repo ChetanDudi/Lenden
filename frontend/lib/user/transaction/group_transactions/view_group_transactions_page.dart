@@ -25,6 +25,20 @@ import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/share_as_note_sheet.dart';
 
+final _oidRe = RegExp(r'^[0-9a-f]{24}$');
+String _sanitizeUser(dynamic v, {String fallback = 'Deleted Account'}) {
+  if (v == null) return fallback;
+  if (v is Map) {
+    final name = (v['name'] ?? v['username'] ?? '').toString();
+    if (name.isNotEmpty && !_oidRe.hasMatch(name)) return name;
+    final email = (v['email'] ?? '').toString();
+    if (email.isNotEmpty && !_oidRe.hasMatch(email)) return email;
+    return fallback;
+  }
+  final s = v.toString();
+  return _oidRe.hasMatch(s) ? fallback : s;
+}
+
 class ViewGroupTransactionsPage extends StatefulWidget {
   const ViewGroupTransactionsPage({super.key});
 
@@ -1255,7 +1269,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                             ),
                           ),
                           Text(
-                            t('added_by_colon_label').replaceFirst('{email}', expense['addedBy'] ?? t('unknown_label')),
+                            t('added_by_colon_label').replaceFirst('{email}', _sanitizeUser(expense['addedBy'], fallback: t('unknown_label'))),
                             style: TextStyle(
                               color: AppThemeColors.secondaryText(context),
                               fontSize: 12,
@@ -1583,7 +1597,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
           cell(expense['description']),
           cell((_expenseAmountInInr(expense)).toStringAsFixed(2)),
           cell(expense['currency'] ?? 'INR'),
-          cell(expense['addedBy']),
+          cell(_sanitizeUser(expense['addedBy'])),
           cell(dateStr),
           cell(members),
         ].join(','));
@@ -1723,7 +1737,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                     children: [
                       pCell((e['description'] ?? '—').toString()),
                       pCell('${pdfSym('INR')}${amt.toStringAsFixed(2)}', color: green),
-                      pCell((e['addedBy'] ?? '—').toString()),
+                      pCell(_sanitizeUser(e['addedBy'], fallback: '—')),
                       pCell(dateStr),
                     ],
                   );
@@ -2502,7 +2516,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                                     ),
                                                                     SizedBox(height: 4),
                                                                     Text(
-                                                                      t('added_by_colon_label').replaceFirst('{email}', expense['addedBy'] ?? t('unknown_label')),
+                                                                      t('added_by_colon_label').replaceFirst('{email}', _sanitizeUser(expense['addedBy'], fallback: t('unknown_label'))),
                                                                       style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12),
                                                                       overflow: TextOverflow.ellipsis,
                                                                       maxLines: 1,

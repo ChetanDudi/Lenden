@@ -61,6 +61,20 @@ String _catLabel(String? key) {
   return (_kCategories.firstWhere((c) => c['key'] == key, orElse: () => _kCategories.last)['label'] as String);
 }
 
+final _oidRe = RegExp(r'^[0-9a-f]{24}$');
+String _sanitizeCp(dynamic v, {String fallback = 'Deleted Account'}) {
+  if (v == null) return fallback;
+  if (v is Map) {
+    final name = (v['name'] ?? v['username'] ?? '').toString().trim();
+    if (name.isNotEmpty && !_oidRe.hasMatch(name)) return name;
+    final email = (v['email'] ?? '').toString().trim();
+    if (email.isNotEmpty && !_oidRe.hasMatch(email)) return email;
+    return fallback;
+  }
+  final s = v.toString();
+  return _oidRe.hasMatch(s) ? fallback : s;
+}
+
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
   final bool openCreateOnLoad;
@@ -1325,10 +1339,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final tx in items) {
       final cp = _counterpartyForViewer(tx);
-      final name = (() {
-        final n = (cp?['name'] ?? '').toString().trim();
-        return n.isNotEmpty ? n : (cp?['email'] ?? '—').toString();
-      })();
+      final name = _sanitizeCp(cp, fallback: '—');
       grouped.putIfAbsent(name, () => []).add(tx);
     }
     final sorted = grouped.entries.toList()
@@ -1446,10 +1457,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         'Amount,Currency,Role,Category,Description,Counterparty,Date,Time,Status,Settlement,Edits,Created');
     for (final tx in filteredTransactions) {
       final cp = _counterpartyForViewer(tx);
-      final cpName =
-          (cp?['name']?.toString().isNotEmpty == true ? cp!['name'] : cp?['email'])
-                  ?.toString() ??
-              '';
+      final cpName = _sanitizeCp(cp, fallback: '');
       String cell(dynamic v) {
         final s = (v ?? '').toString().replaceAll('"', '""');
         return '"$s"';
@@ -1614,9 +1622,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
             for (final tx in filteredTransactions) () {
               final role = _roleForViewer(tx);
               final cp = _counterpartyForViewer(tx);
-              final cpName = (cp?['name']?.toString().isNotEmpty == true
-                  ? cp!['name']
-                  : cp?['email'])?.toString() ?? '—';
+              final cpName = _sanitizeCp(cp, fallback: '—');
               final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
               final sym = pdfSym((tx['currency'] ?? 'INR').toString().toUpperCase());
               final cleared = tx['cleared'] == true;
@@ -2638,7 +2644,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       final email = (cp['email'] ?? '').toString();
       if (email.isEmpty) continue;
       cpTotals[email] = (cpTotals[email] ?? 0) + _displayNumericAmount(tx).abs();
-      cpNames[email] = (cp['name'] ?? email).toString();
+      cpNames[email] = _sanitizeCp(cp, fallback: email);
       cpAvatars[email] ??= cp['avatar']?.toString();
       cpTxCounts[email] = (cpTxCounts[email] ?? 0) + 1;
     }
@@ -2750,7 +2756,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     final amt = _formatDisplayAmount(_displayNumericAmount(tx).abs(), selectedCurrency);
     final desc = (tx['description'] ?? '').toString();
     final date = tx['date']?.toString().split('T').first ?? '';
-    final cpName = (cp?['name'] ?? cp?['email'] ?? '').toString();
+    final cpName = _sanitizeCp(cp, fallback: '');
     final cpAvatar = cp?['avatar']?.toString();
 
     showModalBottomSheet(

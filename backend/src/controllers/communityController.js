@@ -186,7 +186,7 @@ exports.removeGroupFromCommunity = async (req, res) => {
 exports.getCommunityBalance = async (req, res) => {
   try {
     const community = await Community.findById(req.params.id)
-      .populate({ path: 'groups', select: 'title color expenses balances' });
+      .populate({ path: 'groups', select: 'title color expenses' });
     if (!community) return res.status(404).json({ error: 'Community not found' });
     const isMember = community.members.some(m => m.user.toString() === req.user._id.toString());
     if (!isMember) return res.status(403).json({ error: 'Not a member' });
@@ -194,16 +194,27 @@ exports.getCommunityBalance = async (req, res) => {
     let totalSplits = 0;
     let netBalance = 0;
     const groups = (community.groups || []).map(g => {
-      let amount = 0;
+      let totalSplit = 0; // all splits for this user (settled + unsettled)
+      let userOwes = 0;   // unsettled: user is in split, someone else paid
+      let owedToUser = 0; // unsettled: user paid, others haven't settled
+
       (g.expenses || []).forEach(exp => {
-        const split = (exp.split || []).find(s => s.user && s.user.toString() === uid);
-        if (split) amount += split.amount || 0;
+        const addedBy = (exp.addedBy || '').toString();
+        (exp.split || []).forEach(s => {
+          const splitUser = (s.user || '').toString();
+          const amt = Number(s.amountInr || s.amount || 0);
+          if (splitUser === uid) totalSplit += amt;
+          if (!s.settled) {
+            if (splitUser === uid && addedBy !== uid) userOwes += amt;
+            else if (addedBy === uid && splitUser !== uid) owedToUser += amt;
+          }
+        });
       });
-      totalSplits += amount;
-      const balEntry = (g.balances || []).find(b => b.user && b.user.toString() === uid);
-      const groupNet = balEntry ? (balEntry.balance || 0) : 0;
+
+      const groupNet = userOwes - owedToUser; // positive = you owe, negative = you're owed
+      totalSplits += totalSplit;
       netBalance += groupNet;
-      return { groupId: g._id, title: g.title, color: g.color, amount, netBalance: groupNet };
+      return { groupId: g._id, title: g.title, color: g.color, amount: totalSplit, pendingAmount: groupNet, netBalance: groupNet };
     });
     res.json({ totalSplits, netBalance, groups });
   } catch (e) {

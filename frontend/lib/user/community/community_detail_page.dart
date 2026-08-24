@@ -825,9 +825,12 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               const SizedBox(height: 14),
               Divider(height: 1, color: AppThemeColors.border(context)),
               const SizedBox(height: 10),
-              ..._groupBalances.where((g) => (g['amount'] ?? 0) != 0).map((g) {
-                final amt = (g['amount'] ?? 0).toDouble();
+              ..._groupBalances.where((g) => (g['pendingAmount'] ?? g['amount'] ?? 0) != 0).map((g) {
+                final pending = (g['pendingAmount'] ?? 0).toDouble();
                 final gColor = _parseColor(g['color']);
+                final isOwes = pending > 0.005;
+                final isOwed = pending < -0.005;
+                final amtColor = isOwes ? Colors.red : (isOwed ? const Color(0xFF00897B) : AppThemeColors.secondaryText(context));
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(children: [
@@ -838,8 +841,13 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     const SizedBox(width: 10),
                     Expanded(child: Text((g['title'] ?? '').toString(),
                       style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w500))),
-                    Text('₹${amt.toStringAsFixed(0)}',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: gColor)),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('₹${pending.abs().toStringAsFixed(0)}',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: amtColor)),
+                      if (isOwes || isOwed)
+                        Text(isOwes ? 'you owe' : 'you\'re owed',
+                          style: TextStyle(fontSize: 10, color: amtColor, fontWeight: FontWeight.w500)),
+                    ]),
                   ]),
                 );
               }),
@@ -1000,9 +1008,16 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (_, i) {
             final m = _members[i];
-            final user = m['user'] is Map ? m['user'] : {'name': 'Member', 'email': ''};
-            final mName = (user['name'] ?? user['email'] ?? 'Member').toString();
-            final mEmail = (user['email'] ?? '').toString();
+            final user = m['user'] is Map ? m['user'] : <String, dynamic>{};
+            final _oid = RegExp(r'^[0-9a-f]{24}$');
+            String _sanitize(dynamic v, String fb) {
+              final s = (v ?? '').toString();
+              return s.isEmpty || _oid.hasMatch(s) ? fb : s;
+            }
+            final rawName = _sanitize(user['name'], '');
+            final rawEmail = _sanitize(user['email'], '');
+            final mName = rawName.isNotEmpty ? rawName : (rawEmail.isNotEmpty ? rawEmail : (user.isEmpty ? 'Deleted Account' : 'Member'));
+            final mEmail = rawEmail;
             final role = (m['role'] ?? 'member').toString();
             final isMe = (user['_id'] ?? '').toString() == _uid;
 

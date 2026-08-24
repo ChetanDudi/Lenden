@@ -28,6 +28,7 @@ module.exports = (router, { auth, otpVerifyLimiter, budgetCheck, handleUsage, up
 
   // Group info & metadata
   router.get('/group-transactions/user-groups', auth, groupTransactionController.getUserGroups);
+  router.get('/group-transactions/:groupId/detail', auth, groupTransactionController.getGroupById);
   router.put('/group-transactions/:groupId/colour', auth, groupTransactionController.updateGroupColor);
   router.put('/group-transactions/:groupId/color', auth, groupTransactionController.updateGroupColor);
   router.put('/group-transactions/:groupId/image', auth, upload.single('groupImage'), groupTransactionController.uploadGroupImage);

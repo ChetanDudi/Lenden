@@ -1021,7 +1021,7 @@ class _ChatPageState extends State<ChatPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                      'Replying to ${message['parentMessageId']['senderId']['name']}',
+                      'Replying to ${() { final s = message['parentMessageId']['senderId']; final n = s is Map ? (s['name'] ?? '').toString() : ''; return (n.isEmpty || RegExp(r'^[0-9a-f]{24}$').hasMatch(n)) ? 'Deleted Account' : n; }()}',
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
@@ -1276,7 +1276,7 @@ class _ChatPageState extends State<ChatPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    'Replying to ${(_replyingTo['senderId'] is Map ? _replyingTo['senderId']['name'] : '')}',
+                    'Replying to ${() { final s = _replyingTo['senderId']; final n = s is Map ? (s['name'] ?? '').toString() : ''; return (n.isEmpty || RegExp(r'^[0-9a-f]{24}$').hasMatch(n)) ? 'Deleted Account' : n; }()}',
                     style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,

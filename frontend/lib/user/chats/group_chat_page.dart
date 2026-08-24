@@ -1619,7 +1619,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
     final hasReactions =
         message['reactions'] != null && message['reactions'].isNotEmpty;
-    final senderName = message['senderId']?['name'] ?? 'Unknown';
+    final _sRaw = (message['senderId']?['name'] ?? '').toString();
+    final senderName = (_sRaw.isEmpty || RegExp(r'^[0-9a-f]{24}$').hasMatch(_sRaw)) ? 'Deleted Account' : _sRaw;
     final senderId = message['senderId']?['_id'] ?? 'unknown';
 
     final senderColor = _avatarColorFor(senderId);
@@ -1653,7 +1654,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                      'Replying to ${message['parentMessageId']?['senderId']?['name'] ?? ''}',
+                      'Replying to ${() { final n = (message['parentMessageId']?['senderId']?['name'] ?? '').toString(); return (n.isEmpty || RegExp(r'^[0-9a-f]{24}$').hasMatch(n)) ? 'Deleted Account' : n; }()}',
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
@@ -1956,7 +1957,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    'Replying to ${(_replyingTo['senderId'] is Map ? _replyingTo['senderId']['name'] : '')}',
+                    'Replying to ${() { final s = _replyingTo['senderId']; final n = s is Map ? (s['name'] ?? '').toString() : ''; return (n.isEmpty || RegExp(r'^[0-9a-f]{24}$').hasMatch(n)) ? 'Deleted Account' : n; }()}',
                     style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
