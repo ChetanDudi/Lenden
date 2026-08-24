@@ -170,6 +170,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         'referralCode': _referralCodeController.text.trim(),
     }, timeout: const Duration(seconds: 120));
 
+    if (!mounted) return;
     if (res['status'] == 200) {
       setState(() {
         _otpSent = true;

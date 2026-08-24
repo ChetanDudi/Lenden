@@ -294,7 +294,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
         _showErrorDialog('Login failed. Please try again.');
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -515,28 +515,30 @@ class _UserLoginPageState extends State<UserLoginPage> {
   }
 
   Future<void> _recoverAccountAndLogin(Map<String, dynamic> recoverInfo) async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
       final emailOrUsername = recoverInfo['email'] ?? recoverInfo['username'];
       final response = await HttpInterceptor.post(
         '/api/users/recover-account',
         body: {'emailOrUsername': emailOrUsername},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
-        // After recovery, try login again
+        // After recovery, trigger login — _login manages its own loading state
         _login();
       } else {
         final errorData = json.decode(response.body);
         _showErrorDialog(errorData['error'] ?? 'Failed to recover account');
       }
     } catch (e) {
+      if (!mounted) return;
       if (e is SocketException) {
         _showGoogleNetworkErrorDialog();
       } else {
         _showErrorDialog('Failed to recover account. Please try again.');
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -568,8 +570,10 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   void _show2FADialog(String email) {
     final secondsNotifier = ValueNotifier<int>(120);
+    bool timerActive = true;
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
+      if (!timerActive) return false;
       if (secondsNotifier.value > 0) {
         secondsNotifier.value--;
         return true;
@@ -668,6 +672,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
                           onPressed: isVerifying
                               ? null
                               : () {
+                                  timerActive = false;
+                                  secondsNotifier.dispose();
                                   setState(() {
                                     _requires2FA = false;
                                     _twoFAEmail = '';

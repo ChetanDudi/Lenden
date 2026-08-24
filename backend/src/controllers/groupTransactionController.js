@@ -119,7 +119,10 @@ exports.createGroupWithCoins = async (req, res) => {
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
-    
+    if (!Array.isArray(memberEmails)) {
+      return res.status(400).json({ error: 'memberEmails must be an array.' });
+    }
+
     // Filter out creator's email from memberEmails (they're added automatically)
     const filteredMemberEmails = memberEmails.filter(email => email !== creator.email);
     
@@ -260,10 +263,13 @@ exports.createGroup = async (req, res) => {
         });
       }
     }
-    
+    if (!Array.isArray(memberEmails)) {
+      return res.status(400).json({ error: 'memberEmails must be an array.' });
+    }
+
     // Filter out creator's email from memberEmails (they're added automatically)
     const filteredMemberEmails = memberEmails.filter(email => email !== creator.email);
-    
+
     // Find users by email
     const users = await User.find({ email: { $in: filteredMemberEmails } }).select(
       'email blockedUsers'
