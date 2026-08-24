@@ -19,6 +19,7 @@ import '../../../widgets/free_attempts_banner.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../utils/community_helpers.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -1166,12 +1167,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             .toString()
                                             .replaceFirst('#', '0xff')))
                                         : Colors.blue.shade300;
-                                    final avatarText = () {
-                                      final title = g['title'] ?? '';
-                                      return title.isNotEmpty
-                                          ? title[0].toUpperCase()
-                                          : '?';
-                                    }();
                                     final gId = g['_id']?.toString() ?? '';
                                     final gBudget = _groupBudgetSpending[gId];
                                     final gHasLimit = gBudget != null && gBudget['budget'] != null;
@@ -1180,314 +1175,137 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     final gPct = gHasLimit && gLimit > 0 ? (gSpent / gLimit).clamp(0.0, 1.0) : 0.0;
                                     final gLimitExceeded = gHasLimit && gSpent > gLimit;
                                     final gColor = gLimitExceeded ? Colors.red.shade600 : gPct >= 0.85 ? Colors.orange.shade700 : Colors.teal;
-                                    return Card(
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(18)),
-                                      elevation: 6,
-                                      margin: EdgeInsets.only(bottom: 18),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: gHasLimit ? gColor.withValues(alpha: 0.6) : groupColor,
-                                            width: gLimitExceeded ? 2.5 : 2,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 18, horizontal: 18),
-                                          child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    if (_budgetStatusLoading) ...[
-                                                      Container(
-                                                        margin: const EdgeInsets.only(bottom: 10),
-                                                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                                                        decoration: BoxDecoration(
-                                                          color: AppThemeColors.border(context).withValues(alpha: 0.4),
-                                                          borderRadius: BorderRadius.circular(10),
-                                                          border: Border.all(color: AppThemeColors.border(context)),
-                                                        ),
-                                                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                                          Row(children: [
-                                                            Container(width: 14, height: 14,
-                                                                decoration: BoxDecoration(color: AppThemeColors.secondaryText(context).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3))),
-                                                            const SizedBox(width: 6),
-                                                            Container(width: 120, height: 11,
-                                                                decoration: BoxDecoration(color: AppThemeColors.secondaryText(context).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3))),
-                                                          ]),
-                                                          const SizedBox(height: 6),
-                                                          ClipRRect(
-                                                            borderRadius: BorderRadius.circular(3),
-                                                            child: LinearProgressIndicator(
-                                                              value: null,
-                                                              minHeight: 4,
-                                                              backgroundColor: AppThemeColors.border(context),
-                                                            ),
-                                                          ),
-                                                        ]),
-                                                      ),
-                                                    ] else if (gHasLimit) ...[
-                                                      GestureDetector(
-                                                        onTap: gLimitExceeded ? () => Navigator.push(context,
-                                                            MaterialPageRoute(builder: (_) => const BudgetMessagesPage())) : null,
-                                                        child: Container(
-                                                          margin: const EdgeInsets.only(bottom: 10),
-                                                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-                                                          decoration: BoxDecoration(
-                                                            color: gColor.withValues(alpha: 0.07),
-                                                            borderRadius: BorderRadius.circular(10),
-                                                            border: Border.all(color: gColor.withValues(alpha: 0.3)),
-                                                          ),
-                                                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                                            Row(children: [
-                                                              Icon(
-                                                                gLimitExceeded ? Icons.warning_amber_rounded : Icons.account_balance_wallet_outlined,
-                                                                color: gColor, size: 14,
-                                                              ),
-                                                              const SizedBox(width: 6),
-                                                              Expanded(child: Text(
-                                                                gLimitExceeded
-                                                                    ? 'Budget exceeded · ₹${gSpent.toStringAsFixed(0)} / ₹${gLimit.toStringAsFixed(0)}'
-                                                                    : 'Budget · ₹${gSpent.toStringAsFixed(0)} spent of ₹${gLimit.toStringAsFixed(0)}',
-                                                                style: TextStyle(fontSize: context.sp(11), color: gColor, fontWeight: FontWeight.w600),
-                                                              )),
-                                                              if (gLimitExceeded)
-                                                                Icon(Icons.chevron_right_rounded, size: 14, color: gColor),
-                                                            ]),
-                                                            const SizedBox(height: 5),
-                                                            ClipRRect(
-                                                              borderRadius: BorderRadius.circular(3),
-                                                              child: LinearProgressIndicator(
-                                                                value: gPct,
-                                                                minHeight: 4,
-                                                                backgroundColor: gColor.withValues(alpha: 0.15),
-                                                                valueColor: AlwaysStoppedAnimation<Color>(gColor),
-                                                              ),
-                                                            ),
-                                                          ]),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                    // New row for Favourites and View Details buttons
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment.end,
-                                                      children: [
-                                                        ElevatedButton(
-                                                          onPressed: () =>
-                                                              _showGroupDetails(
-                                                                  g),
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                Color(
-                                                                    0xFF48CAE4),
-                                                            shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            12)),
-                                                            elevation: 0,
-                                                          ),
-                                                          child: Text(
-                                                              t('view_details_label'),
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .white)),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    SizedBox(height: 10),
-                                                    // Existing row with avatar, title, and color indicator
-                                                    Row(
-                                                      children: [
-                                                        Builder(builder: (ctx) {
-                                                          final myEmail = (Provider.of<SessionProvider>(ctx, listen: false).user?['email'] ?? '').toString().toLowerCase();
-                                                          final creatorEmail = (g['creator']?['email'] ?? '').toString().toLowerCase();
-                                                          final isCardCreator = myEmail.isNotEmpty && myEmail == creatorEmail;
-                                                          final isUploading = _uploadingImageGroupId == gId;
-                                                          return GestureDetector(
-                                                            onTap: isCardCreator ? () => _pickGroupImageFromCard(g) : null,
-                                                            child: Stack(
-                                                              children: [
-                                                                CircleAvatar(
-                                                                  backgroundColor: groupColor,
-                                                                  radius: 22,
-                                                                  child: isUploading
-                                                                      ? const SizedBox(width: 18, height: 18,
-                                                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                                                      : ClipOval(
-                                                                          child: (g['groupImageUrl'] != null &&
-                                                                                  g['groupImageUrl'].toString().isNotEmpty)
-                                                                              ? Image.network(
-                                                                                  g['groupImageUrl'].toString(),
-                                                                                  width: 44, height: 44, fit: BoxFit.cover,
-                                                                                  errorBuilder: (_, __, ___) => Text(avatarText,
-                                                                                      style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold)),
-                                                                                )
-                                                                              : Text(avatarText,
-                                                                                  style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold)),
-                                                                        ),
-                                                                ),
-                                                                if (isCardCreator && !isUploading)
-                                                                  Positioned(
-                                                                    right: 0, bottom: 0,
-                                                                    child: Container(
-                                                                      width: 16, height: 16,
-                                                                      decoration: BoxDecoration(
-                                                                        color: AppColors.cyan,
-                                                                        shape: BoxShape.circle,
-                                                                        border: Border.all(color: Colors.white, width: 1.5),
-                                                                      ),
-                                                                      child: const Icon(Icons.camera_alt_rounded, size: 9, color: Colors.white),
-                                                                    ),
-                                                                  ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        }),
-                                                        SizedBox(width: 14),
-                                                        Expanded(
-                                                          child: Text(
-                                                            g['title'] ?? '',
-                                                            style: TextStyle(
-                                                                fontSize: 20,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Color(
-                                                                    0xFF00B4D8)),
-                                                          ),
-                                                        ),
-                                                        // Group color indicator
-                                                        Container(
-                                                          width: 18,
-                                                          height: 18,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: groupColor,
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            border: Border.all(
-                                                                color: Colors
-                                                                    .white,
-                                                                width: 2),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    SizedBox(height: 10),
-                                                    // Creator — horizontal scroll
-                                                    SingleChildScrollView(
-                                                      scrollDirection: Axis.horizontal,
-                                                      child: Row(
-                                                        children: [
-                                                          ClipOval(
-                                                            child: (g['creator'] is Map &&
-                                                                    (g['creator']['_id'] ?? '')
-                                                                        .toString()
-                                                                        .isNotEmpty)
-                                                                ? Image.network(
-                                                                    '${ApiConfig.baseUrl}/api/users/${g['creator']['_id']}/profile-image',
-                                                                    width: 18,
-                                                                    height: 18,
-                                                                    fit: BoxFit.cover,
-                                                                    errorBuilder: (context,
-                                                                            error, stackTrace) =>
-                                                                        Icon(Icons.person,
-                                                                            size: 18,
-                                                                            color: Colors.grey),
-                                                                  )
-                                                                : Icon(Icons.person,
-                                                                    size: 18, color: Colors.grey),
-                                                          ),
-                                                          SizedBox(width: 4),
-                                                          Text(
-                                                            t('creator_colon_label').replaceFirst('{email}', _emailOf(g['creator'])),
-                                                            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 6),
-                                                    // Members count + all avatars — horizontal scroll
-                                                    SingleChildScrollView(
-                                                      scrollDirection: Axis.horizontal,
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.people, size: 18, color: Colors.grey),
-                                                          SizedBox(width: 4),
-                                                          Text(
-                                                            t('members_colon_label').replaceFirst('{count}', '${(g['members'] as List).length}'),
-                                                            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
-                                                          ),
-                                                          SizedBox(width: 10),
-                                                          ...((g['members'] as List).map((m) {
-                                                            final memberId = m is Map ? (m['_id'] ?? '').toString() : '';
-                                                            final memberEmail = _emailOf(m);
-                                                            final fallbackLetter = memberEmail.isNotEmpty && memberEmail != '-'
-                                                                ? memberEmail[0].toUpperCase()
-                                                                : '?';
-                                                            final bgColor = Colors.primaries[
-                                                                (memberEmail.hashCode.abs()) % Colors.primaries.length].shade200;
-                                                            return GestureDetector(
-                                                            onTap: () => _showMemberDetails(m),
-                                                            child: Padding(
-                                                              padding: const EdgeInsets.symmetric(horizontal: 2),
-                                                              child: CircleAvatar(
-                                                                radius: 13,
-                                                                backgroundColor: bgColor,
-                                                                child: ClipOval(
-                                                                  child: memberId.isNotEmpty
-                                                                      ? Image.network(
-                                                                          '${ApiConfig.baseUrl}/api/users/$memberId/profile-image',
-                                                                          width: 26,
-                                                                          height: 26,
-                                                                          fit: BoxFit.cover,
-                                                                          errorBuilder: (context, error, stackTrace) => Text(
-                                                                            fallbackLetter,
-                                                                            style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
-                                                                          ),
-                                                                        )
-                                                                      : Text(
-                                                                          fallbackLetter,
-                                                                          style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
-                                                                        ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          );
-                                                          })),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 6),
-                                                    // Created at — horizontal scroll
-                                                    SingleChildScrollView(
-                                                      scrollDirection: Axis.horizontal,
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                                                          SizedBox(width: 4),
-                                                          Text(
-                                                            t('created_colon_label').replaceFirst('{date}', g['createdAt'] != null ? g['createdAt'].toString().substring(0, 10) : ''),
-                                                            style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
+                                    return Container(
+                                      height: 185,
+                                      margin: const EdgeInsets.only(bottom: 18),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [BoxShadow(color: groupColor.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6))],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Stack(fit: StackFit.expand, children: [
+                                          Builder(builder: (_) {
+                                            final imgUrl = (g['groupImageUrl']?.toString() ?? '').isNotEmpty
+                                                ? g['groupImageUrl'].toString()
+                                                : defaultGroupImageUrl(g['title']?.toString() ?? '');
+                                            return Image.network(imgUrl, fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Container(
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [groupColor, Color.lerp(groupColor, Colors.black, 0.4)!],
+                                                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                                  ),
                                                 ),
-                                              ]),
-                                        ),
+                                              ));
+                                          }),
+                                          Container(
+                                            decoration: const BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [Color(0x33000000), Color(0xDD000000)],
+                                                begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                                              ),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () => _showGroupDetails(g),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(16),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(children: [
+                                                    Container(
+                                                      width: 12, height: 12,
+                                                      decoration: BoxDecoration(color: groupColor, shape: BoxShape.circle,
+                                                        border: Border.all(color: Colors.white, width: 1.5)),
+                                                    ),
+                                                    if (_budgetStatusLoading)
+                                                      const Padding(
+                                                        padding: EdgeInsets.only(left: 8),
+                                                        child: SizedBox(width: 12, height: 12,
+                                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54)),
+                                                      )
+                                                    else if (gHasLimit)
+                                                      GestureDetector(
+                                                        onTap: gLimitExceeded
+                                                            ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetMessagesPage()))
+                                                            : null,
+                                                        child: Container(
+                                                          margin: const EdgeInsets.only(left: 8),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                          decoration: BoxDecoration(color: gColor.withValues(alpha: 0.90), borderRadius: BorderRadius.circular(20)),
+                                                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                                            Icon(gLimitExceeded ? Icons.warning_amber_rounded : Icons.account_balance_wallet_outlined,
+                                                              color: Colors.white, size: 11),
+                                                            const SizedBox(width: 4),
+                                                            Text(
+                                                              gLimitExceeded ? 'Over budget' : '₹${gSpent.toStringAsFixed(0)}/₹${gLimit.toStringAsFixed(0)}',
+                                                              style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
+                                                            ),
+                                                          ]),
+                                                        ),
+                                                      ),
+                                                  ]),
+                                                  const Spacer(),
+                                                  Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                                      Text(g['title']?.toString() ?? '',
+                                                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold,
+                                                          shadows: [Shadow(color: Colors.black54, blurRadius: 6)])),
+                                                      const SizedBox(height: 5),
+                                                      Row(children: [
+                                                        const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
+                                                        const SizedBox(width: 5),
+                                                        Text('${(g['members'] as List).length} member${(g['members'] as List).length == 1 ? '' : 's'}',
+                                                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                                      ]),
+                                                    ])),
+                                                    Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                                      Builder(builder: (bCtx) {
+                                                        final myEmail = (Provider.of<SessionProvider>(bCtx, listen: false).user?['email'] ?? '').toString().toLowerCase();
+                                                        final creatorEmail = (g['creator']?['email'] ?? '').toString().toLowerCase();
+                                                        final isCardCreator = myEmail.isNotEmpty && myEmail == creatorEmail;
+                                                        final isUploading = _uploadingImageGroupId == gId;
+                                                        if (!isCardCreator) return const SizedBox.shrink();
+                                                        return GestureDetector(
+                                                          onTap: () => _pickGroupImageFromCard(g),
+                                                          child: Container(
+                                                            margin: const EdgeInsets.only(bottom: 8),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(20)),
+                                                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                                              isUploading
+                                                                  ? const SizedBox(width: 12, height: 12,
+                                                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                                                  : const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 13),
+                                                              const SizedBox(width: 4),
+                                                              const Text('Change photo',
+                                                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                                            ]),
+                                                          ),
+                                                        );
+                                                      }),
+                                                      OutlinedButton(
+                                                        onPressed: () => _showGroupDetails(g),
+                                                        style: OutlinedButton.styleFrom(
+                                                          foregroundColor: Colors.white,
+                                                          side: const BorderSide(color: Colors.white, width: 1.5),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+                                                          minimumSize: Size.zero,
+                                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                        ),
+                                                        child: Text('${t('view_details_label')} →',
+                                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                                                      ),
+                                                    ]),
+                                                  ]),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ]),
                                       ),
                                     );
                                   }),

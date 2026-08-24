@@ -813,6 +813,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
     final tempSelected = Set<String>.from(_memberEmails);
     final tempMemberUsers = Map<String, Map<String, dynamic>>.from(_memberUsers);
+    final originalEmails = Set<String>.from(_memberEmails);
     final originalCount = _memberEmails.length;
     int modeTab = 0;
     String? statusMsg;
@@ -947,7 +948,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           final cName = (c['name'] ?? 'Community').toString();
                           final cMembers = getCMembers(c);
                           final cColor = parseCColor(c['color']);
-                          final allAdded = cMembers.isNotEmpty && cMembers.every((m) => tempSelected.contains(getCMemberEmail(m)));
+                          final selectableC = cMembers.where((m) => !originalEmails.contains(getCMemberEmail(m))).toList();
+                          final allAdded = selectableC.isNotEmpty && selectableC.every((m) => tempSelected.contains(getCMemberEmail(m)));
 
                           return Container(
                             padding: const EdgeInsets.all(14),
@@ -972,14 +974,18 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   Text('${cMembers.length} member${cMembers.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
                                 ])),
                                 TextButton.icon(
-                                  onPressed: cMembers.isEmpty ? null : () {
+                                  onPressed: selectableC.isEmpty ? null : () {
                                     setSheet(() {
                                       if (allAdded) {
-                                        for (final m in cMembers) tempSelected.remove(getCMemberEmail(m));
-                                        statusMsg = 'Removed all from $cName';
+                                        for (final m in selectableC) {
+                                          final me = getCMemberEmail(m);
+                                          tempSelected.remove(me);
+                                          tempMemberUsers.remove(me);
+                                        }
+                                        statusMsg = 'Removed new additions from $cName';
                                       } else {
                                         int added = 0;
-                                        for (final m in cMembers) {
+                                        for (final m in selectableC) {
                                           final me = getCMemberEmail(m);
                                           if (me.isNotEmpty && tempSelected.add(me)) {
                                             tempMemberUsers[me] = { '_id': getCMemberId(m), 'name': getCMemberName(m) };
@@ -990,8 +996,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                       }
                                     });
                                   },
-                                  icon: Icon(allAdded ? Icons.remove_circle_outline : Icons.group_add, size: 16, color: allAdded ? Colors.orange : AppColors.cyan),
-                                  label: Text(allAdded ? 'Remove All' : 'Add All', style: TextStyle(fontSize: 12, color: allAdded ? Colors.orange : AppColors.cyan)),
+                                  icon: Icon(allAdded ? Icons.remove_circle_outline : Icons.group_add, size: 16, color: selectableC.isEmpty ? AppThemeColors.mutedText(ctx) : (allAdded ? Colors.orange : AppColors.cyan)),
+                                  label: Text(allAdded ? 'Remove All' : (selectableC.isEmpty ? 'All joined' : 'Add All'), style: TextStyle(fontSize: 12, color: selectableC.isEmpty ? AppThemeColors.mutedText(ctx) : (allAdded ? Colors.orange : AppColors.cyan))),
                                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                                 ),
                               ]),
@@ -1003,27 +1009,64 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   children: cMembers.map((m) {
                                     final me = getCMemberEmail(m);
                                     final mn = getCMemberName(m);
+                                    final mId = getCMemberId(m);
+                                    final alreadyIn = originalEmails.contains(me);
                                     final isSelected = tempSelected.contains(me);
+                                    final initials = mn.isNotEmpty ? mn[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
+                                    final avatarWidget = SizedBox(
+                                      width: 18, height: 18,
+                                      child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                        Container(
+                                          color: alreadyIn ? AppThemeColors.border(ctx) : AppColors.cyan.withValues(alpha: 0.15),
+                                          child: Center(child: Text(initials, style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: alreadyIn ? AppThemeColors.mutedText(ctx) : AppColors.cyan))),
+                                        ),
+                                        if (mId.isNotEmpty)
+                                          Image.network('${ApiConfig.baseUrl}/api/users/$mId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                      ])),
+                                    );
+                                    if (alreadyIn) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: AppThemeColors.surfaceBg(ctx),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: AppThemeColors.border(ctx)),
+                                        ),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          avatarWidget,
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            mn.isNotEmpty ? mn.split(' ')[0] : me.split('@')[0],
+                                            style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx)),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(Icons.check_circle, size: 12, color: Colors.green.withValues(alpha: 0.7)),
+                                        ]),
+                                      );
+                                    }
                                     return GestureDetector(
                                       onTap: () => setSheet(() {
                                         if (isSelected) {
                                           tempSelected.remove(me);
+                                          tempMemberUsers.remove(me);
                                         } else {
                                           tempSelected.add(me);
-                                          tempMemberUsers[me] = { '_id': getCMemberId(m), 'name': mn };
+                                          tempMemberUsers[me] = { '_id': mId, 'name': mn };
                                         }
                                       }),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                         decoration: BoxDecoration(
                                           color: isSelected ? AppColors.cyan.withValues(alpha: 0.15) : AppThemeColors.cardBg(ctx),
                                           borderRadius: BorderRadius.circular(20),
                                           border: Border.all(color: isSelected ? AppColors.cyan : AppThemeColors.border(ctx)),
                                         ),
                                         child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          avatarWidget,
+                                          const SizedBox(width: 5),
                                           if (isSelected) ...[
                                             const Icon(Icons.check, size: 12, color: AppColors.cyan),
-                                            const SizedBox(width: 4),
+                                            const SizedBox(width: 3),
                                           ],
                                           Text(
                                             mn.isNotEmpty ? mn.split(' ')[0] : me.split('@')[0],
@@ -1043,40 +1086,73 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         controller: scrollCtrl,
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                         itemCount: allPickMembers.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (_, i) {
                           final m = allPickMembers[i];
                           final me = getCMemberEmail(m);
                           final mn = getCMemberName(m);
+                          final mId = getCMemberId(m);
+                          final alreadyIn = originalEmails.contains(me);
                           final isSelected = tempSelected.contains(me);
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            leading: CircleAvatar(
-                              backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
-                              child: Text(mn.isNotEmpty ? mn[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold)),
-                            ),
-                            title: Text(mn.isNotEmpty ? mn : me, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(ctx))),
-                            subtitle: mn.isNotEmpty ? Text(me, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
-                            trailing: Checkbox(
-                              value: isSelected,
-                              activeColor: AppColors.cyan,
-                              onChanged: (_) => setSheet(() {
-                                if (isSelected) {
-                                  tempSelected.remove(me);
-                                } else {
-                                  tempSelected.add(me);
-                                  tempMemberUsers[me] = { '_id': getCMemberId(m), 'name': mn };
-                                }
-                              }),
-                            ),
-                            onTap: () => setSheet(() {
+                          final initials = mn.isNotEmpty ? mn[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
+                          return GestureDetector(
+                            onTap: alreadyIn ? null : () => setSheet(() {
                               if (isSelected) {
                                 tempSelected.remove(me);
+                                tempMemberUsers.remove(me);
                               } else {
                                 tempSelected.add(me);
-                                tempMemberUsers[me] = { '_id': getCMemberId(m), 'name': mn };
+                                tempMemberUsers[me] = { '_id': mId, 'name': mn };
                               }
                             }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: alreadyIn
+                                  ? AppThemeColors.surfaceBg(ctx)
+                                  : (isSelected ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.surfaceBg(ctx)),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: alreadyIn
+                                  ? AppThemeColors.border(ctx)
+                                  : (isSelected ? AppColors.cyan.withValues(alpha: 0.5) : AppThemeColors.border(ctx))),
+                              ),
+                              child: Row(children: [
+                                SizedBox(
+                                  width: 44, height: 44,
+                                  child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                    Container(
+                                      color: alreadyIn ? AppThemeColors.border(ctx) : AppColors.cyan.withValues(alpha: 0.15),
+                                      child: Center(child: Text(initials, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: alreadyIn ? AppThemeColors.mutedText(ctx) : AppColors.cyan))),
+                                    ),
+                                    if (mId.isNotEmpty)
+                                      Image.network('${ApiConfig.baseUrl}/api/users/$mId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                  ])),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(mn.isNotEmpty ? mn : me, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: alreadyIn ? AppThemeColors.mutedText(ctx) : AppThemeColors.primaryText(ctx))),
+                                  if (alreadyIn)
+                                    const Text('Already in group', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w500))
+                                  else if (mn.isNotEmpty)
+                                    Text(me, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx)), overflow: TextOverflow.ellipsis),
+                                ])),
+                                alreadyIn
+                                  ? const Icon(Icons.how_to_reg_rounded, color: Colors.green, size: 20)
+                                  : Checkbox(
+                                      value: isSelected,
+                                      activeColor: AppColors.cyan,
+                                      onChanged: (_) => setSheet(() {
+                                        if (isSelected) {
+                                          tempSelected.remove(me);
+                                          tempMemberUsers.remove(me);
+                                        } else {
+                                          tempSelected.add(me);
+                                          tempMemberUsers[me] = { '_id': mId, 'name': mn };
+                                        }
+                                      }),
+                                    ),
+                              ]),
+                            ),
                           );
                         },
                       ),
@@ -1129,6 +1205,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
     final tempSelected = Set<String>.from(_memberEmails);
     final tempMemberUsers = Map<String, Map<String, dynamic>>.from(_memberUsers);
+    final originalEmails = Set<String>.from(_memberEmails);
     int modeTab = 0;
     String? groupStatusMsg;
 
@@ -1331,10 +1408,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               ]),
                               const SizedBox(height: 10),
                               Builder(builder: (ctx2) {
-                                final allAdded = members.isNotEmpty && members.every((m) {
+                                final selectableG = members.where((m) {
                                   final me = getMemberEmail(m);
-                                  return me.isEmpty || tempSelected.contains(me);
-                                });
+                                  return me.isNotEmpty && !originalEmails.contains(me);
+                                }).toList();
+                                final allAdded = selectableG.isNotEmpty && selectableG.every((m) => tempSelected.contains(getMemberEmail(m)));
                                 return SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
@@ -1348,28 +1426,26 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                       padding: const EdgeInsets.symmetric(vertical: 10),
                                     ),
                                     icon: Icon(allAdded ? Icons.remove_circle_outline_rounded : Icons.group_add_rounded, size: 16),
-                                    label: Text(allAdded ? 'Remove All' : 'Add All Members', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    onPressed: () {
+                                    label: Text(allAdded ? 'Remove All' : (selectableG.isEmpty ? 'All joined' : 'Add All Members'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    onPressed: selectableG.isEmpty ? null : () {
                                       if (allAdded) {
                                         int removed = 0;
-                                        for (final m in members) {
+                                        for (final m in selectableG) {
                                           final me = getMemberEmail(m);
-                                          if (me.isEmpty) continue;
                                           if (tempSelected.remove(me)) { tempMemberUsers.remove(me); removed++; }
                                         }
                                         setSheet(() => groupStatusMsg = '$removed member${removed == 1 ? '' : 's'} removed');
                                       } else {
                                         int added = 0, skipped = 0;
-                                        for (final m in members) {
+                                        for (final m in selectableG) {
                                           final me = getMemberEmail(m);
-                                          if (me.isEmpty) continue;
                                           if (tempSelected.contains(me)) { skipped++; continue; }
                                           tempSelected.add(me);
                                           tempMemberUsers[me] = {'_id': getMemberId(m), 'name': getMemberName(m)};
                                           added++;
                                         }
                                         String msg = '$added added';
-                                        if (skipped > 0) msg += ', $skipped already in group';
+                                        if (skipped > 0) msg += ', $skipped already selected';
                                         setSheet(() => groupStatusMsg = msg);
                                       }
                                     },
@@ -1399,22 +1475,23 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   icon: Icon(
-                                    allPickMembers.every((m) => tempSelected.contains(getMemberEmail(m)))
+                                    allPickMembers.where((m) => !originalEmails.contains(getMemberEmail(m))).every((m) => tempSelected.contains(getMemberEmail(m)))
                                         ? Icons.deselect_rounded
                                         : Icons.select_all_rounded,
                                     size: 15,
                                   ),
                                   label: Text(
-                                    allPickMembers.every((m) => tempSelected.contains(getMemberEmail(m)))
+                                    allPickMembers.where((m) => !originalEmails.contains(getMemberEmail(m))).every((m) => tempSelected.contains(getMemberEmail(m)))
                                         ? 'Deselect All'
                                         : 'Select All',
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                                   ),
                                   onPressed: () {
-                                    final allSelected = allPickMembers.every((m) => tempSelected.contains(getMemberEmail(m)));
+                                    final selectables = allPickMembers.where((m) => !originalEmails.contains(getMemberEmail(m))).toList();
+                                    final allSelected = selectables.every((m) => tempSelected.contains(getMemberEmail(m)));
                                     if (allSelected) {
                                       setSheet(() {
-                                        for (final m in allPickMembers) {
+                                        for (final m in selectables) {
                                           final me = getMemberEmail(m);
                                           tempSelected.remove(me);
                                           tempMemberUsers.remove(me);
@@ -1422,7 +1499,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                       });
                                     } else {
                                       setSheet(() {
-                                        for (final m in allPickMembers) {
+                                        for (final m in selectables) {
                                           final me = getMemberEmail(m);
                                           if (me.isNotEmpty && !tempSelected.contains(me)) {
                                             tempSelected.add(me);
@@ -1448,10 +1525,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             final mId = getMemberId(m);
                             final fromGroup = pickMemberGroupName[me] ?? '';
                             final initials = mName.isNotEmpty ? mName[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
+                            final alreadyIn = originalEmails.contains(me);
                             final isSelected = tempSelected.contains(me);
 
                             return GestureDetector(
-                              onTap: () {
+                              onTap: alreadyIn ? null : () {
                                 if (isSelected) {
                                   setSheet(() { tempSelected.remove(me); tempMemberUsers.remove(me); });
                                 } else {
@@ -1462,39 +1540,51 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.surfaceBg(ctx),
+                                  color: alreadyIn
+                                    ? AppThemeColors.surfaceBg(ctx)
+                                    : (isSelected ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.surfaceBg(ctx)),
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: isSelected ? AppColors.cyan.withValues(alpha: 0.5) : AppThemeColors.border(ctx)),
+                                  border: Border.all(color: alreadyIn
+                                    ? AppThemeColors.border(ctx)
+                                    : (isSelected ? AppColors.cyan.withValues(alpha: 0.5) : AppThemeColors.border(ctx))),
                                 ),
                                 child: Row(children: [
-                                  Container(
+                                  SizedBox(
                                     width: 44, height: 44,
-                                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.15), shape: BoxShape.circle),
                                     child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                                      Center(child: Text(initials, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                                      Container(
+                                        color: alreadyIn ? AppThemeColors.border(ctx) : AppColors.cyan.withValues(alpha: 0.15),
+                                        child: Center(child: Text(initials, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: alreadyIn ? AppThemeColors.mutedText(ctx) : AppColors.cyan))),
+                                      ),
                                       if (mId.isNotEmpty)
                                         Image.network('${ApiConfig.baseUrl}/api/users/$mId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                                     ])),
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text(mName.isNotEmpty ? mName : me, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
-                                    Text(mName.isNotEmpty ? me : '', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx)), overflow: TextOverflow.ellipsis),
-                                    if (fromGroup.isNotEmpty)
-                                      Text('from: $fromGroup', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
+                                    Text(mName.isNotEmpty ? mName : me, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: alreadyIn ? AppThemeColors.mutedText(ctx) : AppThemeColors.primaryText(ctx))),
+                                    if (alreadyIn)
+                                      const Text('Already in group', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w500))
+                                    else ...[
+                                      Text(mName.isNotEmpty ? me : '', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx)), overflow: TextOverflow.ellipsis),
+                                      if (fromGroup.isNotEmpty)
+                                        Text('from: $fromGroup', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
+                                    ],
                                   ])),
-                                  Checkbox(
-                                    value: isSelected,
-                                    activeColor: AppColors.cyan,
-                                    onChanged: (_) {
-                                      if (isSelected) {
-                                        setSheet(() { tempSelected.remove(me); tempMemberUsers.remove(me); });
-                                      } else {
-                                        tempMemberUsers[me] = {'_id': mId, 'name': mName};
-                                        setSheet(() => tempSelected.add(me));
-                                      }
-                                    },
-                                  ),
+                                  alreadyIn
+                                    ? const Icon(Icons.how_to_reg_rounded, color: Colors.green, size: 20)
+                                    : Checkbox(
+                                        value: isSelected,
+                                        activeColor: AppColors.cyan,
+                                        onChanged: (_) {
+                                          if (isSelected) {
+                                            setSheet(() { tempSelected.remove(me); tempMemberUsers.remove(me); });
+                                          } else {
+                                            tempMemberUsers[me] = {'_id': mId, 'name': mName};
+                                            setSheet(() => tempSelected.add(me));
+                                          }
+                                        },
+                                      ),
                                 ]),
                               ),
                             );

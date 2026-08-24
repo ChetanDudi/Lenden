@@ -38,3 +38,6 @@ String defaultCommunityImageUrl(String communityName) {
   }
   return _kDefaultCommunityImage;
 }
+
+/// Same keyword-based lookup for groups.
+String defaultGroupImageUrl(String groupTitle) => defaultCommunityImageUrl(groupTitle);
