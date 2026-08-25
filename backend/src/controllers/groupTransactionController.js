@@ -2642,8 +2642,7 @@ exports.disableJoinCode = async (req, res) => {
       return res.status(403).json({ error: 'Only the group creator can disable the invite code' });
     }
 
-    group.joinCode = null;
-    await group.save();
+    await GroupTransaction.findByIdAndUpdate(group._id, { $unset: { joinCode: 1 } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to disable join code' });

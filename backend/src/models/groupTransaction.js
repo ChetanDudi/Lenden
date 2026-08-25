@@ -47,7 +47,7 @@ const groupTransactionSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     paidAt: { type: Date, default: Date.now },
   }],
-  joinCode: { type: String, default: null },
+  joinCode: { type: String },
   communityIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
   favourite: [{ type: String }], // Array of user emails
   messageCounts: [{
