@@ -544,6 +544,54 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
             _showSnack(AppLocalizations.of(context).t('invite_code_copied_snack'), icon: Icons.copy_rounded);
           }),
           const SizedBox(height: 8),
+          // Allow direct add toggle
+          StatefulBuilder(
+            builder: (ctx2, setSt) {
+              final allowDirect = (_community['settings'] as Map?)?['allowDirectAdd'] as bool? ?? true;
+              return GestureDetector(
+                onTap: () async {
+                  final newVal = !allowDirect;
+                  try {
+                    final r = await ApiClient.patch('/api/communities/${widget.communityId}',
+                      body: {'settings': {'allowDirectAdd': newVal}});
+                    if (r.statusCode == 200) {
+                      setState(() {
+                        final s = Map<String, dynamic>.from((_community['settings'] as Map?) ?? {});
+                        s['allowDirectAdd'] = newVal;
+                        _community['settings'] = s;
+                      });
+                      setSt(() {});
+                    }
+                  } catch (_) {}
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.surfaceBg(ctx2),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppThemeColors.border(ctx2)),
+                  ),
+                  child: Row(children: [
+                    Container(width: 36, height: 36,
+                      decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.person_add_rounded, color: AppColors.cyan, size: 18)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Allow direct member add', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
+                      Text(allowDirect ? 'Admins can add members directly' : 'Admins send invites instead',
+                        style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx2))),
+                    ])),
+                    Switch(
+                      value: allowDirect,
+                      onChanged: null,
+                      activeColor: AppColors.cyan,
+                    ),
+                  ]),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
           _settingsRow(ctx, Icons.camera_alt_rounded, const Color(0xFF00897B), AppLocalizations.of(ctx).t('upload_photo_label'), () {
             Navigator.pop(ctx);
             _pickAndUploadImage();
@@ -967,6 +1015,107 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     ]);
   }
 
+  Future<void> _showAddMemberSheet(Color color) async {
+    final emailCtrl = TextEditingController();
+    bool sending = false;
+    final allowDirect = (_community['settings'] as Map?)?['allowDirectAdd'] as bool? ?? true;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(ctx),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Center(child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Row(children: [
+                Container(width: 40, height: 40,
+                  decoration: BoxDecoration(gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(allowDirect ? Icons.person_add_rounded : Icons.mail_rounded, color: Colors.white, size: 20)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(allowDirect ? 'Add Member' : 'Send Invite',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                  Text(allowDirect ? 'Member is added directly' : 'Member receives an invite to accept',
+                    style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
+                ])),
+              ]),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppThemeColors.surfaceBg(ctx),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+                ),
+                child: TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                  decoration: InputDecoration(
+                    hintText: 'Enter email address',
+                    hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                    prefixIcon: Icon(Icons.email_outlined, color: color, size: 20),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: sending ? null : () async {
+                    final email = emailCtrl.text.trim();
+                    if (email.isEmpty) return;
+                    setSheet(() => sending = true);
+                    try {
+                      final r = await ApiClient.post('/api/communities/${widget.communityId}/members', body: {'email': email});
+                      final body = jsonDecode(r.body);
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
+                      if (r.statusCode == 200) {
+                        _load();
+                        _showSnack(body['message'] ?? (allowDirect ? 'Member added!' : 'Invite sent!'),
+                          icon: allowDirect ? Icons.person_add_rounded : Icons.mail_rounded);
+                      } else {
+                        _showSnack(body['error'] ?? 'Failed', isError: true);
+                      }
+                    } catch (e) {
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _showSnack(e.toString(), isError: true);
+                    }
+                  },
+                  child: sending
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(allowDirect ? 'Add Member' : 'Send Invite',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ─── MEMBERS TAB ────────────────────────────────────────────────────────────
   Widget _buildMembersTab(Color color) {
     return Column(children: [
@@ -986,6 +1135,16 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
             Text('${_members.length} member${_members.length == 1 ? '' : 's'}',
               style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 13)),
             const Spacer(),
+            if (_isAdmin)
+              GestureDetector(
+                onTap: () => _showAddMemberSheet(color),
+                child: Row(children: [
+                  Icon(Icons.person_add_rounded, color: color, size: 15),
+                  const SizedBox(width: 4),
+                  Text('Add', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 10),
+                ]),
+              ),
             if (_inviteCode.isNotEmpty)
               GestureDetector(
                 onTap: () {

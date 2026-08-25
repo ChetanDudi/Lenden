@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../api_config.dart';
@@ -19,6 +20,7 @@ class CommunityPage extends StatefulWidget {
 
 class _CommunityPageState extends State<CommunityPage> with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _communities = [];
+  List<Map<String, dynamic>> _myInvites = [];
   bool _loading = true;
   String? _error;
   final _joinCodeCtrl = TextEditingController();
@@ -29,6 +31,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _load();
+    _loadMyInvites();
   }
 
   @override
@@ -36,6 +39,33 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     _joinCodeCtrl.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMyInvites() async {
+    try {
+      final res = await ApiClient.get('/api/communities/my-invites');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _myInvites = List<Map<String, dynamic>>.from(data['invites'] ?? []));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _respondToInvite(String communityId, bool accept) async {
+    try {
+      final path = accept
+          ? '/api/communities/$communityId/invites/accept'
+          : '/api/communities/$communityId/invites/decline';
+      final res = accept ? await ApiClient.post(path) : await ApiClient.delete(path);
+      if (res.statusCode == 200) {
+        _loadMyInvites();
+        if (accept) _load();
+        _showSnack(accept ? 'Joined community!' : 'Invite declined',
+          icon: accept ? Icons.hub_rounded : Icons.close_rounded);
+      }
+    } catch (e) {
+      _showSnack(e.toString(), isError: true);
+    }
   }
 
   Future<void> _load() async {
@@ -225,29 +255,98 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
           if (_loading)
             const Expanded(child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
           else if (_error != null)
-            Expanded(child: Center(child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(width: 64, height: 64,
-                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.wifi_off_rounded, size: 32, color: Colors.red)),
-                const SizedBox(height: 16),
-                Text(t('something_went_wrong'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context))),
-                const SizedBox(height: 6),
-                Text(_error!, textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _load,
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
-                  label: Text(t('try_again'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ]),
-            )))
+            Expanded(child: errorStateWidget(context, _error!, _load))
           else ...[
+            // Pending invites strip
+            if (_myInvites.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.mail_rounded, size: 13, color: Colors.amber),
+                      const SizedBox(width: 5),
+                      Text('${_myInvites.length} pending invite${_myInvites.length == 1 ? '' : 's'}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.amber)),
+                    ]),
+                  ),
+                ]),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                itemCount: _myInvites.length,
+                itemBuilder: (_, i) {
+                  final inv = _myInvites[i];
+                  final cId = (inv['communityId'] ?? '').toString();
+                  final cName = (inv['name'] ?? 'Community').toString();
+                  final cColor = _parseColor(inv['color']);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(
+                          color: cColor.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cColor.withValues(alpha: 0.4)),
+                        ),
+                        child: Center(child: Text(
+                          cName.isNotEmpty ? cName[0].toUpperCase() : 'C',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cColor),
+                        )),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(cName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13,
+                            color: AppThemeColors.primaryText(context))),
+                        Text('Invited to join', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                      ])),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        GestureDetector(
+                          onTap: () => _respondToInvite(cId, false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.surfaceBg(context),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppThemeColors.border(context)),
+                            ),
+                            child: const Text('Decline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.red)),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () => _respondToInvite(cId, true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('Accept', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ),
+                        ),
+                      ]),
+                    ]),
+                  );
+                },
+              ),
+            ],
+
             // "All communities" horizontal circle strip
             if (_communities.isNotEmpty) ...[
               Padding(
@@ -551,7 +650,15 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 children: [
                   Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold,
                     shadows: [Shadow(color: Colors.black54, blurRadius: 6)])),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 4),
+                  if ((c['description'] ?? '').toString().isNotEmpty) ...[
+                    Text(
+                      (c['description'] ?? '').toString(),
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white60, fontSize: 12, height: 1.35),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Row(children: [
                     const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
                     const SizedBox(width: 5),

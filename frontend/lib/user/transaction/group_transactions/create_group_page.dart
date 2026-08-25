@@ -838,7 +838,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       if (raw is! List) return [];
       return raw.whereType<Map>().where((m) {
         final e = getCMemberEmail(m);
-        return e.isNotEmpty && e != myEmail;
+        return e.isNotEmpty;
       }).toList();
     }
     Color parseCColor(dynamic v) {
@@ -948,7 +948,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           final cName = (c['name'] ?? 'Community').toString();
                           final cMembers = getCMembers(c);
                           final cColor = parseCColor(c['color']);
-                          final selectableC = cMembers.where((m) => !originalEmails.contains(getCMemberEmail(m))).toList();
+                          final selectableC = cMembers.where((m) {
+                            final e = getCMemberEmail(m);
+                            return e != myEmail && !originalEmails.contains(e);
+                          }).toList();
                           final allAdded = selectableC.isNotEmpty && selectableC.every((m) => tempSelected.contains(getCMemberEmail(m)));
 
                           return Container(
@@ -1010,7 +1013,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                     final me = getCMemberEmail(m);
                                     final mn = getCMemberName(m);
                                     final mId = getCMemberId(m);
-                                    final alreadyIn = originalEmails.contains(me);
+                                    final alreadyIn = originalEmails.contains(me) || me == myEmail;
                                     final isSelected = tempSelected.contains(me);
                                     final initials = mn.isNotEmpty ? mn[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
                                     final avatarWidget = SizedBox(
@@ -1092,7 +1095,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           final me = getCMemberEmail(m);
                           final mn = getCMemberName(m);
                           final mId = getCMemberId(m);
-                          final alreadyIn = originalEmails.contains(me);
+                          final alreadyIn = originalEmails.contains(me) || me == myEmail;
                           final isSelected = tempSelected.contains(me);
                           final initials = mn.isNotEmpty ? mn[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
                           return GestureDetector(
@@ -1237,7 +1240,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       return members.where((m) {
         if ((m['leftAt'] != null)) return false;
         final me = getMemberEmail(m);
-        return me.isNotEmpty && me != myEmail;
+        return me.isNotEmpty;
       }).toList();
     }
 
@@ -1410,7 +1413,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               Builder(builder: (ctx2) {
                                 final selectableG = members.where((m) {
                                   final me = getMemberEmail(m);
-                                  return me.isNotEmpty && !originalEmails.contains(me);
+                                  return me.isNotEmpty && me != myEmail && !originalEmails.contains(me);
                                 }).toList();
                                 final allAdded = selectableG.isNotEmpty && selectableG.every((m) => tempSelected.contains(getMemberEmail(m)));
                                 return SizedBox(
@@ -1475,19 +1478,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   icon: Icon(
-                                    allPickMembers.where((m) => !originalEmails.contains(getMemberEmail(m))).every((m) => tempSelected.contains(getMemberEmail(m)))
+                                    allPickMembers.where((m) { final _e = getMemberEmail(m); return _e != myEmail && !originalEmails.contains(_e); }).every((m) => tempSelected.contains(getMemberEmail(m)))
                                         ? Icons.deselect_rounded
                                         : Icons.select_all_rounded,
                                     size: 15,
                                   ),
                                   label: Text(
-                                    allPickMembers.where((m) => !originalEmails.contains(getMemberEmail(m))).every((m) => tempSelected.contains(getMemberEmail(m)))
+                                    allPickMembers.where((m) { final _e = getMemberEmail(m); return _e != myEmail && !originalEmails.contains(_e); }).every((m) => tempSelected.contains(getMemberEmail(m)))
                                         ? 'Deselect All'
                                         : 'Select All',
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                                   ),
                                   onPressed: () {
-                                    final selectables = allPickMembers.where((m) => !originalEmails.contains(getMemberEmail(m))).toList();
+                                    final selectables = allPickMembers.where((m) { final _e = getMemberEmail(m); return _e != myEmail && !originalEmails.contains(_e); }).toList();
                                     final allSelected = selectables.every((m) => tempSelected.contains(getMemberEmail(m)));
                                     if (allSelected) {
                                       setSheet(() {
@@ -1525,7 +1528,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             final mId = getMemberId(m);
                             final fromGroup = pickMemberGroupName[me] ?? '';
                             final initials = mName.isNotEmpty ? mName[0].toUpperCase() : (me.isNotEmpty ? me[0].toUpperCase() : '?');
-                            final alreadyIn = originalEmails.contains(me);
+                            final alreadyIn = originalEmails.contains(me) || me == myEmail;
                             final isSelected = tempSelected.contains(me);
 
                             return GestureDetector(
@@ -2455,12 +2458,45 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Text(_memberAddError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
               ),
 
-            if (_memberEmails.isNotEmpty) ...[
+            ...[
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _memberEmails.map((e) {
+                children: [
+                  // Creator chip (auto-added, non-removable)
+                  Builder(builder: (bCtx) {
+                    final session = Provider.of<SessionProvider>(bCtx, listen: false);
+                    final cEmail = (session.user?['email'] ?? '').toString();
+                    final cName = (session.user?['name'] ?? '').toString().trim();
+                    final cId = (session.user?['_id'] ?? '').toString();
+                    final nameLabel = cName.isNotEmpty ? cName.split(' ')[0] : (cEmail.isNotEmpty ? cEmail.split('@')[0] : 'You');
+                    final initials = cName.isNotEmpty ? cName[0].toUpperCase() : (cEmail.isNotEmpty ? cEmail[0].toUpperCase() : 'Y');
+                    return Container(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan.withValues(alpha: 0.13),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.45)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width: 30, height: 30,
+                          decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.22), shape: BoxShape.circle),
+                          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                            Center(child: Text(initials, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                            if (cId.isNotEmpty)
+                              Image.network('${ApiConfig.baseUrl}/api/users/$cId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          ])),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('$nameLabel (You)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(bCtx))),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.shield_rounded, size: 14, color: AppColors.cyan),
+                      ]),
+                    );
+                  }),
+                  ..._memberEmails.map((e) {
                   final blocked = _isBlocked(e);
                   final info = _memberUsers[e];
                   final userId = info?['_id'] ?? '';
@@ -2497,6 +2533,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     ]),
                   );
                 }).toList(),
+                ],
               ),
             ],
 

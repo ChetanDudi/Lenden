@@ -123,9 +123,11 @@ exports.createGroupWithCoins = async (req, res) => {
       return res.status(400).json({ error: 'memberEmails must be an array.' });
     }
 
-    // Filter out creator's email from memberEmails (they're added automatically)
-    const filteredMemberEmails = memberEmails.filter(email => email !== creator.email);
-    
+    // Filter out creator's email and de-duplicate
+    const filteredMemberEmails = [...new Set(
+      memberEmails.filter(email => email && email.toLowerCase() !== creator.email.toLowerCase())
+    )];
+
     // Find users by email
     const users = await User.find({ email: { $in: filteredMemberEmails } }).select(
       'email blockedUsers'
@@ -181,23 +183,29 @@ exports.createGroupWithCoins = async (req, res) => {
         await Community.updateMany({ _id: { $in: validCommunityIds } }, { $addToSet: { groups: group._id } });
       } catch (_) {}
     }
-    const referralReward = await processReferralRewardOnFirstCreation(creator._id);
+    let referralReward = null;
+    try {
+      referralReward = await processReferralRewardOnFirstCreation(creator._id);
+    } catch (e) {
+      console.error('Referral reward processing failed (non-fatal):', e);
+    }
     // Populate members and creator for response
     const populatedGroup = await GroupTransaction.findById(group._id)
-      .populate('members.user', 'email')
+      .populate('members.user', 'email name')
       .populate('creator', 'email');
-    // Map members to include email
+    // Map members to include email (guard against deleted users)
     const groupObj = populatedGroup.toObject();
-    groupObj.members = groupObj.members.map(m => ({
-      _id: m.user._id,
-      email: m.user.email,
-      joinedAt: m.joinedAt,
-      leftAt: m.leftAt
-    }));
-    groupObj.creator = {
-      _id: groupObj.creator._id,
-      email: groupObj.creator.email
-    };
+    groupObj.members = groupObj.members
+      .filter(m => m.user != null)
+      .map(m => ({
+        _id: m.user._id,
+        email: m.user.email,
+        joinedAt: m.joinedAt,
+        leftAt: m.leftAt
+      }));
+    groupObj.creator = groupObj.creator
+      ? { _id: groupObj.creator._id, email: groupObj.creator.email }
+      : { _id: creator._id, email: creator.email };
 
     // Award gift card every 3 group creations (guaranteed, randomized within window)
     const groupCountWithCoins = await GroupTransaction.countDocuments({ creator: creator._id });
@@ -229,7 +237,8 @@ exports.createGroupWithCoins = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('createGroupWithCoins error:', err);
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 };
 
@@ -268,8 +277,10 @@ exports.createGroup = async (req, res) => {
       return res.status(400).json({ error: 'memberEmails must be an array.' });
     }
 
-    // Filter out creator's email from memberEmails (they're added automatically)
-    const filteredMemberEmails = memberEmails.filter(email => email !== creator.email);
+    // Filter out creator's email and de-duplicate
+    const filteredMemberEmails = [...new Set(
+      memberEmails.filter(email => email && email.toLowerCase() !== creator.email.toLowerCase())
+    )];
 
     // Find users by email
     const users = await User.find({ email: { $in: filteredMemberEmails } }).select(
@@ -304,27 +315,33 @@ exports.createGroup = async (req, res) => {
         await Community.updateMany({ _id: { $in: validCommunityIds } }, { $addToSet: { groups: group._id } });
       } catch (_) {}
     }
-    const referralReward = await processReferralRewardOnFirstCreation(creator._id);
+    let referralReward = null;
+    try {
+      referralReward = await processReferralRewardOnFirstCreation(creator._id);
+    } catch (e) {
+      console.error('Referral reward processing failed (non-fatal):', e);
+    }
 
     // freeGroupsRemaining is handled by the `handleUsage('group')` middleware
     // so we avoid decrementing it again here to prevent double-counting.
-    
+
     // Populate members and creator for response
     const populatedGroup = await GroupTransaction.findById(group._id)
-      .populate('members.user', 'email')
+      .populate('members.user', 'email name')
       .populate('creator', 'email');
-    // Map members to include email
+    // Map members to include email (guard against deleted users)
     const groupObj = populatedGroup.toObject();
-    groupObj.members = groupObj.members.map(m => ({
-      _id: m.user._id,
-      email: m.user.email,
-      joinedAt: m.joinedAt,
-      leftAt: m.leftAt
-    }));
-    groupObj.creator = {
-      _id: groupObj.creator._id,
-      email: groupObj.creator.email
-    };
+    groupObj.members = groupObj.members
+      .filter(m => m.user != null)
+      .map(m => ({
+        _id: m.user._id,
+        email: m.user.email,
+        joinedAt: m.joinedAt,
+        leftAt: m.leftAt
+      }));
+    groupObj.creator = groupObj.creator
+      ? { _id: groupObj.creator._id, email: groupObj.creator.email }
+      : { _id: creator._id, email: creator.email };
 
     // Award gift card every 3 group creations (guaranteed, randomized within window)
     const groupCount = await GroupTransaction.countDocuments({ creator: creator._id });
@@ -369,7 +386,8 @@ exports.createGroup = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('createGroup error:', err);
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 };
 

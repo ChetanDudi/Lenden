@@ -39,33 +39,77 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   void _showStylishPopup(String message, {bool isError = false}) {
     final t = AppLocalizations.of(context).t;
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isError ? Colors.red[50] : Colors.green[50],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            Icon(isError ? Icons.error_outline : Icons.check_circle_outline,
-                color: isError ? Colors.red : Colors.green),
-            const SizedBox(width: 8),
-            Text(isError ? t('error') : t('success'),
-                style: TextStyle(
-                  color: isError ? Colors.red : Colors.green,
-                  fontWeight: FontWeight.bold,
-                )),
-          ],
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        content: Text(message,
-            style: TextStyle(
-                color: isError ? Colors.red[900] : Colors.green[900],
-                fontSize: 16)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(t('ok')),
+        padding: const EdgeInsets.fromLTRB(28, 20, 28, 40),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 24),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 550),
+            curve: Curves.elasticOut,
+            builder: (_, v, child) => Transform.scale(scale: v, child: child),
+            child: Container(
+              width: 68, height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: isError
+                      ? [const Color(0xFFEF5350), const Color(0xFFB71C1C)]
+                      : [_cyan, _blue],
+                ),
+              ),
+              child: Icon(
+                isError ? Icons.close_rounded : Icons.check_rounded,
+                color: Colors.white, size: 36,
+              ),
+            ),
           ),
-        ],
+          const SizedBox(height: 18),
+          Text(
+            isError ? t('error') : t('success'),
+            style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold,
+              color: isError ? const Color(0xFFEF5350) : _cyan,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx), height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isError
+                    ? [const Color(0xFFEF5350), const Color(0xFFB71C1C)]
+                    : [_cyan, _blue],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(t('ok'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+        ]),
       ),
     );
   }

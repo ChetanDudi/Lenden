@@ -253,6 +253,102 @@ exports.getImage = async (req, res) => {
   }
 };
 
+exports.addMember = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    const { email } = req.body;
+    if (!email?.trim()) return res.status(400).json({ error: 'Email required' });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const targetUser = await User.findOne({ email: normalizedEmail });
+    if (!targetUser) return res.status(404).json({ error: 'No user found with that email' });
+
+    if (community.members.some(m => m.user.toString() === targetUser._id.toString())) {
+      return res.status(400).json({ error: 'User is already a member' });
+    }
+
+    if (community.settings.allowDirectAdd) {
+      community.members.push({ user: targetUser._id, role: 'member', invitedBy: req.user._id });
+      await community.save();
+      return res.json({ added: true, message: 'Member added successfully' });
+    } else {
+      if (community.pendingInvites.some(i => i.email === normalizedEmail)) {
+        return res.status(400).json({ error: 'Invite already sent to this user' });
+      }
+      community.pendingInvites.push({ email: normalizedEmail, invitedBy: req.user._id });
+      await community.save();
+      return res.json({ invited: true, message: 'Invite sent successfully' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.getMyInvites = async (req, res) => {
+  try {
+    const userEmail = (req.user.email || '').toLowerCase();
+    if (!userEmail) return res.json({ invites: [] });
+    const communities = await Community.find({ 'pendingInvites.email': userEmail })
+      .select('name color description pendingInvites inviteCode')
+      .populate('creator', 'name email');
+    const invites = communities.map(c => {
+      const inv = c.pendingInvites.find(i => i.email === userEmail);
+      return {
+        communityId: c._id,
+        name: c.name,
+        color: c.color,
+        description: c.description,
+        invitedAt: inv?.invitedAt,
+      };
+    });
+    res.json({ invites });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.acceptInvite = async (req, res) => {
+  try {
+    const userEmail = (req.user.email || '').toLowerCase();
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    const inviteIdx = community.pendingInvites.findIndex(i => i.email === userEmail);
+    if (inviteIdx === -1) return res.status(404).json({ error: 'No invite found' });
+
+    if (!community.members.some(m => m.user.toString() === req.user._id.toString())) {
+      const invite = community.pendingInvites[inviteIdx];
+      community.members.push({ user: req.user._id, role: 'member', invitedBy: invite.invitedBy });
+    }
+    community.pendingInvites.splice(inviteIdx, 1);
+    await community.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.declineInvite = async (req, res) => {
+  try {
+    const userEmail = (req.user.email || '').toLowerCase();
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    const inviteIdx = community.pendingInvites.findIndex(i => i.email === userEmail);
+    if (inviteIdx === -1) return res.status(404).json({ error: 'No invite found' });
+
+    community.pendingInvites.splice(inviteIdx, 1);
+    await community.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
 exports.deleteCommunity = async (req, res) => {
   try {
     const community = await Community.findById(req.params.id);

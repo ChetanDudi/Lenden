@@ -49,6 +49,7 @@ import 'widgets/dashboard_analytics_card.dart';
 import 'widgets/dashboard_option_card.dart';
 import '../community/community_page.dart';
 import 'widgets/dashboard_greeting_card.dart';
+import '../../api_config.dart';
 
 enum _QuickActionsViewStyle {
   grid,
@@ -61,6 +62,14 @@ enum _QuickActionsViewStyle {
   wave,
   circle,
   list,
+}
+
+class _DashPreviewItem {
+  final String id;
+  final String name;
+  final String initials;
+  final String imageUrl;
+  const _DashPreviewItem({required this.id, required this.name, required this.initials, required this.imageUrl});
 }
 
 class UserDashboardPage extends StatefulWidget {
@@ -89,6 +98,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   double? _netLent;
   double? _netBorrowed;
   List<Map<String, dynamic>> _savingsGoals = [];
+  List<Map<String, dynamic>> _dashCommunities = [];
+  List<Map<String, dynamic>> _dashCounterparties = [];
   bool _hasRatedApp = false;
   bool _ratingDialogShown = false;
   bool _useCompactTransactionOptions = true;
@@ -223,6 +234,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     _fetchSavingsGoals();
     _fetchUnreadUpdatesCount();
     _loadCommunities();
+    _loadDashCounterparties();
     _checkAndShowRatingDialog();
     _quickActionsRotationController = AnimationController(
       duration: const Duration(seconds: 20),
@@ -478,9 +490,28 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     } catch (_) {}
   }
 
-  // No-op: dashboard shows a nav card that links to CommunityPage — no community
-  // data is rendered here, so nothing to load.
-  Future<void> _loadCommunities() async {}
+  Future<void> _loadCommunities() async {
+    try {
+      final res = await ApiClient.get('/api/communities');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _dashCommunities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadDashCounterparties() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final email = session.user?['email']?.toString() ?? '';
+    if (email.isEmpty) return;
+    try {
+      final res = await ApiClient.get('/api/counterparties/user?email=${Uri.encodeComponent(email)}&limit=10');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _dashCounterparties = List<Map<String, dynamic>>.from(data['counterparties'] ?? []));
+      }
+    } catch (_) {}
+  }
 
   Future<void> showTransactionForm() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
@@ -636,9 +667,19 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               } else {
                                 setSheet(() => submitting = false);
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(t('failed_submit_rating'))),
-                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                    content: Row(children: [
+                                      const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                                      const SizedBox(width: 10),
+                                      Expanded(child: Text(t('failed_submit_rating'),
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500))),
+                                    ]),
+                                    backgroundColor: Colors.red.shade700,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    margin: const EdgeInsets.all(16),
+                                    elevation: 6,
+                                  ));
                                 }
                               }
                             } catch (_) {
@@ -1314,21 +1355,40 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
                     const SizedBox(height: 16),
 
-                    // Nav row — fills full width; wrap in SingleChildScrollView if more items are added
+                    // Counterparties & Communities — expandable preview cards
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _buildDashNavCard(
+                          Expanded(child: _buildDashPreviewCard(
                             icon: Icons.people,
                             label: t('counterparties'),
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CounterpartiesPage())),
+                            count: _dashCounterparties.length,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CounterpartiesPage()))
+                                .then((_) => _loadDashCounterparties()),
+                            items: _dashCounterparties.take(8).map((cp) {
+                              final id = (cp['_id'] ?? '').toString();
+                              final name = (cp['name'] ?? '').toString();
+                              final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
+                              return _DashPreviewItem(id: id, name: name, initials: initials,
+                                imageUrl: (cp['imageUrl'] ?? '').toString());
+                            }).toList(),
                           )),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildDashNavCard(
+                          Expanded(child: _buildDashPreviewCard(
                             icon: Icons.hub_rounded,
                             label: t('communities_title'),
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage())).then((_) => _loadCommunities()),
+                            count: _dashCommunities.length,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityPage()))
+                                .then((_) => _loadCommunities()),
+                            items: _dashCommunities.take(8).map((c) {
+                              final id = (c['_id'] ?? '').toString();
+                              final name = (c['name'] ?? '').toString();
+                              final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
+                              return _DashPreviewItem(id: id, name: name, initials: initials,
+                                imageUrl: '${ApiConfig.baseUrl}/api/communities/$id/image');
+                            }).toList(),
                           )),
                         ],
                       ),
@@ -2338,7 +2398,13 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     ];
   }
 
-  Widget _buildDashNavCard({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildDashPreviewCard({
+    required IconData icon,
+    required String label,
+    required int count,
+    required VoidCallback onTap,
+    required List<_DashPreviewItem> items,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -2353,20 +2419,52 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
           decoration: BoxDecoration(
             color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: AppColors.cyan, size: 22),
-              const SizedBox(width: 10),
-              Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.cyan)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(icon, color: AppColors.cyan, size: 18),
+              const SizedBox(width: 6),
+              Expanded(child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+              if (count > 0)
+                Text('$count', style: TextStyle(fontSize: 11, color: AppColors.cyan.withValues(alpha: 0.7), fontWeight: FontWeight.w600)),
+            ]),
+            if (items.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 42,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (_, i) {
+                    final item = items[i];
+                    return SizedBox(
+                      width: 36,
+                      child: Column(children: [
+                        Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.15), shape: BoxShape.circle),
+                          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                            Center(child: Text(item.initials, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                            if (item.imageUrl.isNotEmpty)
+                              Image.network(item.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          ])),
+                        ),
+                      ]),
+                    );
+                  },
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 8),
+              Text('Tap to view', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
             ],
-          ),
+          ]),
         ),
       ),
     );
