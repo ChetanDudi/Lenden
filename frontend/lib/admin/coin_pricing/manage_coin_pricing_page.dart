@@ -77,6 +77,14 @@ const _spendEntries = [
     color: Color(0xFF9B5B21),
     isEarn: false,
   ),
+  _CoinEntry(
+    key: 'communityCoinCost',
+    label: 'Community Creation',
+    subtitle: 'Beyond free community limit',
+    icon: Icons.hub_outlined,
+    color: Color(0xFF00838F),
+    isEarn: false,
+  ),
 ];
 
 const _earnEntries = [

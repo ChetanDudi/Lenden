@@ -64,8 +64,8 @@ module.exports = (router, { auth, sessionTimeout, loginLimiter, otpSendLimiter, 
 
   // Admin profile — rate-limit to prevent brute-forcing ADMIN_REGISTER_SECRET
   router.post('/admins/register', loginLimiter, adminController.register);
-  router.get('/admins/me', auth, profileController.getAdminProfile);
-  router.put('/admins/me', auth, upload.single('profileImage'), editProfileController.updateAdminProfile);
+  router.get('/admins/me', auth, isAdmin, profileController.getAdminProfile);
+  router.put('/admins/me', auth, isAdmin, upload.single('profileImage'), editProfileController.updateAdminProfile);
   router.get('/admins/:id/profile-image', profileController.getAdminProfileImage);
 
   // Settings: change/set password

@@ -577,8 +577,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                       child: const Icon(Icons.person_add_rounded, color: AppColors.cyan, size: 18)),
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Allow direct member add', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
-                      Text(allowDirect ? 'Admins can add members directly' : 'Admins send invites instead',
+                      Text(AppLocalizations.of(ctx2).t('allow_direct_add_label'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
+                      Text(allowDirect ? AppLocalizations.of(ctx2).t('allow_direct_add_on_desc') : AppLocalizations.of(ctx2).t('allow_direct_add_off_desc'),
                         style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx2))),
                     ])),
                     Switch(
@@ -740,7 +740,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     Row(children: [
                       const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
                       const SizedBox(width: 5),
-                      Text('${_members.length} member${_members.length == 1 ? '' : 's'}  ·  ${_groups.length} group${_groups.length == 1 ? '' : 's'}',
+                      Text('${_members.length} ${_members.length == 1 ? AppLocalizations.of(context).t('member_singular') : AppLocalizations.of(context).t('member_plural')}  ·  ${_groups.length} ${_groups.length == 1 ? AppLocalizations.of(context).t('group_singular') : AppLocalizations.of(context).t('group_plural')}',
                         style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     ]),
                     if ((_community['description'] ?? '').toString().isNotEmpty) ...[
@@ -774,7 +774,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               Tab(text: AppLocalizations.of(context).t('tab_overview')),
               Tab(text: AppLocalizations.of(context).t('tab_groups')),
               Tab(text: AppLocalizations.of(context).t('tab_members')),
-              const Tab(text: 'Feed'),
+              Tab(text: AppLocalizations.of(context).t('tab_feed')),
             ],
           ),
         ),
@@ -848,7 +848,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                 child: Icon(Icons.receipt_long_rounded, size: 20, color: color)),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('MY TOTAL SPLITS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                Text(AppLocalizations.of(context).t('my_total_splits_label'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
                     color: AppThemeColors.mutedText(context), letterSpacing: 1.2)),
                 const SizedBox(height: 2),
                 _loadingBalance
@@ -858,14 +858,14 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
                         const SizedBox(height: 4),
                         if (_netBalance > 0.005)
-                          Text('YOU OWE  ₹${_netBalance.abs().toStringAsFixed(2)}',
+                          Text('${AppLocalizations.of(context).t('you_owe_label').toUpperCase()}  ₹${_netBalance.abs().toStringAsFixed(2)}',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red))
                         else if (_netBalance < -0.005)
-                          Text('YOU ARE OWED  ₹${_netBalance.abs().toStringAsFixed(2)}',
+                          Text('${AppLocalizations.of(context).t('you_are_owed_label')}  ₹${_netBalance.abs().toStringAsFixed(2)}',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF00897B)))
                         else
-                          const Text('ALL SETTLED',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00897B))),
+                          Text(AppLocalizations.of(context).t('all_settled_label'),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00897B))),
                       ]),
               ])),
             ]),
@@ -893,7 +893,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                       Text('₹${pending.abs().toStringAsFixed(0)}',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: amtColor)),
                       if (isOwes || isOwed)
-                        Text(isOwes ? 'you owe' : 'you\'re owed',
+                        Text(isOwes ? AppLocalizations.of(context).t('you_owe_small') : AppLocalizations.of(context).t('you_are_owed_small'),
                           style: TextStyle(fontSize: 10, color: amtColor, fontWeight: FontWeight.w500)),
                     ]),
                   ]),
@@ -1043,9 +1043,9 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   child: Icon(allowDirect ? Icons.person_add_rounded : Icons.mail_rounded, color: Colors.white, size: 20)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(allowDirect ? 'Add Member' : 'Send Invite',
+                  Text(allowDirect ? AppLocalizations.of(ctx).t('add_member_title') : AppLocalizations.of(ctx).t('send_invite_title'),
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
-                  Text(allowDirect ? 'Member is added directly' : 'Member receives an invite to accept',
+                  Text(allowDirect ? AppLocalizations.of(ctx).t('direct_add_mode_desc') : AppLocalizations.of(ctx).t('invite_mode_desc'),
                     style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
                 ])),
               ]),
@@ -1061,7 +1061,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   keyboardType: TextInputType.emailAddress,
                   style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                   decoration: InputDecoration(
-                    hintText: 'Enter email address',
+                    hintText: AppLocalizations.of(ctx).t('enter_email_hint'),
                     hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
                     prefixIcon: Icon(Icons.email_outlined, color: color, size: 20),
                     border: InputBorder.none,
@@ -1105,7 +1105,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   },
                   child: sending
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(allowDirect ? 'Add Member' : 'Send Invite',
+                      : Text(allowDirect ? AppLocalizations.of(ctx).t('add_member_title') : AppLocalizations.of(ctx).t('send_invite_title'),
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ),
@@ -1132,7 +1132,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
           child: Row(children: [
             Icon(Icons.people_rounded, color: color, size: 18),
             const SizedBox(width: 8),
-            Text('${_members.length} member${_members.length == 1 ? '' : 's'}',
+            Text('${_members.length} ${_members.length == 1 ? AppLocalizations.of(context).t('member_singular') : AppLocalizations.of(context).t('member_plural')}',
               style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 13)),
             const Spacer(),
             if (_isAdmin)
@@ -1141,7 +1141,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                 child: Row(children: [
                   Icon(Icons.person_add_rounded, color: color, size: 15),
                   const SizedBox(width: 4),
-                  Text('Add', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text(AppLocalizations.of(context).t('add_btn'), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
                   const SizedBox(width: 10),
                 ]),
               ),
@@ -1175,7 +1175,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
             }
             final rawName = _sanitize(user['name'], '');
             final rawEmail = _sanitize(user['email'], '');
-            final mName = rawName.isNotEmpty ? rawName : (rawEmail.isNotEmpty ? rawEmail : (user.isEmpty ? 'Deleted Account' : 'Member'));
+            final mName = rawName.isNotEmpty ? rawName : (rawEmail.isNotEmpty ? rawEmail : (user.isEmpty ? AppLocalizations.of(context).t('deleted_account_label') : AppLocalizations.of(context).t('member_singular')));
             final mEmail = rawEmail;
             final role = (m['role'] ?? 'member').toString();
             final isMe = (user['_id'] ?? '').toString() == _uid;
@@ -1298,10 +1298,10 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               child: Icon(Icons.lock_rounded, color: color, size: 34),
             ),
             const SizedBox(height: 20),
-            Text('Community Feed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+            Text(AppLocalizations.of(context).t('community_feed_title'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
                 color: AppThemeColors.primaryText(context))),
             const SizedBox(height: 8),
-            Text('Subscribe to post and view community\nupdates in the feed.',
+            Text(AppLocalizations.of(context).t('community_feed_subscribe_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
             const SizedBox(height: 24),
@@ -1317,8 +1317,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0,
                 ),
                 icon: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 18),
-                label: const Text('Upgrade to Subscribe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                onPressed: () => _showSnack('Subscribe to access Community Feed', icon: Icons.info_outline_rounded),
+                label: Text(AppLocalizations.of(context).t('upgrade_to_subscribe_btn'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () => _showSnack(AppLocalizations.of(context).t('subscribe_for_feed_snack'), icon: Icons.info_outline_rounded),
               ),
             ),
           ]),
@@ -1348,7 +1348,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppThemeColors.border(context)),
                   ),
-                  child: Text('Write a post…',
+                  child: Text(AppLocalizations.of(context).t('feed_write_placeholder'),
                     style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                 ),
               ),
@@ -1359,8 +1359,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                 style: ElevatedButton.styleFrom(backgroundColor: color,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                onPressed: () => _showSnack('Community feed coming soon!'),
-                child: const Text('Publish Post', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                onPressed: () => _showSnack(AppLocalizations.of(context).t('community_feed_coming_soon_snack')),
+                child: Text(AppLocalizations.of(context).t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ]),
           ]),
@@ -1371,10 +1371,10 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
             decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
             child: Icon(Icons.forum_outlined, color: color, size: 30)),
           const SizedBox(height: 14),
-          Text('Community feed coming soon',
+          Text(AppLocalizations.of(context).t('community_feed_coming_soon'),
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
           const SizedBox(height: 6),
-          Text('Post updates and connect with\nyour community members.',
+          Text(AppLocalizations.of(context).t('community_feed_coming_soon_desc'),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
         ])),

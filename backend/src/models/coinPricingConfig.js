@@ -11,6 +11,7 @@ const coinPricingConfigSchema = new mongoose.Schema(
     secureTransactionCost:  { type: Number, default: 10, min: 0 },
     groupCreationCost:      { type: Number, default: 20, min: 0 },
     groupExpenseCost:       { type: Number, default: 5, min: 0 },
+    communityCoinCost:      { type: Number, default: 30, min: 0 },
 
     // Earn rewards
     dailyLoginReward:        { type: Number, default: 1, min: 0 },

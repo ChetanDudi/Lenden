@@ -790,8 +790,8 @@ const SYSTEM_SETTINGS_KEYS = [
   'maintenanceMode','userRegistrationEnabled','emailVerificationRequired',
   'phoneVerificationRequired','autoApproveUsers','enableNotifications',
   'enableAnalytics','maxTransactionAmount','minTransactionAmount',
-  'dailyTransactionLimit','monthlyTransactionLimit','defaultCurrency',
-  'timezone','dateFormat','timeFormat','language',
+  'dailyTransactionLimit','monthlyTransactionLimit','maxCommunitiesPerUser',
+  'defaultCurrency','timezone','dateFormat','timeFormat','language',
 ];
 
 const ANALYTICS_SETTINGS_KEYS = [

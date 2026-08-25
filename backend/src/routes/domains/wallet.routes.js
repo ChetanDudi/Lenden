@@ -12,7 +12,7 @@ module.exports = (router, { auth, otpSendLimiter, otpVerifyLimiter, manualPaymen
   // Outgoing wallet payments (PIN or OTP gated)
   router.post('/wallet/pay', auth, walletAuthMiddleware, walletController.pay);
   router.post('/wallet/qr-pay', auth, walletAuthMiddleware, walletController.qrPay);
-  router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
+  router.post('/wallet/pay-subscription', auth, walletAuthMiddleware, walletController.paySubscription);
 
   // Real-money top-up verification
   router.post('/wallet/topup/manual/verify', auth, manualPaymentVerifyLimiter, walletController.verifyManualTopUp);

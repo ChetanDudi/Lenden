@@ -275,6 +275,9 @@ exports.pay = async (req, res) => {
     if (!to || !amount || amount <= 0) {
       return res.status(400).json({ error: 'to (email) and a positive amount are required' });
     }
+    if (Number(amount) > 50000) {
+      return res.status(400).json({ error: 'Amount exceeds the per-transaction limit of ₹50,000.' });
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       return res.status(400).json({ error: 'Invalid recipient email address' });
     }
@@ -722,6 +725,9 @@ exports.payToUserWithOtp = async (req, res) => {
     if (!to || !amount || amount <= 0) {
       return res.status(400).json({ error: 'to (email) and a positive amount are required' });
     }
+    if (Number(amount) > 50000) {
+      return res.status(400).json({ error: 'Amount exceeds the per-transaction limit of ₹50,000.' });
+    }
 
     const senderDoc = await User.findById(req.user._id);
     if (!senderDoc) return res.status(404).json({ error: 'User not found' });
@@ -806,6 +812,7 @@ exports.qrPay = async (req, res) => {
     const { toUserId, amount, note } = req.body;
     if (!toUserId) return res.status(400).json({ error: 'toUserId is required.' });
     if (!amount || Number(amount) <= 0) return res.status(400).json({ error: 'A positive amount is required.' });
+    if (Number(amount) > 50000) return res.status(400).json({ error: 'Amount exceeds the per-transaction limit of ₹50,000.' });
 
     const parsedAmount = Number(amount);
     const receiver = await User.findById(toUserId).select('_id email');

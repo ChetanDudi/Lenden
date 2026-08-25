@@ -25,6 +25,37 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
   bool _creating = false;
   String? _error;
 
+  // Community limit info
+  int _limit = 1;
+  int _count = 0;
+  bool _overLimit = false;
+  bool _hasSubscription = false;
+  int _coinCost = 30;
+  int _userCoins = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLimitInfo();
+  }
+
+  Future<void> _loadLimitInfo() async {
+    try {
+      final res = await ApiClient.get('/api/communities/limit-info');
+      if (res.statusCode == 200 && mounted) {
+        final d = jsonDecode(res.body);
+        setState(() {
+          _limit = d['limit'] ?? 1;
+          _count = d['count'] ?? 0;
+          _overLimit = d['overLimit'] ?? false;
+          _hasSubscription = d['hasSubscription'] ?? false;
+          _coinCost = d['cost'] ?? 30;
+          _userCoins = d['userCoins'] ?? 0;
+        });
+      }
+    } catch (_) {}
+  }
+
   static const List<Color> _presetColors = [
     Color(0xFF00B4D8), Color(0xFF0096C7), Color(0xFF023E8A), Color(0xFF2196F3),
     Color(0xFF3F51B5), Color(0xFF673AB7), Color(0xFF9C27B0), Color(0xFFE91E63),
@@ -233,6 +264,13 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
         'color': _colorHex,
       });
       final data = jsonDecode(res.body);
+      if (res.statusCode == 402) {
+        final int cost = data['cost'] ?? _coinCost;
+        final int coins = data['currentCoins'] ?? _userCoins;
+        final t = AppLocalizations.of(context).t;
+        setState(() => _error = '${t('not_enough_coins_need')} $cost ${t('not_enough_coins_have')} $coins.');
+        return;
+      }
       if (res.statusCode == 201) {
         final communityId = data['community']?['_id']?.toString() ?? '';
         if (_image != null && communityId.isNotEmpty) {
@@ -376,6 +414,31 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
               ]),
             ),
           ),
+
+          // Coin cost banner when over limit
+          if (_overLimit && !_hasSubscription) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.08),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(children: [
+                Container(width: 34, height: 34,
+                  decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.toll_rounded, color: Colors.amber, size: 18)),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${AppLocalizations.of(context).t('community_limit_reached')} ($_count/$_limit)',
+                    style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('${AppLocalizations.of(context).t('community_coin_cost_desc')} $_coinCost ${AppLocalizations.of(context).t('community_coin_cost_balance')} $_userCoins)',
+                    style: const TextStyle(fontSize: 11, color: Colors.amber, height: 1.4)),
+                ])),
+              ]),
+            ),
+          ],
 
           if (_error != null) ...[
             const SizedBox(height: 14),

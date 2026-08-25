@@ -10,6 +10,7 @@ const NUMERIC_FIELDS = [
   'secureTransactionCost',
   'groupCreationCost',
   'groupExpenseCost',
+  'communityCoinCost',
   'dailyLoginReward',
   'leaderboardRank1Reward',
   'leaderboardRank2Reward',

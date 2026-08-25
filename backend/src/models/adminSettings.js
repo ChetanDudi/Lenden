@@ -15,6 +15,7 @@ const adminSettingsSchema = new mongoose.Schema({
   minTransactionAmount: { type: Number, default: 1 },
   dailyTransactionLimit: { type: Number, default: 50000 },
   monthlyTransactionLimit: { type: Number, default: 500000 },
+  maxCommunitiesPerUser: { type: Number, default: 1 },
   defaultCurrency: { type: String, default: 'USD' },
   timezone: { type: String, default: 'UTC' },
   dateFormat: { type: String, default: 'MM/DD/YYYY' },

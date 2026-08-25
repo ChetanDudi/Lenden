@@ -60,7 +60,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       if (res.statusCode == 200) {
         _loadMyInvites();
         if (accept) _load();
-        _showSnack(accept ? 'Joined community!' : 'Invite declined',
+        _showSnack(accept ? AppLocalizations.of(context).t('joined_community_success') : AppLocalizations.of(context).t('invite_declined'),
           icon: accept ? Icons.hub_rounded : Icons.close_rounded);
       }
     } catch (e) {
@@ -272,7 +272,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.mail_rounded, size: 13, color: Colors.amber),
                       const SizedBox(width: 5),
-                      Text('${_myInvites.length} pending invite${_myInvites.length == 1 ? '' : 's'}',
+                      Text('${_myInvites.length} ${_myInvites.length == 1 ? t('pending_invite_singular') : t('pending_invite_plural')}',
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.amber)),
                     ]),
                   ),
@@ -313,7 +313,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(cName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13,
                             color: AppThemeColors.primaryText(context))),
-                        Text('Invited to join', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                        Text(t('invited_to_join'), style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
                       ])),
                       Row(mainAxisSize: MainAxisSize.min, children: [
                         GestureDetector(
@@ -325,7 +325,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: AppThemeColors.border(context)),
                             ),
-                            child: const Text('Decline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.red)),
+                            child: Text(t('decline_btn'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.red)),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -337,7 +337,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                               gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Text('Accept', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                            child: Text(t('accept_btn'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
                           ),
                         ),
                       ]),
@@ -352,12 +352,12 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
                 child: Row(children: [
-                  Text('All communities', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                  Text(t('all_communities_label'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                       color: AppThemeColors.primaryText(context))),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => _tabController.animateTo(1),
-                    child: const Text('View all', style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                    child: Text(t('view_all_label'), style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
                   ),
                 ]),
               ),
@@ -391,9 +391,9 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 dividerColor: Colors.transparent,
                 padding: const EdgeInsets.all(3),
                 tabs: [
-                  const Tab(text: 'My feed'),
+                  Tab(text: t('my_feed_tab')),
                   Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Text('My communities'),
+                    Text(t('my_communities_tab')),
                     if (_communities.isNotEmpty) ...[
                       const SizedBox(width: 6),
                       Container(
@@ -459,6 +459,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
 
   Widget _buildFeedTab() {
     if (_communities.isEmpty) return _buildEmpty();
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     final hasAccess = session.hasFeature('community_feed');
     final userId = session.user?['_id']?.toString() ?? '';
@@ -474,10 +475,10 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               child: const Icon(Icons.lock_rounded, color: AppColors.cyan, size: 34),
             ),
             const SizedBox(height: 20),
-            Text('Community Feed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+            Text(t('community_feed_title'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
                 color: AppThemeColors.primaryText(context))),
             const SizedBox(height: 8),
-            Text('Subscribe to post and view community\nupdates in the feed.',
+            Text(t('community_feed_subscribe_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
             const SizedBox(height: 24),
@@ -493,8 +494,8 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0,
                 ),
                 icon: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 18),
-                label: const Text('Upgrade to Subscribe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                onPressed: () => _showSnack('Subscribe to access Community Feed'),
+                label: Text(t('upgrade_to_subscribe_btn'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () => _showSnack(t('subscribe_for_feed_snack')),
               ),
             ),
           ]),
@@ -521,7 +522,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 const SizedBox(width: 12),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => _showSnack('Community feed coming soon!'),
+                    onTap: () => _showSnack(t('community_feed_coming_soon_snack')),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                       decoration: BoxDecoration(
@@ -529,7 +530,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppThemeColors.border(context)),
                       ),
-                      child: Text('Write your post here',
+                      child: Text(t('feed_write_placeholder'),
                         style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                     ),
                   ),
@@ -541,8 +542,8 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                  onPressed: () => _showSnack('Community feed coming soon!'),
-                  child: const Text('Publish Post', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () => _showSnack(t('community_feed_coming_soon_snack')),
+                  child: Text(t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ]),
             ]),
@@ -553,10 +554,10 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
               child: const Icon(Icons.forum_outlined, color: AppColors.cyan, size: 30)),
             const SizedBox(height: 14),
-            Text('Community feed coming soon',
+            Text(t('community_feed_coming_soon'),
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
             const SizedBox(height: 6),
-            Text('Post updates and connect with your\ncommunity members.',
+            Text(t('community_feed_coming_soon_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
           ])),
@@ -601,6 +602,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
   }
 
   Widget _buildCard(Map<String, dynamic> c) {
+    final t = AppLocalizations.of(context).t;
     final id = (c['_id'] ?? '').toString();
     final name = (c['name'] ?? 'Community').toString();
     final memberCount = (c['members'] as List?)?.length ?? 0;
@@ -662,7 +664,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   Row(children: [
                     const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
                     const SizedBox(width: 5),
-                    Text('$memberCount member${memberCount == 1 ? '' : 's'}',
+                    Text('$memberCount ${memberCount == 1 ? t('member_singular') : t('member_plural')}',
                       style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   ]),
                   const SizedBox(height: 10),
@@ -678,7 +680,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('View Community →', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    child: Text(t('view_community_btn'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),

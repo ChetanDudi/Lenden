@@ -1,6 +1,9 @@
 const Community = require('../models/community');
 const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
+const Subscription = require('../models/subscription');
+const AdminSettings = require('../models/adminSettings');
+const { getCoinPricing } = require('../utils/coinPricing');
 
 function defaultCommunityImageUrl(name) {
   const n = (name || '').toLowerCase();
@@ -30,6 +33,36 @@ exports.createCommunity = async (req, res) => {
     const { name, description, color } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Community name is required' });
 
+    // ── Limit check ───────────────────────────────────────────────────────────
+    const settings = await AdminSettings.getOrCreate();
+    const limit = settings.maxCommunitiesPerUser ?? 1;
+    const existing = await Community.countDocuments({ creator: req.user._id });
+
+    if (existing >= limit) {
+      const subscription = await Subscription.findOne({ user: req.user._id, status: 'active' });
+      if (!subscription) {
+        const pricing = await getCoinPricing();
+        const cost = pricing.communityCoinCost ?? 30;
+        // Atomic check-and-deduct — prevents race condition where two concurrent
+        // requests both pass the balance check before either deducts.
+        const deducted = await User.findOneAndUpdate(
+          { _id: req.user._id, lenDenCoins: { $gte: cost } },
+          { $inc: { lenDenCoins: -cost } },
+          { new: false },
+        );
+        if (!deducted) {
+          const user = await User.findById(req.user._id).select('lenDenCoins');
+          return res.status(402).json({
+            error: `You have reached the community limit (${limit}). Create more with ${cost} LenDen coins.`,
+            limit,
+            cost,
+            currentCoins: user?.lenDenCoins ?? 0,
+          });
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const community = new Community({
       name: name.trim(),
       description: (description || '').trim(),
@@ -40,6 +73,28 @@ exports.createCommunity = async (req, res) => {
     await community.save();
     await community.populate('members.user', 'name email username');
     res.status(201).json({ community });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.getLimitInfo = async (req, res) => {
+  try {
+    const settings = await AdminSettings.getOrCreate();
+    const limit = settings.maxCommunitiesPerUser ?? 1;
+    const count = await Community.countDocuments({ creator: req.user._id });
+    const pricing = await getCoinPricing();
+    const cost = pricing.communityCoinCost ?? 30;
+    const subscription = await Subscription.findOne({ user: req.user._id, status: 'active' });
+    const user = await User.findById(req.user._id).select('lenDenCoins');
+    res.json({
+      limit,
+      count,
+      overLimit: count >= limit,
+      hasSubscription: !!subscription,
+      cost,
+      userCoins: user?.lenDenCoins ?? 0,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -229,6 +284,10 @@ exports.uploadImage = async (req, res) => {
     const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
     if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!ALLOWED_IMAGE_TYPES.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported image type. Upload a JPEG, PNG, or WebP.' });
+    }
 
     community.communityImage = req.file.buffer;
     community.communityImageMimeType = req.file.mimetype;

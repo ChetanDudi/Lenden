@@ -5,6 +5,12 @@ const Transaction = require('../models/transaction');
 const { computeTrustScore } = require('../utils/trustScore');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
+const SENSITIVE_USER_FIELDS = [
+  'password', 'walletPin', 'walletPinAttempts', 'walletPinLockedUntil',
+  'walletPayOTP', 'resetOTP', 'loginOTP', 'setPasswordOTP',
+  'changePasswordOTP', 'altEmailOTP', 'fcmToken', 'adminNotes',
+];
+
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -13,7 +19,7 @@ exports.getUserProfile = async (req, res) => {
     // Expose whether a password is set (needed for Google users who may set one later)
     // without sending the actual hash to the client.
     userObj.hasPassword = !!userObj.password;
-    delete userObj.password;
+    for (const field of SENSITIVE_USER_FIELDS) delete userObj[field];
     userObj.deactivatedAccount = user.deactivatedAccount;
     if (userObj.profileImage) {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;

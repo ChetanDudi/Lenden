@@ -33,6 +33,9 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
   String _dailyTransactionLimit = '50000';
   String _monthlyTransactionLimit = '500000';
 
+  // Community settings
+  String _maxCommunitiesPerUser = '1';
+
   // System preferences
   String _defaultCurrency = 'USD';
   String _timezone = 'UTC';
@@ -75,6 +78,8 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
               settings['dailyTransactionLimit']?.toString() ?? '50000';
           _monthlyTransactionLimit =
               settings['monthlyTransactionLimit']?.toString() ?? '500000';
+          _maxCommunitiesPerUser =
+              settings['maxCommunitiesPerUser']?.toString() ?? '1';
           _defaultCurrency = settings['defaultCurrency'] ?? 'USD';
           _timezone = settings['timezone'] ?? 'UTC';
           _dateFormat = settings['dateFormat'] ?? 'MM/DD/YYYY';
@@ -114,6 +119,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
         'minTransactionAmount': double.parse(_minTransactionAmount),
         'dailyTransactionLimit': double.parse(_dailyTransactionLimit),
         'monthlyTransactionLimit': double.parse(_monthlyTransactionLimit),
+        'maxCommunitiesPerUser': int.parse(_maxCommunitiesPerUser),
         'defaultCurrency': _defaultCurrency,
         'timezone': _timezone,
         'dateFormat': _dateFormat,
@@ -319,6 +325,25 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         _monthlyTransactionLimit,
                         (value) =>
                             setState(() => _monthlyTransactionLimit = value),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Community Limits Section
+                  _buildSettingsSection(
+                    context,
+                    'Community Limits',
+                    [
+                      _buildInputTile(
+                        context,
+                        'Max Communities Per User',
+                        'Free communities each user can create (0 = unlimited)',
+                        Icons.hub_rounded,
+                        _maxCommunitiesPerUser,
+                        (value) => setState(() => _maxCommunitiesPerUser = value),
                         keyboardType: TextInputType.number,
                       ),
                     ],

@@ -13,6 +13,7 @@ const PIN_LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 // On success: calls next(). Sets req.walletAuthMethod to 'pin' or 'otp'.
 // On failure: returns 400 / 423 and does NOT call next().
 module.exports = async function walletAuthMiddleware(req, res, next) {
+  try {
   const { authPin, authOtp, otp } = req.body;
   const verifyOtp = authOtp || otp;
 
@@ -89,4 +90,8 @@ module.exports = async function walletAuthMiddleware(req, res, next) {
   await User.updateOne({ _id: user._id }, { $unset: { walletPayOTP: 1 } });
   req.walletAuthMethod = 'otp';
   return next();
+  } catch (err) {
+    console.error('walletAuthMiddleware error:', err);
+    return res.status(500).json({ error: 'Authentication check failed. Please try again.' });
+  }
 };

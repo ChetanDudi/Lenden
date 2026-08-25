@@ -7,6 +7,7 @@ const DEFAULTS = Object.freeze({
   secureTransactionCost:  10,
   groupCreationCost:      20,
   groupExpenseCost:       5,
+  communityCoinCost:      30,
   dailyLoginReward:       1,
   leaderboardRank1Reward: 20,
   leaderboardRank2Reward: 10,
