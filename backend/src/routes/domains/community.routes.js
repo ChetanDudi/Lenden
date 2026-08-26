@@ -20,4 +20,8 @@ module.exports = (router, { auth, upload }) => {
   router.get('/communities/:id/image', ctrl.getImage);
   router.post('/communities/:id/posts', auth, ctrl.createPost);
   router.get('/communities/:id/posts', auth, ctrl.getPosts);
+  router.delete('/communities/:id/posts/:postId', auth, ctrl.deletePost);
+  router.post('/communities/:id/posts/:postId/like', auth, ctrl.likePost);
+  router.post('/communities/:id/posts/:postId/comments', auth, ctrl.addComment);
+  router.delete('/communities/:id/posts/:postId/comments/:commentId', auth, ctrl.deleteComment);
 };

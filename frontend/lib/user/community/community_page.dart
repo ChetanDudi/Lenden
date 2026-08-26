@@ -31,6 +31,8 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
   // Feed state
   List<Map<String, dynamic>> _feedPosts = [];
   bool _feedLoading = false;
+  bool _hasMoreFeed = false;
+  bool _loadingMoreFeed = false;
   final _postCtrl = TextEditingController();
   bool _posting = false;
 
@@ -62,10 +64,32 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       final res = await ApiClient.get('/api/communities/feed');
       if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
-        setState(() => _feedPosts = List<Map<String, dynamic>>.from(data['posts'] ?? []));
+        setState(() {
+          _feedPosts = List<Map<String, dynamic>>.from(data['posts'] ?? []);
+          _hasMoreFeed = data['hasMore'] == true;
+        });
       }
     } catch (_) {} finally {
       if (mounted) setState(() => _feedLoading = false);
+    }
+  }
+
+  Future<void> _loadMoreFeed() async {
+    if (_loadingMoreFeed || !_hasMoreFeed || _feedPosts.isEmpty) return;
+    setState(() => _loadingMoreFeed = true);
+    try {
+      final before = Uri.encodeComponent(_feedPosts.last['createdAt']?.toString() ?? '');
+      final res = await ApiClient.get('/api/communities/feed?before=$before');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        final more = List<Map<String, dynamic>>.from(data['posts'] ?? []);
+        setState(() {
+          _feedPosts = [..._feedPosts, ...more];
+          _hasMoreFeed = data['hasMore'] == true;
+        });
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _loadingMoreFeed = false);
     }
   }
 
@@ -74,18 +98,243 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     if (text.isEmpty) { _showSnack(AppLocalizations.of(context).t('post_text_empty'), isError: true); return; }
     setState(() => _posting = true);
     try {
-      // Post to first community in list (global feed posts to first joined community)
       if (_communities.isEmpty) return;
       final communityId = _communities[0]['_id'].toString();
       final res = await ApiClient.post('/api/communities/$communityId/posts', body: {'text': text});
       if (res.statusCode == 201 && mounted) {
+        final data = jsonDecode(res.body);
         _postCtrl.clear();
         _showSnack(AppLocalizations.of(context).t('post_published'), icon: Icons.check_circle_rounded);
-        _loadFeed();
+        if (data['post'] != null) {
+          setState(() => _feedPosts = [Map<String, dynamic>.from(data['post']), ..._feedPosts]);
+        } else {
+          _loadFeed();
+        }
       }
     } catch (_) {} finally {
       if (mounted) setState(() => _posting = false);
     }
+  }
+
+  String _communityIdOf(dynamic raw) {
+    if (raw is Map) return (raw['_id'] ?? '').toString();
+    return raw?.toString() ?? '';
+  }
+
+  Future<void> _toggleLike(Map<String, dynamic> post) async {
+    final postId = post['_id'].toString();
+    final communityId = _communityIdOf(post['community']);
+    final idx = _feedPosts.indexWhere((p) => p['_id'].toString() == postId);
+    if (idx == -1) return;
+    final wasLiked = _feedPosts[idx]['likedByMe'] == true;
+    final prevCount = (_feedPosts[idx]['likesCount'] ?? 0) as int;
+    setState(() {
+      _feedPosts[idx] = {
+        ..._feedPosts[idx],
+        'likedByMe': !wasLiked,
+        'likesCount': wasLiked ? prevCount - 1 : prevCount + 1,
+      };
+    });
+    try {
+      final res = await ApiClient.post('/api/communities/$communityId/posts/$postId/like', body: {});
+      if (!mounted) return;
+      final i = _feedPosts.indexWhere((p) => p['_id'].toString() == postId);
+      if (i == -1) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _feedPosts[i] = {..._feedPosts[i], 'likedByMe': data['likedByMe'], 'likesCount': data['likesCount']};
+        });
+      } else {
+        setState(() {
+          _feedPosts[i] = {..._feedPosts[i], 'likedByMe': wasLiked, 'likesCount': prevCount};
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      final i = _feedPosts.indexWhere((p) => p['_id'].toString() == postId);
+      if (i != -1) setState(() => _feedPosts[i] = {..._feedPosts[i], 'likedByMe': wasLiked, 'likesCount': prevCount});
+    }
+  }
+
+  Future<void> _deleteFeedPost(String postId, String communityId) async {
+    final t = AppLocalizations.of(context).t;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Text(t('delete_post_title'), style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+        content: Text(t('delete_post_confirm'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t('delete'), style: const TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final idx = _feedPosts.indexWhere((p) => p['_id'].toString() == postId);
+    if (idx == -1) return;
+    final removed = _feedPosts[idx];
+    setState(() => _feedPosts.removeAt(idx));
+    try {
+      final res = await ApiClient.delete('/api/communities/$communityId/posts/$postId');
+      if (res.statusCode != 200 && mounted) {
+        setState(() => _feedPosts.insert(idx, removed));
+        _showSnack(AppLocalizations.of(context).t('failed_to_delete_post'), isError: true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _feedPosts.insert(idx, removed));
+        _showSnack(AppLocalizations.of(context).t('failed_to_delete_post'), isError: true);
+      }
+    }
+  }
+
+  void _showFeedComments(Map<String, dynamic> post) {
+    final postId = post['_id'].toString();
+    final communityId = _communityIdOf(post['community']);
+    final commentCtrl = TextEditingController();
+    List<Map<String, dynamic>> comments = List<Map<String, dynamic>>.from(
+      (post['comments'] as List? ?? []).map((c) => Map<String, dynamic>.from(c as Map)),
+    );
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final userId = session.user?['_id']?.toString() ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppThemeColors.cardBg(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        bool posting = false;
+        return StatefulBuilder(
+          builder: (ctx, setSheet) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 4),
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.border(ctx), borderRadius: BorderRadius.circular(2)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(AppLocalizations.of(ctx).t('post_comments_title'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(ctx))),
+                ),
+                Divider(height: 1, color: AppThemeColors.border(ctx)),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.45),
+                  child: comments.isEmpty
+                    ? Center(child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(AppLocalizations.of(ctx).t('no_comments_yet'), style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 13))))
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: comments.length,
+                        separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.border(ctx), indent: 56),
+                        itemBuilder: (_, i) {
+                          final c = comments[i];
+                          final cAuthor = c['author'] as Map<String, dynamic>? ?? {};
+                          final cAuthorId = (cAuthor['_id'] ?? '').toString();
+                          final cAuthorName = (cAuthor['name'] ?? cAuthor['username'] ?? 'Unknown').toString();
+                          final cCreated = c['createdAt'] != null ? DateTime.tryParse(c['createdAt'].toString()) : null;
+                          final cAgo = _timeAgo(cCreated);
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              _profileAvatar(cAuthorId, size: 30),
+                              const SizedBox(width: 10),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Text(cAuthorName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppThemeColors.primaryText(ctx))),
+                                  const SizedBox(width: 6),
+                                  Text(cAgo, style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(ctx))),
+                                ]),
+                                const SizedBox(height: 3),
+                                Text((c['text'] ?? '').toString(), style: TextStyle(fontSize: 12.5, color: AppThemeColors.primaryText(ctx), height: 1.4)),
+                              ])),
+                              if (cAuthorId == userId)
+                                GestureDetector(
+                                  onTap: () async {
+                                    final commentId = (c['_id'] ?? '').toString();
+                                    try {
+                                      final res = await ApiClient.delete('/api/communities/$communityId/posts/$postId/comments/$commentId');
+                                      if (res.statusCode == 200) {
+                                        setSheet(() => comments.removeAt(i));
+                                        final pi = _feedPosts.indexWhere((p) => p['_id'].toString() == postId);
+                                        if (pi != -1 && mounted) setState(() => _feedPosts[pi] = {..._feedPosts[pi], 'comments': comments});
+                                      }
+                                    } catch (_) {}
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 4),
+                                    child: Icon(Icons.close_rounded, size: 14, color: AppThemeColors.mutedText(ctx)),
+                                  ),
+                                ),
+                            ]),
+                          );
+                        }),
+                ),
+                Divider(height: 1, color: AppThemeColors.border(ctx)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                  child: Row(children: [
+                    _profileAvatar(userId, size: 32),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: commentCtrl,
+                        maxLines: 1, maxLength: 500,
+                        decoration: InputDecoration(
+                          hintText: AppLocalizations.of(ctx).t('write_comment_hint'),
+                          hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 12.5),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                          focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20)), borderSide: BorderSide(color: AppColors.cyan)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          counterText: '',
+                        ),
+                        style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 12.5),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // ignore: dead_code
+                    posting
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                      : IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.send_rounded, color: AppColors.cyan, size: 20),
+                          onPressed: () async {
+                            final t = commentCtrl.text.trim();
+                            if (t.isEmpty) return;
+                            setSheet(() => posting = true);
+                            try {
+                              final res = await ApiClient.post(
+                                '/api/communities/$communityId/posts/$postId/comments',
+                                body: {'text': t},
+                              );
+                              if (res.statusCode == 201) {
+                                final data = jsonDecode(res.body);
+                                final newComment = Map<String, dynamic>.from(data['comment'] as Map);
+                                commentCtrl.clear();
+                                setSheet(() { comments = [...comments, newComment]; posting = false; });
+                                final pi = _feedPosts.indexWhere((p) => p['_id'].toString() == postId);
+                                if (pi != -1 && mounted) setState(() => _feedPosts[pi] = {..._feedPosts[pi], 'comments': comments});
+                              } else {
+                                setSheet(() => posting = false);
+                              }
+                            } catch (_) { setSheet(() => posting = false); }
+                          },
+                        ),
+                  ]),
+                ),
+              ]),
+            );
+          },
+        );
+      },
+    ).whenComplete(() => commentCtrl.dispose());
   }
 
   Future<void> _loadMyInvites() async {
@@ -633,8 +882,21 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
               ]),
             ))
-          else
+          else ...[
             ..._feedPosts.map((p) => _buildPostCard(p)),
+            if (_hasMoreFeed)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Center(
+                  child: _loadingMoreFeed
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                    : TextButton(
+                        onPressed: _loadMoreFeed,
+                        child: Text(AppLocalizations.of(context).t('load_more_btn'), style: const TextStyle(color: AppColors.cyan, fontSize: 13)),
+                      ),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -642,13 +904,22 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
 
   Widget _buildPostCard(Map<String, dynamic> p) {
     final author = p['author'] as Map<String, dynamic>? ?? {};
-    final community = p['community'] as Map<String, dynamic>? ?? {};
+    final communityRaw = p['community'];
+    final community = communityRaw is Map<String, dynamic> ? communityRaw : <String, dynamic>{};
     final authorId = (author['_id'] ?? '').toString();
     final authorName = (author['name'] ?? author['email'] ?? 'Unknown').toString();
     final communityName = (community['name'] ?? '').toString();
+    final communityId = _communityIdOf(communityRaw);
+    final postId = (p['_id'] ?? '').toString();
     final text = (p['text'] ?? '').toString();
     final createdAt = p['createdAt'] != null ? DateTime.tryParse(p['createdAt'].toString()) : null;
     final ago = _timeAgo(createdAt);
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final userId = session.user?['_id']?.toString() ?? '';
+    final isOwn = authorId == userId;
+    final likedByMe = p['likedByMe'] == true;
+    final likesCount = (p['likesCount'] ?? 0) as int;
+    final commentCount = (p['comments'] as List? ?? []).length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -668,9 +939,41 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               Text(communityName, style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w500)),
           ])),
           Text(ago, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+          if (isOwn) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _deleteFeedPost(postId, communityId),
+              child: Icon(Icons.delete_outline_rounded, size: 17, color: AppThemeColors.mutedText(context)),
+            ),
+          ],
         ]),
         const SizedBox(height: 10),
         Text(text, style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), height: 1.45)),
+        const SizedBox(height: 12),
+        Row(children: [
+          GestureDetector(
+            onTap: () => _toggleLike(p),
+            child: Row(children: [
+              Icon(likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: likedByMe ? Colors.red : AppThemeColors.mutedText(context), size: 18),
+              if (likesCount > 0) ...[
+                const SizedBox(width: 4),
+                Text('$likesCount', style: TextStyle(fontSize: 12, color: likedByMe ? Colors.red : AppThemeColors.mutedText(context))),
+              ],
+            ]),
+          ),
+          const SizedBox(width: 20),
+          GestureDetector(
+            onTap: () => _showFeedComments(p),
+            child: Row(children: [
+              Icon(Icons.chat_bubble_outline_rounded, color: AppThemeColors.mutedText(context), size: 16),
+              if (commentCount > 0) ...[
+                const SizedBox(width: 4),
+                Text('$commentCount', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+              ],
+            ]),
+          ),
+        ]),
       ]),
     );
   }

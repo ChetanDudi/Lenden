@@ -4451,6 +4451,13 @@ class AppLocalizations {
       'community_feed_coming_soon_snack': 'Community feed coming soon!',
       'community_feed_coming_soon': 'Community feed coming soon',
       'community_feed_coming_soon_desc': 'Post updates and connect with your community members.',
+      'post_comments_title': 'Comments',
+      'no_comments_yet': 'No comments yet. Be the first!',
+      'write_comment_hint': 'Write a comment…',
+      'delete_post_title': 'Delete Post',
+      'delete_post_confirm': 'Delete this post?',
+      'failed_to_delete_post': 'Failed to delete post',
+      'load_more_btn': 'Load more',
 
       // Community detail — balance labels, settings, member add
       'my_total_splits_label': 'MY TOTAL SPLITS',
@@ -8981,6 +8988,13 @@ class AppLocalizations {
       'community_feed_coming_soon_snack': 'समुदाय फ़ीड जल्द आ रही है!',
       'community_feed_coming_soon': 'समुदाय फ़ीड जल्द आ रही है',
       'community_feed_coming_soon_desc': 'अपडेट पोस्ट करें और समुदाय से जुड़ें।',
+      'post_comments_title': 'टिप्पणियाँ',
+      'no_comments_yet': 'अभी कोई टिप्पणी नहीं। पहले टिप्पणी करें!',
+      'write_comment_hint': 'टिप्पणी लिखें…',
+      'delete_post_title': 'पोस्ट हटाएं',
+      'delete_post_confirm': 'यह पोस्ट हटाएं?',
+      'failed_to_delete_post': 'पोस्ट हटाने में विफल',
+      'load_more_btn': 'और लोड करें',
 
       // Community detail — balance labels, settings, member add
       'my_total_splits_label': 'मेरे कुल स्प्लिट',

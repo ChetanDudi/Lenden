@@ -161,6 +161,49 @@ When a friend or counterparty has a birthday, the backend sends:
 - A device push notification via FCM
 - Notification includes the birthday person's name and a deep-link payload (`type: 'birthday'`)
 
+### Community Feed & Posts
+Members of a community can post text updates in a shared feed. The feed system supports:
+
+#### Posts
+- **Compose & publish** — text field (max 1 000 chars) with Publish button; new post inserts at the top instantly without reloading
+- **Global feed** (`community_page.dart` Feed tab) — shows posts from all communities the user belongs to, newest first
+- **Community feed** (`community_detail_page.dart` Feed tab) — shows posts for that specific community; gated by the `community_feed` feature flag
+- **Cursor-based pagination** — "Load more" button fetches older posts using the `before=<ISO timestamp>` query param
+- **Delete** — authors can delete their own post via trash icon; confirmation dialog with optimistic removal + rollback on failure
+
+#### Likes
+- Heart icon on each post card; tap to toggle like/unlike
+- **Optimistic UI** — count and filled/outline icon update instantly, then sync with the server response; rolls back on network failure
+- Like count shown next to the icon (hidden when zero)
+
+#### Comments
+- Bubble icon shows comment count (hidden when zero); tap opens a modal bottom sheet
+- Bottom sheet lists all comments with author avatar, name, and relative timestamp
+- Inline text field to add a new comment (max 500 chars) with send button
+- Authors can delete their own comments via ✕ button; updates both the sheet and parent post card count in real time
+
+#### Access control
+| Action | Who can |
+|---|---|
+| Post | Members only |
+| Like / comment | Members only |
+| Delete post | Post author or community admin |
+| Delete comment | Comment author or community admin |
+
+#### Backend schema additions (`communityPost.js`)
+- `likes: [ObjectId]` — array of user IDs who liked the post
+- `comments: [{ author, text, createdAt }]` — embedded subdocument array
+
+#### Backend API additions
+| Method | Path | Action |
+|---|---|---|
+| `DELETE` | `/api/communities/:id/posts/:postId` | Delete a post |
+| `POST` | `/api/communities/:id/posts/:postId/like` | Toggle like |
+| `POST` | `/api/communities/:id/posts/:postId/comments` | Add comment |
+| `DELETE` | `/api/communities/:id/posts/:postId/comments/:commentId` | Delete comment |
+
+`GET /communities/:id/posts` and `GET /communities/feed` now return `likesCount`, `likedByMe`, populated `comments.author`, and a `hasMore` boolean for pagination.
+
 ---
 
 ## UI Conventions

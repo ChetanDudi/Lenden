@@ -432,6 +432,14 @@ exports.deleteCommunity = async (req, res) => {
 
 // ── Community Feed ────────────────────────────────────────────────────────────
 
+function _fmtPost(post, uid) {
+  const p = post.toObject ? post.toObject() : { ...post };
+  p.likesCount = Array.isArray(p.likes) ? p.likes.length : 0;
+  p.likedByMe = Array.isArray(p.likes) ? p.likes.some(id => id.toString() === uid) : false;
+  delete p.likes;
+  return p;
+}
+
 exports.createPost = async (req, res) => {
   try {
     const community = await Community.findById(req.params.id).select('members');
@@ -444,8 +452,11 @@ exports.createPost = async (req, res) => {
     if (text.trim().length > 1000) return res.status(400).json({ error: 'Post cannot exceed 1000 characters' });
 
     const post = await CommunityPost.create({ community: req.params.id, author: req.user._id, text: text.trim() });
-    await post.populate('author', 'name email username');
-    res.status(201).json({ post });
+    await post.populate([
+      { path: 'author', select: 'name email username' },
+      { path: 'comments.author', select: 'name username' },
+    ]);
+    res.status(201).json({ post: _fmtPost(post, req.user._id.toString()) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -465,9 +476,13 @@ exports.getPosts = async (req, res) => {
 
     const posts = await CommunityPost.find(query)
       .sort({ createdAt: -1 })
-      .limit(limit)
-      .populate('author', 'name email username');
-    res.json({ posts });
+      .limit(limit + 1)
+      .populate('author', 'name email username')
+      .populate('comments.author', 'name username');
+
+    const hasMore = posts.length > limit;
+    const uid = req.user._id.toString();
+    res.json({ posts: posts.slice(0, limit).map(p => _fmtPost(p, uid)), hasMore });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -485,10 +500,99 @@ exports.getFeed = async (req, res) => {
 
     const posts = await CommunityPost.find(query)
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(limit + 1)
       .populate('author', 'name email username')
-      .populate('community', 'name color');
-    res.json({ posts });
+      .populate('community', 'name color')
+      .populate('comments.author', 'name username');
+
+    const hasMore = posts.length > limit;
+    const uid = req.user._id.toString();
+    res.json({ posts: posts.slice(0, limit).map(p => _fmtPost(p, uid)), hasMore });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.deletePost = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const community = await Community.findById(post.community).select('members');
+    const member = community?.members.find(m => m.user.toString() === req.user._id.toString());
+    const isAdmin = member?.role === 'admin';
+    const isAuthor = post.author.toString() === req.user._id.toString();
+    if (!isAuthor && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    await post.deleteOne();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.likePost = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.postId).select('community likes');
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const community = await Community.findById(post.community).select('members');
+    const isMember = community?.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ error: 'Members only' });
+
+    const uid = req.user._id;
+    const idx = post.likes.findIndex(id => id.toString() === uid.toString());
+    if (idx === -1) post.likes.push(uid);
+    else post.likes.splice(idx, 1);
+
+    await post.save();
+    res.json({ likesCount: post.likes.length, likedByMe: idx === -1 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.addComment = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const community = await Community.findById(post.community).select('members');
+    const isMember = community?.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ error: 'Members only' });
+
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Comment text is required' });
+    if (text.trim().length > 500) return res.status(400).json({ error: 'Comment cannot exceed 500 characters' });
+
+    post.comments.push({ author: req.user._id, text: text.trim() });
+    await post.save();
+    await post.populate('comments.author', 'name username');
+
+    const added = post.comments[post.comments.length - 1];
+    res.status(201).json({ comment: added });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.deleteComment = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+    const community = await Community.findById(post.community).select('members');
+    const member = community?.members.find(m => m.user.toString() === req.user._id.toString());
+    const isAdmin = member?.role === 'admin';
+    const isAuthor = comment.author.toString() === req.user._id.toString();
+    if (!isAuthor && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    comment.deleteOne();
+    await post.save();
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
