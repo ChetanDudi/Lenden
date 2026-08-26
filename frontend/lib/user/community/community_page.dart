@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/wave_widget.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
+import '../../utils/responsive.dart';
 import '../../api_config.dart';
 import '../../session.dart';
 import '../../l10n/app_localizations.dart';
@@ -26,19 +28,64 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
   final _joinCodeCtrl = TextEditingController();
   late TabController _tabController;
 
+  // Feed state
+  List<Map<String, dynamic>> _feedPosts = [];
+  bool _feedLoading = false;
+  final _postCtrl = TextEditingController();
+  bool _posting = false;
+
+  // Filter state for communities tab
+  String _communityFilter = 'all'; // all | mine | joined
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() { if (_tabController.index == 0 && _feedPosts.isEmpty) _loadFeed(); });
     _load();
     _loadMyInvites();
+    _loadFeed();
   }
 
   @override
   void dispose() {
     _joinCodeCtrl.dispose();
     _tabController.dispose();
+    _postCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFeed() async {
+    if (_feedLoading) return;
+    setState(() => _feedLoading = true);
+    try {
+      final res = await ApiClient.get('/api/communities/feed');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _feedPosts = List<Map<String, dynamic>>.from(data['posts'] ?? []));
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _feedLoading = false);
+    }
+  }
+
+  Future<void> _submitPost() async {
+    final text = _postCtrl.text.trim();
+    if (text.isEmpty) { _showSnack(AppLocalizations.of(context).t('post_text_empty'), isError: true); return; }
+    setState(() => _posting = true);
+    try {
+      // Post to first community in list (global feed posts to first joined community)
+      if (_communities.isEmpty) return;
+      final communityId = _communities[0]['_id'].toString();
+      final res = await ApiClient.post('/api/communities/$communityId/posts', body: {'text': text});
+      if (res.statusCode == 201 && mounted) {
+        _postCtrl.clear();
+        _showSnack(AppLocalizations.of(context).t('post_published'), icon: Icons.check_circle_rounded);
+        _loadFeed();
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _posting = false);
+    }
   }
 
   Future<void> _loadMyInvites() async {
@@ -217,32 +264,46 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      body: SafeArea(
+      body: Stack(children: [
+        // Blue wave banner
+        ClipPath(
+          clipper: const DeeperTopWaveClipper(),
+          child: Container(
+            height: context.sh(90),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: AppThemeColors.waveGradient(context),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+        ),
+        SafeArea(
         child: Column(children: [
-          // Header
+          // Header on wave
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
             child: Row(children: [
               IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
               ),
               Container(
                 padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.hub_rounded, color: AppColors.cyan, size: 18),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.hub_rounded, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
-              Text(t('communities_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                  color: AppThemeColors.primaryText(context))),
+              Text(t('communities_title'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.link_rounded, color: AppColors.cyan),
+                icon: const Icon(Icons.link_rounded, color: Colors.white),
                 onPressed: _joinWithCode,
                 tooltip: 'Join with code',
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle_rounded, color: AppColors.cyan),
+                icon: const Icon(Icons.add_circle_rounded, color: Colors.white),
                 onPressed: () async {
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
                   if (result != null) { _load(); _showSnack(t('community_created_success'), icon: Icons.hub_rounded); }
@@ -420,6 +481,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
           ],
         ]),
       ),
+      ]),
     );
   }
 
@@ -504,11 +566,12 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     }
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () async { await _loadFeed(); },
       color: AppColors.cyan,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
+          // Compose box
           Container(
             decoration: BoxDecoration(
               color: AppThemeColors.cardBg(context),
@@ -517,22 +580,24 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
             ),
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _profileAvatar(userId),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showSnack(t('community_feed_coming_soon_snack')),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.surfaceBg(context),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppThemeColors.border(context)),
-                      ),
-                      child: Text(t('feed_write_placeholder'),
-                        style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
+                  child: TextField(
+                    controller: _postCtrl,
+                    maxLines: 3, minLines: 1,
+                    maxLength: 1000,
+                    decoration: InputDecoration(
+                      hintText: t('feed_write_placeholder'),
+                      hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(context))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(context))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cyan)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      counterText: '',
                     ),
+                    style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 13),
                   ),
                 ),
               ]),
@@ -542,28 +607,81 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                  onPressed: () => _showSnack(t('community_feed_coming_soon_snack')),
-                  child: Text(t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: _posting ? null : _submitPost,
+                  child: _posting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ]),
             ]),
           ),
-          const SizedBox(height: 32),
-          Center(child: Column(children: [
-            Container(width: 64, height: 64,
-              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
-              child: const Icon(Icons.forum_outlined, color: AppColors.cyan, size: 30)),
-            const SizedBox(height: 14),
-            Text(t('community_feed_coming_soon'),
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
-            const SizedBox(height: 6),
-            Text(t('community_feed_coming_soon_desc'),
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
-          ])),
+          const SizedBox(height: 16),
+          // Feed posts
+          if (_feedLoading)
+            const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: AppColors.cyan)))
+          else if (_feedPosts.isEmpty)
+            Center(child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(children: [
+                Container(width: 64, height: 64,
+                  decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
+                  child: const Icon(Icons.forum_outlined, color: AppColors.cyan, size: 30)),
+                const SizedBox(height: 14),
+                Text(t('no_posts_yet'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 6),
+                Text(t('be_first_to_post'), textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
+              ]),
+            ))
+          else
+            ..._feedPosts.map((p) => _buildPostCard(p)),
         ],
       ),
     );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> p) {
+    final author = p['author'] as Map<String, dynamic>? ?? {};
+    final community = p['community'] as Map<String, dynamic>? ?? {};
+    final authorId = (author['_id'] ?? '').toString();
+    final authorName = (author['name'] ?? author['email'] ?? 'Unknown').toString();
+    final communityName = (community['name'] ?? '').toString();
+    final text = (p['text'] ?? '').toString();
+    final createdAt = p['createdAt'] != null ? DateTime.tryParse(p['createdAt'].toString()) : null;
+    final ago = _timeAgo(createdAt);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.border(context)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _profileAvatar(authorId),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(authorName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppThemeColors.primaryText(context))),
+            if (communityName.isNotEmpty)
+              Text(communityName, style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w500)),
+          ])),
+          Text(ago, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+        ]),
+        const SizedBox(height: 10),
+        Text(text, style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), height: 1.45)),
+      ]),
+    );
+  }
+
+  String _timeAgo(DateTime? dt) {
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Widget _profileAvatar(String userId, {double size = 38}) {
@@ -589,15 +707,75 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
 
   Widget _buildMyCommunitiesTab() {
     if (_communities.isEmpty) return _buildEmpty();
+    final t = AppLocalizations.of(context).t;
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final myId = session.user?['_id']?.toString() ?? '';
+
+    String creatorId(Map<String, dynamic> c) {
+      final cr = c['creator'];
+      if (cr is Map) return (cr['_id'] ?? '').toString();
+      return (cr ?? '').toString();
+    }
+
+    final filtered = _communities.where((c) {
+      if (_communityFilter == 'mine') return creatorId(c) == myId;
+      if (_communityFilter == 'joined') return creatorId(c) != myId;
+      return true;
+    }).toList();
+
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.cyan,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        itemCount: _communities.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (_, i) => _buildCard(_communities[i]),
-      ),
+      child: CustomScrollView(slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (final f in [
+                  ('all', t('filter_all')),
+                  ('mine', t('filter_created_by_me')),
+                  ('joined', t('filter_joined')),
+                ]) ...[
+                  GestureDetector(
+                    onTap: () => setState(() => _communityFilter = f.$1),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: _communityFilter == f.$1 ? AppColors.cyan : AppThemeColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _communityFilter == f.$1 ? AppColors.cyan : AppThemeColors.border(context)),
+                      ),
+                      child: Text(f.$2, style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600,
+                        color: _communityFilter == f.$1 ? Colors.white : AppThemeColors.primaryText(context),
+                      )),
+                    ),
+                  ),
+                ],
+              ]),
+            ),
+          ),
+        ),
+        if (filtered.isEmpty)
+          SliverFillRemaining(child: _buildFilteredEmpty())
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => Padding(
+                  padding: EdgeInsets.only(bottom: i < filtered.length - 1 ? 14 : 0),
+                  child: _buildCard(filtered[i]),
+                ),
+                childCount: filtered.length,
+              ),
+            ),
+          ),
+      ]),
     );
   }
 
@@ -689,6 +867,76 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
         ),
       ),
     );
+  }
+
+  Widget _buildFilteredEmpty() {
+    final t = AppLocalizations.of(context).t;
+    if (_communityFilter == 'mine') {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 72, height: 72,
+              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(22)),
+              child: const Icon(Icons.add_circle_outline_rounded, size: 36, color: AppColors.cyan)),
+            const SizedBox(height: 18),
+            Text(t('no_created_communities_title'),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 8),
+            Text(t('no_created_communities_desc'), textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.6)),
+            const SizedBox(height: 24),
+            Container(width: double.infinity,
+              decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                borderRadius: BorderRadius.circular(14)),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                  minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: Text(t('create_community_btn'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () async {
+                  final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
+                  if (result != null) { _load(); _showSnack(t('community_created_success'), icon: Icons.hub_rounded); }
+                },
+              ),
+            ),
+          ]),
+        ),
+      );
+    }
+    if (_communityFilter == 'joined') {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 72, height: 72,
+              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(22)),
+              child: const Icon(Icons.link_rounded, size: 36, color: AppColors.cyan)),
+            const SizedBox(height: 18),
+            Text(t('no_joined_communities_title'),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 8),
+            Text(t('no_joined_communities_desc'), textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.6)),
+            const SizedBox(height: 24),
+            SizedBox(width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  side: const BorderSide(color: AppColors.cyan, width: 1.5),
+                  foregroundColor: AppColors.cyan),
+                icon: const Icon(Icons.link_rounded, size: 18, color: AppColors.cyan),
+                label: Text(t('join_with_invite_code_btn'), style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.cyan)),
+                onPressed: _joinWithCode,
+              ),
+            ),
+          ]),
+        ),
+      );
+    }
+    return _buildEmpty();
   }
 
   Widget _buildEmpty() {

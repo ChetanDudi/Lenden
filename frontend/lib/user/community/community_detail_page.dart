@@ -34,18 +34,56 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   List<Map<String, dynamic>> _groupBalances = [];
   bool _loadingBalance = false;
 
+  // Feed
+  List<Map<String, dynamic>> _posts = [];
+  bool _feedLoading = false;
+  final _postCtrl = TextEditingController();
+  bool _posting = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     if (widget.initialData != null) _community = widget.initialData!;
     _load();
+    _loadPosts();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _postCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPosts() async {
+    if (_feedLoading) return;
+    setState(() => _feedLoading = true);
+    try {
+      final res = await ApiClient.get('/api/communities/${widget.communityId}/posts');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _posts = List<Map<String, dynamic>>.from(data['posts'] ?? []));
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _feedLoading = false);
+    }
+  }
+
+  Future<void> _submitPost(Color color) async {
+    final text = _postCtrl.text.trim();
+    if (text.isEmpty) { _showSnack(AppLocalizations.of(context).t('post_text_empty'), icon: Icons.warning_rounded); return; }
+    setState(() => _posting = true);
+    try {
+      final res = await ApiClient.post('/api/communities/${widget.communityId}/posts', body: {'text': text});
+      if (res.statusCode == 201 && mounted) {
+        _postCtrl.clear();
+        _showSnack(AppLocalizations.of(context).t('post_published'), icon: Icons.check_circle_rounded);
+        _loadPosts();
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _posting = false);
+    }
   }
 
   Future<void> _load() async {
@@ -1326,59 +1364,109 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppThemeColors.cardBg(context),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppThemeColors.border(context)),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(children: [
-            Row(children: [
-              _profileAvatar(userId, size: 38, color: color),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.surfaceBg(context),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppThemeColors.border(context)),
+    return RefreshIndicator(
+      onRefresh: _loadPosts,
+      color: color,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        children: [
+          // Compose box
+          Container(
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(context),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppThemeColors.border(context)),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _profileAvatar(userId, size: 38, color: color),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _postCtrl,
+                    maxLines: 3, minLines: 1,
+                    maxLength: 1000,
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context).t('feed_write_placeholder'),
+                      hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(context))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(context))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: color)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      counterText: '',
+                    ),
+                    style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 13),
                   ),
-                  child: Text(AppLocalizations.of(context).t('feed_write_placeholder'),
-                    style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                 ),
-              ),
+              ]),
+              const SizedBox(height: 10),
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: color,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+                  onPressed: _posting ? null : () => _submitPost(color),
+                  child: _posting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(AppLocalizations.of(context).t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ]),
             ]),
-            const SizedBox(height: 10),
-            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: color,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                onPressed: () => _showSnack(AppLocalizations.of(context).t('community_feed_coming_soon_snack')),
-                child: Text(AppLocalizations.of(context).t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ]),
-          ]),
-        ),
-        const SizedBox(height: 40),
-        Center(child: Column(children: [
-          Container(width: 64, height: 64,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
-            child: Icon(Icons.forum_outlined, color: color, size: 30)),
-          const SizedBox(height: 14),
-          Text(AppLocalizations.of(context).t('community_feed_coming_soon'),
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
-          const SizedBox(height: 6),
-          Text(AppLocalizations.of(context).t('community_feed_coming_soon_desc'),
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
-        ])),
-      ],
+          ),
+          const SizedBox(height: 16),
+          if (_feedLoading)
+            const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+          else if (_posts.isEmpty)
+            Center(child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(children: [
+                Container(width: 64, height: 64,
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
+                  child: Icon(Icons.forum_outlined, color: color, size: 30)),
+                const SizedBox(height: 14),
+                Text(AppLocalizations.of(context).t('no_posts_yet'),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 6),
+                Text(AppLocalizations.of(context).t('be_first_to_post'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5)),
+              ]),
+            ))
+          else
+            ..._posts.map((p) => _buildPostCard(p, color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> p, Color color) {
+    final author = p['author'] as Map<String, dynamic>? ?? {};
+    final authorId = (author['_id'] ?? '').toString();
+    final authorName = (author['name'] ?? author['email'] ?? 'Unknown').toString();
+    final text = (p['text'] ?? '').toString();
+    final createdAt = p['createdAt'] != null ? DateTime.tryParse(p['createdAt'].toString()) : null;
+    final diff = createdAt != null ? DateTime.now().difference(createdAt) : null;
+    final ago = diff == null ? '' : diff.inMinutes < 1 ? 'just now' : diff.inMinutes < 60 ? '${diff.inMinutes}m ago' : diff.inHours < 24 ? '${diff.inHours}h ago' : '${diff.inDays}d ago';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.border(context)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _profileAvatar(authorId, size: 36, color: color),
+          const SizedBox(width: 10),
+          Expanded(child: Text(authorName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppThemeColors.primaryText(context)))),
+          Text(ago, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+        ]),
+        const SizedBox(height: 10),
+        Text(text, style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), height: 1.45)),
+      ]),
     );
   }
 

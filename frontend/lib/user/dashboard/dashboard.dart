@@ -1372,7 +1372,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               final name = (cp['name'] ?? '').toString();
                               final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
                               return _DashPreviewItem(id: id, name: name, initials: initials,
-                                imageUrl: (cp['imageUrl'] ?? '').toString());
+                                imageUrl: (cp['profileImage'] ?? '').toString());
                             }).toList(),
                           )),
                           const SizedBox(width: 12),

@@ -1,4 +1,5 @@
 const Community = require('../models/community');
+const CommunityPost = require('../models/communityPost');
 const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
 const Subscription = require('../models/subscription');
@@ -323,11 +324,15 @@ exports.addMember = async (req, res) => {
     if (!email?.trim()) return res.status(400).json({ error: 'Email required' });
     const normalizedEmail = email.trim().toLowerCase();
 
-    const targetUser = await User.findOne({ email: normalizedEmail });
+    const targetUser = await User.findOne({ email: normalizedEmail }).select('_id privacySettings');
     if (!targetUser) return res.status(404).json({ error: 'No user found with that email' });
 
     if (community.members.some(m => m.user.toString() === targetUser._id.toString())) {
       return res.status(400).json({ error: 'User is already a member' });
+    }
+
+    if (targetUser.privacySettings?.allowDirectCommunityAdd === false) {
+      return res.status(403).json({ error: 'This user has restricted direct community additions. You can share the invite code with them instead.' });
     }
 
     if (community.settings.allowDirectAdd) {
@@ -420,6 +425,70 @@ exports.deleteCommunity = async (req, res) => {
     }
     await community.deleteOne();
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// ── Community Feed ────────────────────────────────────────────────────────────
+
+exports.createPost = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id).select('members');
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isMember = community.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ error: 'Members only' });
+
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Post text is required' });
+    if (text.trim().length > 1000) return res.status(400).json({ error: 'Post cannot exceed 1000 characters' });
+
+    const post = await CommunityPost.create({ community: req.params.id, author: req.user._id, text: text.trim() });
+    await post.populate('author', 'name email username');
+    res.status(201).json({ post });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.getPosts = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id).select('members');
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isMember = community.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ error: 'Members only' });
+
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const before = req.query.before;
+    const query = { community: req.params.id };
+    if (before) query.createdAt = { $lt: new Date(before) };
+
+    const posts = await CommunityPost.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('author', 'name email username');
+    res.json({ posts });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.getFeed = async (req, res) => {
+  try {
+    const communities = await Community.find({ 'members.user': req.user._id }).select('_id name color');
+    const communityIds = communities.map(c => c._id);
+
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const before = req.query.before;
+    const query = { community: { $in: communityIds } };
+    if (before) query.createdAt = { $lt: new Date(before) };
+
+    const posts = await CommunityPost.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('author', 'name email username')
+      .populate('community', 'name color');
+    res.json({ posts });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

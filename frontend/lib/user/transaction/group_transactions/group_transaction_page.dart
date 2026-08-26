@@ -1114,7 +1114,37 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                 ),
                                 const SizedBox(height: 6),
                                 const FreeAttemptsBanner(featureKey: 'group_creation'),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 8),
+                                // Filter chips
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(children: [
+                                    for (final f in [
+                                      ('all', t('filter_all')),
+                                      ('created', t('filter_created_by_me')),
+                                      ('member', t('filter_joined')),
+                                    ]) ...[
+                                      GestureDetector(
+                                        onTap: () { setState(() => groupFilter = f.$1); _filterAndSearchGroups(); },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 180),
+                                          margin: const EdgeInsets.only(right: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                          decoration: BoxDecoration(
+                                            color: groupFilter == f.$1 ? AppColors.cyan : AppThemeColors.cardBg(context),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: groupFilter == f.$1 ? AppColors.cyan : AppThemeColors.border(context)),
+                                          ),
+                                          child: Text(f.$2, style: TextStyle(
+                                            fontSize: 12, fontWeight: FontWeight.w600,
+                                            color: groupFilter == f.$1 ? Colors.white : AppThemeColors.primaryText(context),
+                                          )),
+                                        ),
+                                      ),
+                                    ],
+                                  ]),
+                                ),
+                                const SizedBox(height: 8),
                                 if (_showFavouritesOnly &&
                                     filteredGroups.isEmpty)
                                   Container(

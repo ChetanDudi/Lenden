@@ -392,6 +392,7 @@ const getPrivacySettings = async (req, res) => {
       deviceManagement: user.privacySettings?.deviceManagement ?? true,
       sessionTimeout: user.privacySettings?.sessionTimeout ?? 30,
       allowDirectGroupAdd: user.privacySettings?.allowDirectGroupAdd ?? true,
+      allowDirectCommunityAdd: user.privacySettings?.allowDirectCommunityAdd ?? true,
     };
 
     res.json(settings);
@@ -416,6 +417,7 @@ const updatePrivacySettings = async (req, res) => {
       deviceManagement,
       sessionTimeout,
       allowDirectGroupAdd,
+      allowDirectCommunityAdd,
     } = req.body;
 
     const updatePayload = {
@@ -431,6 +433,7 @@ const updatePrivacySettings = async (req, res) => {
         deviceManagement,
         ...(typeof sessionTimeout === 'number' && { sessionTimeout }),
         ...(typeof allowDirectGroupAdd === 'boolean' && { allowDirectGroupAdd }),
+        ...(typeof allowDirectCommunityAdd === 'boolean' && { allowDirectCommunityAdd }),
       },
     };
 

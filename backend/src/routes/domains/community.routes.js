@@ -6,6 +6,7 @@ module.exports = (router, { auth, upload }) => {
   router.post('/communities/join', auth, ctrl.joinCommunity);        // before /:id
   router.get('/communities/my-invites', auth, ctrl.getMyInvites);   // before /:id
   router.get('/communities/limit-info', auth, ctrl.getLimitInfo);   // before /:id
+  router.get('/communities/feed', auth, ctrl.getFeed);              // before /:id
   router.get('/communities/:id', auth, ctrl.getCommunity);
   router.patch('/communities/:id', auth, ctrl.updateCommunity);
   router.delete('/communities/:id', auth, ctrl.deleteCommunity);
@@ -16,5 +17,7 @@ module.exports = (router, { auth, upload }) => {
   router.delete('/communities/:id/groups/:groupId', auth, ctrl.removeGroupFromCommunity);
   router.get('/communities/:id/balance', auth, ctrl.getCommunityBalance);
   router.post('/communities/:id/image', auth, upload.single('image'), ctrl.uploadImage);
-  router.get('/communities/:id/image', auth, ctrl.getImage);
+  router.get('/communities/:id/image', ctrl.getImage);
+  router.post('/communities/:id/posts', auth, ctrl.createPost);
+  router.get('/communities/:id/posts', auth, ctrl.getPosts);
 };

@@ -130,7 +130,7 @@ exports.createGroupWithCoins = async (req, res) => {
 
     // Find users by email
     const users = await User.find({ email: { $in: filteredMemberEmails } }).select(
-      'email blockedUsers'
+      'email blockedUsers privacySettings'
     );
     if (users.length !== filteredMemberEmails.length) {
       return res.status(400).json({ error: 'One or more members do not exist' });
@@ -146,8 +146,13 @@ exports.createGroupWithCoins = async (req, res) => {
           error: `You cannot add ${member.email} because they have blocked you.`,
         });
       }
+      if (member.privacySettings?.allowDirectGroupAdd === false) {
+        return res.status(403).json({
+          error: `${member.email} has restricted direct group additions. You cannot add them to a group.`,
+        });
+      }
     }
-    
+
     const updatedCreator = await User.findOneAndUpdate(
       { _id: creator._id, lenDenCoins: { $gte: GROUP_COST } },
       { $inc: { lenDenCoins: -GROUP_COST } },
@@ -284,7 +289,7 @@ exports.createGroup = async (req, res) => {
 
     // Find users by email
     const users = await User.find({ email: { $in: filteredMemberEmails } }).select(
-      'email blockedUsers'
+      'email blockedUsers privacySettings'
     );
     if (users.length !== filteredMemberEmails.length) {
       return res.status(400).json({ error: 'One or more members do not exist' });
@@ -300,8 +305,13 @@ exports.createGroup = async (req, res) => {
           error: `You cannot add ${member.email} because they have blocked you.`,
         });
       }
+      if (member.privacySettings?.allowDirectGroupAdd === false) {
+        return res.status(403).json({
+          error: `${member.email} has restricted direct group additions. You cannot add them to a group.`,
+        });
+      }
     }
-    
+
     const memberIds = users.map(u => u._id.toString());
     // Always add creator as the first member
     memberIds.unshift(creator._id.toString());
