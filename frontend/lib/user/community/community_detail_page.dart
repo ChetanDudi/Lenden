@@ -751,18 +751,18 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                 // Top row: back / settings / share
                 Row(children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
                   if (_isAdmin)
                     IconButton(
-                      icon: const Icon(Icons.settings_rounded, color: Colors.white),
+                      icon: Icon(Icons.settings_rounded, color: AppThemeColors.primaryText(context)),
                       onPressed: _showSettings,
                     ),
                   if (_inviteCode.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.share_rounded, color: Colors.white),
+                      icon: Icon(Icons.share_rounded, color: AppThemeColors.primaryText(context)),
                       onPressed: _showShareSheet,
                     ),
                 ]),
@@ -771,21 +771,20 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(_name, style: const TextStyle(color: Colors.white, fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black54, blurRadius: 6)])),
+                    Text(_name, style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 22,
+                      fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Row(children: [
-                      const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
+                      Icon(Icons.people_rounded, color: AppThemeColors.secondaryText(context), size: 14),
                       const SizedBox(width: 5),
                       Text('${_members.length} ${_members.length == 1 ? AppLocalizations.of(context).t('member_singular') : AppLocalizations.of(context).t('member_plural')}  ·  ${_groups.length} ${_groups.length == 1 ? AppLocalizations.of(context).t('group_singular') : AppLocalizations.of(context).t('group_plural')}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12)),
                     ]),
                     if ((_community['description'] ?? '').toString().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text((_community['description'] ?? '').toString(),
                         maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white60, fontSize: 12,
+                        style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12,
                           fontStyle: FontStyle.italic, height: 1.4)),
                     ],
                   ]),

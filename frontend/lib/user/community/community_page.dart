@@ -286,24 +286,24 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
             child: Row(children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
                 onPressed: () => Navigator.pop(context),
               ),
               Container(
                 padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.hub_rounded, color: Colors.white, size: 18),
+                decoration: BoxDecoration(color: AppThemeColors.primaryText(context).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.hub_rounded, color: AppThemeColors.primaryText(context), size: 18),
               ),
               const SizedBox(width: 10),
-              Text(t('communities_title'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(t('communities_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.link_rounded, color: Colors.white),
+                icon: Icon(Icons.link_rounded, color: AppThemeColors.primaryText(context)),
                 onPressed: _joinWithCode,
                 tooltip: 'Join with code',
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle_rounded, color: Colors.white),
+                icon: Icon(Icons.add_circle_rounded, color: AppThemeColors.primaryText(context)),
                 onPressed: () async {
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCommunityPage()));
                   if (result != null) { _load(); _showSnack(t('community_created_success'), icon: Icons.hub_rounded); }

@@ -343,16 +343,15 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
             child: SafeArea(
               child: Row(children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
                   onPressed: () => Navigator.pop(context),
                 ),
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context).t('create_community_btn'),
-                    style: const TextStyle(
-                      color: Colors.white, fontSize: 22,
+                    style: TextStyle(
+                      color: AppThemeColors.primaryText(context), fontSize: 22,
                       fontWeight: FontWeight.bold, letterSpacing: 0.5,
-                      shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
                     ),
                   ),
                 ),
