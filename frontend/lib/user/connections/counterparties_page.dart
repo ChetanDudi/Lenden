@@ -1145,7 +1145,8 @@ class _CounterpartyGridCard extends StatelessWidget {
             color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Column(
+          child: ClipRect(
+           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Stack(
@@ -1288,6 +1289,7 @@ class _CounterpartyGridCard extends StatelessWidget {
               ),
             ],
           ),
+         ),
         ),
       ),
     );

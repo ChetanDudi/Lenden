@@ -150,7 +150,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
     // Parse UPI fields (pa, pn, am, cu, tn)
     final Map<String, String> upi = {};
-    if (isUpi && uri != null) {
+    if (isUpi) {
       uri.queryParameters.forEach((k, v) => upi[k] = Uri.decodeComponent(v));
     }
 
@@ -308,11 +308,11 @@ class _QrScannerPageState extends State<QrScannerPage> {
                       infoRow(Icons.link_rounded, 'URL', raw, iconColor: const Color(0xFF1565C0)),
                     ] else if (isMail) ...[
                       infoRow(Icons.email_rounded, 'Email Address',
-                          uri!.path.isNotEmpty ? uri.path : raw,
+                          uri.path.isNotEmpty ? uri.path : raw,
                           iconColor: const Color(0xFFC62828)),
                     ] else if (isTel) ...[
                       infoRow(Icons.phone_rounded, 'Phone Number',
-                          uri!.path.isNotEmpty ? uri.path : raw,
+                          uri.path.isNotEmpty ? uri.path : raw,
                           iconColor: const Color(0xFF00695C)),
                     ] else if (isWifi) ...[
                       if (wifi['S']?.isNotEmpty == true)
@@ -401,7 +401,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                         onPressed: () async {
                           Navigator.pop(ctx);
                           try {
-                            await launchUrl(uri!, mode: LaunchMode.externalApplication);
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
                           } catch (_) {
                             if (mounted) showSnack(context, 'Could not open email app.', isError: true);
                           }
@@ -424,7 +424,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                         onPressed: () async {
                           Navigator.pop(ctx);
                           try {
-                            await launchUrl(uri!, mode: LaunchMode.externalApplication);
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
                           } catch (_) {
                             if (mounted) showSnack(context, 'Could not open phone app.', isError: true);
                           }
@@ -1623,7 +1623,7 @@ class _QrSelfPayPage extends StatelessWidget {
                       radius: 50,
                       backgroundColor: AppColors.cyan,
                       backgroundImage: hasImage
-                          ? NetworkImage(imageUrl!) as ImageProvider
+                          ? NetworkImage(imageUrl) as ImageProvider
                           : null,
                       child: !hasImage
                           ? Icon(genderIcon, color: Colors.white, size: 46)

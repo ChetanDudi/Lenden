@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io' as dart_io;
+import 'dart:typed_data';
+import '../../utils/image_picker_utils.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/wave_widget.dart';
 import '../../utils/api_client.dart';
@@ -21,7 +21,7 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   Color _color = const Color(0xFF00B4D8);
-  XFile? _image;
+  Uint8List? _imageBytes;
   bool _creating = false;
   String? _error;
 
@@ -73,9 +73,10 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
   String get _colorHex => '#${_color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (picked != null && mounted) setState(() => _image = picked);
+    final result = await ImagePickerUtils.pickWithSheet(context);
+    if (result != null && mounted) {
+      setState(() { _imageBytes = result.bytes; });
+    }
   }
 
   Future<void> _pickColor() async {
@@ -273,11 +274,11 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
       }
       if (res.statusCode == 201) {
         final communityId = data['community']?['_id']?.toString() ?? '';
-        if (_image != null && communityId.isNotEmpty) {
+        if (_imageBytes != null && communityId.isNotEmpty) {
           try {
             await ApiClient.postMultipart(
               '/api/communities/$communityId/image',
-              files: [ApiMultipartFile(field: 'image', filename: 'community.jpg', path: _image!.path)],
+              files: [ApiMultipartFile(field: 'image', filename: 'community.jpg', bytes: _imageBytes!)],
             );
           } catch (_) {}
         }
@@ -382,16 +383,16 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                     Container(
                       width: 56, height: 56,
                       decoration: BoxDecoration(
-                        gradient: _image == null
+                        gradient: _imageBytes == null
                             ? LinearGradient(colors: [_color.withValues(alpha: 0.7), _color])
                             : null,
                         borderRadius: BorderRadius.circular(16),
-                        image: _image != null
-                            ? DecorationImage(image: FileImage(dart_io.File(_image!.path)), fit: BoxFit.cover)
+                        image: _imageBytes != null
+                            ? DecorationImage(image: MemoryImage(_imageBytes!), fit: BoxFit.cover)
                             : null,
                         boxShadow: [BoxShadow(color: _color.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
-                      child: _image == null ? const Icon(Icons.hub_rounded, color: Colors.white, size: 28) : null,
+                      child: _imageBytes == null ? const Icon(Icons.hub_rounded, color: Colors.white, size: 28) : null,
                     ),
                     Positioned(right: 0, bottom: 0,
                       child: Container(

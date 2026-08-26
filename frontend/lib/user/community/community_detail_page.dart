@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
+import '../../utils/image_picker_utils.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
@@ -251,14 +251,12 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   ];
 
   Future<void> _pickAndUploadImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 512, maxHeight: 512);
-    if (picked == null || !mounted) return;
-    final bytes = await picked.readAsBytes();
+    final result = await ImagePickerUtils.pickWithSheet(context);
+    if (result == null || !mounted) return;
     try {
       final res = await ApiClient.postMultipart(
         '/api/communities/${widget.communityId}/image',
-        files: [ApiMultipartFile(field: 'image', filename: picked.name, bytes: bytes)],
+        files: [ApiMultipartFile(field: 'image', filename: result.file.name, bytes: result.bytes)],
       );
       if (res.statusCode == 200) {
         _load();

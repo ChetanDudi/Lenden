@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../utils/pickers.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
-import 'package:image_picker/image_picker.dart';
+import '../utils/image_picker_utils.dart';
 import 'dart:typed_data';
-import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
@@ -439,25 +439,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _pickImage() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        final File imageFile = File(image.path);
-        final Uint8List imageBytes = await imageFile.readAsBytes();
-
-        setState(() {
-          _newImageBytes = imageBytes;
-          _newImageMime = image.mimeType ?? 'image/jpeg';
-          _removeImage = false;
-          _imageRefreshKey++; // Force avatar rebuild
-        });
-      }
+      final result = await ImagePickerUtils.pickWithSheet(context);
+      if (result == null || !mounted) return;
+      setState(() {
+        _newImageBytes = result.bytes;
+        _newImageMime = 'image/jpeg';
+        _removeImage = false;
+        _imageRefreshKey++;
+      });
     } catch (e) {
       if (!mounted) return;
       showSnack(context,

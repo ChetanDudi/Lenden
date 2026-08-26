@@ -60,8 +60,6 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
   final _pbHistorySearch = TextEditingController();
   List<dynamic> _overrideResults = [];
   bool _overrideSearching = false;
-  Map<String, dynamic>? _overrideUser;
-  bool _overrideLoading = false;
 
   @override
   void initState() {

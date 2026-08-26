@@ -7,8 +7,8 @@ import '../../api_config.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http_parser/http_parser.dart';
+import '../../utils/image_picker_utils.dart';
+
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/stylish_dialog.dart';
@@ -73,14 +73,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Future<void> _pickAndUploadGroupImage() async {
     try {
-      final picker = ImagePicker();
-      final image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-      if (image == null) return;
+      final result = await ImagePickerUtils.pickWithSheet(context);
+      if (result == null) return;
 
       setState(() => _isUpdatingGroupImage = true);
       final res = await ApiClient.putMultipart(
@@ -88,9 +82,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
         files: [
           ApiMultipartFile(
             field: 'groupImage',
-            filename: 'group.jpg',
-            path: image.path,
-            contentType: MediaType('image', 'jpeg'),
+            filename: result.file.name,
+            bytes: result.bytes,
           ),
         ],
       );

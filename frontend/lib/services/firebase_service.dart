@@ -34,9 +34,10 @@ class FirebaseService {
       _showForegroundBanner(n.title ?? '', n.body ?? '');
     });
 
-    FirebaseMessaging.instance.onTokenRefresh.listen((token) {
-      ApiClient.post('/api/users/fcm-token', body: {'fcmToken': token})
-          .catchError((_) => <String, dynamic>{});
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
+      try {
+        await ApiClient.post('/api/users/fcm-token', body: {'fcmToken': token});
+      } catch (_) {}
     });
   }
 

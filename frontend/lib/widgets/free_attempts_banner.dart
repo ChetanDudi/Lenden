@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
 import 'app_colors.dart';
-import '../utils/theme_helper.dart';
 
 /// Shows a chip indicating free attempts left and/or coin-based daily attempts.
 /// Pass [featureKey] matching session's hasFeature keys.

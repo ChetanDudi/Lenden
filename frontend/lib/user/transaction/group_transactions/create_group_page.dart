@@ -1,6 +1,8 @@
 ﻿import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
+import '../../../widgets/wave_widget.dart' show DeeperTopWaveClipper;
+import '../../../utils/responsive.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -12,8 +14,8 @@ import '../../../widgets/stylish_dialog.dart';
 import '../../digitise/gift_card_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io' as dart_io;
+import 'dart:typed_data';
+import '../../../utils/image_picker_utils.dart';
 import '../../../utils/avatar_helpers.dart' as ah;
 import '../../../widgets/share_as_note_sheet.dart';
 import '../../../api_config.dart';
@@ -46,7 +48,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   List<Map<String, dynamic>> _friendSuggestions = [];
   Set<String> _blockedEmails = {};
   bool _loadingFriends = false;
-  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
   Color? _selectedColor;
   int? _dailyGroupRemaining;
 
@@ -74,14 +76,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     _descriptionController.dispose();
     _memberEmailController.dispose();
     super.dispose();
-  }
-
-  Color _noteColor(int index) {
-    const colors = [
-      Color(0xFFFFF4E6), Color(0xFFE8F5E9), Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD), Color(0xFFFFF9C4), Color(0xFFF3E5F5),
-    ];
-    return colors[index % colors.length];
   }
 
   Future<void> _loadCommunities() async {
@@ -1633,23 +1627,18 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _pickGroupImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-      maxWidth: 512,
-      maxHeight: 512,
-    );
-    if (picked != null && mounted) setState(() => _selectedImage = picked);
+    final result = await ImagePickerUtils.pickWithSheet(context);
+    if (result != null && mounted) {
+      setState(() { _selectedImageBytes = result.bytes; });
+    }
   }
 
   Future<void> _uploadGroupImageAfterCreate(String groupId) async {
-    if (_selectedImage == null) return;
+    if (_selectedImageBytes == null) return;
     try {
-      final bytes = await _selectedImage!.readAsBytes();
       await ApiClient.putMultipart(
         '/api/group-transactions/$groupId/image',
-        files: [ApiMultipartFile(field: 'groupImage', filename: _selectedImage!.name, bytes: bytes)],
+        files: [ApiMultipartFile(field: 'groupImage', filename: 'group.jpg', bytes: _selectedImageBytes!)],
       );
     } catch (_) {}
   }
@@ -2006,614 +1995,530 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     ]);
   }
 
-  Widget _profileStyleField({required IconData icon, required Widget child}) {
-    return Container(
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+
+  static const List<Color> _colorPresets = [
+    Color(0xFF00B4D8), Color(0xFF0096C7), Color(0xFF0077B6), Color(0xFF023E8A),
+    Color(0xFF3F51B5), Color(0xFF673AB7), Color(0xFF9C27B0), Color(0xFFE91E63),
+    Color(0xFFF44336), Color(0xFFFF5722), Color(0xFFFF9800), Color(0xFFFFC107),
+    Color(0xFF4CAF50), Color(0xFF009688), Color(0xFF2E7D32), Color(0xFF607D8B),
+  ];
+
+  Widget _sectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Text(text, style: TextStyle(
+      fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2,
+      color: AppThemeColors.secondaryText(context),
+    )),
+  );
+
+  Widget _card({required Widget child, EdgeInsets? padding, VoidCallback? onTap}) {
+    final card = Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: padding ?? const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppThemeColors.border(context)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
-      child: Row(children: [
-        const SizedBox(width: 14),
-        Container(
-          width: 36, height: 36,
+      child: child,
+    );
+    return onTap != null ? GestureDetector(onTap: onTap, child: card) : card;
+  }
+
+  Widget _inlineField(IconData icon, Widget field) => Row(children: [
+    Container(
+      width: 36, height: 36,
+      decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)),
+      child: Icon(icon, color: AppColors.cyan, size: 18),
+    ),
+    const SizedBox(width: 12),
+    Expanded(child: field),
+  ]);
+
+  Widget _sourceBtn(IconData icon, String label, VoidCallback? onTap, {bool loading = false}) =>
+    Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.cyan.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(10),
+            color: AppColors.cyan.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
           ),
-          child: Icon(icon, color: AppColors.cyan, size: 18),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            loading
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+              : Icon(icon, color: AppColors.cyan, size: 20),
+            const SizedBox(height: 3),
+            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w600)),
+          ]),
         ),
-        const SizedBox(width: 10),
-        Expanded(child: child),
-        const SizedBox(width: 8),
+      ),
+    );
+
+  Widget _memberChip({
+    required String initials, required String userId, required String label,
+    bool isCreator = false, bool isBlocked = false, VoidCallback? onRemove,
+  }) {
+    final bgColor = isBlocked ? Colors.red.shade50 : AppColors.cyan.withValues(alpha: isCreator ? 0.12 : 0.08);
+    final borderColor = isBlocked ? Colors.red.shade300 : AppColors.cyan.withValues(alpha: isCreator ? 0.45 : 0.25);
+    return Container(
+      padding: EdgeInsets.fromLTRB(4, 4, onRemove == null ? 10 : 4, 4),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+          width: 30, height: 30,
+          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+            Container(
+              color: isBlocked ? Colors.red.shade100 : AppColors.cyan.withValues(alpha: 0.18),
+              child: Center(child: Text(initials, style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.bold,
+                color: isBlocked ? Colors.red : AppColors.cyan,
+              ))),
+            ),
+            if (userId.isNotEmpty && !isBlocked)
+              Image.network('${ApiConfig.baseUrl}/api/users/$userId/profile-image',
+                fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+          ])),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+          color: isBlocked ? Colors.red.shade700 : AppThemeColors.primaryText(context))),
+        if (isCreator) ...[
+          const SizedBox(width: 4),
+          const Icon(Icons.shield_rounded, size: 14, color: AppColors.cyan),
+        ] else if (onRemove != null) ...[
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: Icon(Icons.close_rounded, size: 16,
+              color: isBlocked ? Colors.red.shade400 : AppThemeColors.mutedText(context)),
+          ),
+        ],
       ]),
     );
   }
 
+  // ── Build ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
+    final heroColor = _selectedColor ?? AppColors.cyan;
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      appBar: AppBar(
-        title: Text(t('create_group_title'),
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppThemeColors.cardBg(context),
-        foregroundColor: AppThemeColors.primaryText(context),
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.pop(context),
+      body: Stack(children: [
+        // Wave background
+        ClipPath(
+          clipper: const DeeperTopWaveClipper(),
+          child: Container(
+            height: context.sh(85),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: AppThemeColors.waveGradient(context),
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+            ),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header card with tricolor border
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                gradient: AppColors.tricolorGradient,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6)),
-                ],
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(19)),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: _pickGroupImage,
-                      child: Stack(
-                        children: [
-                          Container(
-                            height: 52,
-                            width: 52,
-                            decoration: BoxDecoration(
-                              gradient: _selectedImage == null
-                                  ? LinearGradient(
-                                      colors: _selectedColor != null
-                                          ? [_selectedColor!.withValues(alpha: 0.65), _selectedColor!]
-                                          : [Colors.deepPurple.shade400, Colors.deepPurple.shade800],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                  : null,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_selectedColor ?? Colors.deepPurple).withValues(alpha: 0.25),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                              image: _selectedImage != null
-                                  ? DecorationImage(
-                                      image: FileImage(dart_io.File(_selectedImage!.path)),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: _selectedImage == null
-                                ? const Icon(Icons.group, color: Colors.white, size: 28)
-                                : null,
-                          ),
-                          Positioned(
-                            right: 0, bottom: 0,
-                            child: Container(
-                              width: 18, height: 18,
-                              decoration: BoxDecoration(
-                                color: AppColors.cyan,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.5),
-                              ),
-                              child: const Icon(Icons.camera_alt_rounded, size: 10, color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(t('create_new_group_title'),
-                              style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppThemeColors.primaryText(context))),
-                          const SizedBox(height: 4),
-                          Text(t('start_tracking_expenses_with_friends'),
-                              style: TextStyle(
-                                  color: AppThemeColors.secondaryText(context),
-                                  fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  ],
+
+        SafeArea(
+          child: Column(children: [
+            // ── Wave header row ────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 16, 0),
+              child: Row(children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
+                  onPressed: () => Navigator.pop(context),
                 ),
-              ),
+                Text(t('create_group_title'), style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context),
+                )),
+              ]),
             ),
 
-            // Limit info banner
-            Consumer<SessionProvider>(
-              builder: (context, session, _) {
-                if (session.hasFeature('group_creation')) return const SizedBox.shrink();
-                final freeLeft = session.freeGroupsRemaining ?? 0;
-                final dailyLeft = _dailyGroupRemaining;
-                if (freeLeft <= 0 && (dailyLeft == null || dailyLeft > 0)) return const SizedBox.shrink();
-                return Column(children: [
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            // ── Hero avatar ────────────────────────────────────────────────
+            const SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                onTap: _pickGroupImage,
+                child: Stack(children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 92, height: 92,
                     decoration: BoxDecoration(
-                      color: AppThemeColors.cardBg(context),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppThemeColors.border(context)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 3))],
+                      gradient: _selectedImageBytes == null
+                        ? LinearGradient(
+                            colors: [heroColor.withValues(alpha: 0.7), heroColor],
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          )
+                        : null,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppThemeColors.cardBg(context), width: 3),
+                      boxShadow: [BoxShadow(color: heroColor.withValues(alpha: 0.38), blurRadius: 18, offset: const Offset(0, 7))],
+                      image: _selectedImageBytes != null
+                        ? DecorationImage(image: MemoryImage(_selectedImageBytes!), fit: BoxFit.cover)
+                        : null,
                     ),
-                    child: Column(
-                      children: [
-                        if (freeLeft > 0)
-                          _buildLimitRow(
-                            icon: Icons.card_giftcard_rounded,
-                            color: Colors.green.shade600,
-                            bgColor: Colors.green.withValues(alpha: 0.12),
-                            label: '$freeLeft free group creation${freeLeft == 1 ? '' : 's'} remaining',
-                          ),
-                        if (freeLeft > 0 && dailyLeft != null) const SizedBox(height: 8),
-                        if (dailyLeft != null)
-                          _buildLimitRow(
-                            icon: dailyLeft <= 0 ? Icons.hourglass_empty_rounded : Icons.today_rounded,
-                            color: dailyLeft <= 0 ? Colors.orange.shade700 : Colors.blue.shade600,
-                            bgColor: (dailyLeft <= 0 ? Colors.orange : Colors.blue).withValues(alpha: 0.12),
-                            label: dailyLeft <= 0
-                                ? 'Daily limit reached — resets tomorrow'
-                                : 'Daily limit remaining: $dailyLeft',
-                          ),
-                      ],
-                    ),
+                    child: _selectedImageBytes == null
+                      ? const Icon(Icons.group_rounded, color: Colors.white, size: 42)
+                      : null,
                   ),
-                ]);
-              },
-            ),
-
-            if (_error != null) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  border: Border.all(color: Colors.red.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_error!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _error = null),
-                      child: const Icon(Icons.close, color: Colors.red, size: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 22),
-
-            // Group title
-            _profileStyleField(
-              icon: Icons.title_rounded,
-              child: TextField(
-                controller: _titleController,
-                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                decoration: InputDecoration(
-                  labelText: t('group_title_label'),
-                  labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Group description (optional)
-            _profileStyleField(
-              icon: Icons.notes_rounded,
-              child: TextField(
-                controller: _descriptionController,
-                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: t('description_optional_label'),
-                  hintText: t('group_description_hint'),
-                  labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
-                  hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Color picker row
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppThemeColors.surfaceBg(context),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppThemeColors.border(context)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(t('group_color_label'),
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: AppThemeColors.primaryText(context))),
-                        const SizedBox(height: 6),
-                        Text(
-                          t('pick_color_to_identify_group'),
-                          style: TextStyle(
-                              color: AppThemeColors.secondaryText(context),
-                              fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _pickColor,
+                  Positioned(
+                    right: 0, bottom: 0,
                     child: Container(
-                      width: 46,
-                      height: 46,
+                      width: 28, height: 28,
                       decoration: BoxDecoration(
-                        color: _selectedColor ?? Colors.blue,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppThemeColors.border(context), width: 2),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 4)),
-                        ],
+                        color: AppColors.cyan, shape: BoxShape.circle,
+                        border: Border.all(color: AppThemeColors.cardBg(context), width: 2),
                       ),
-                      child: const Center(child: Icon(Icons.edit, color: Colors.white, size: 18)),
+                      child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
                     ),
                   ),
-                ],
+                ]),
               ),
             ),
+            const SizedBox(height: 6),
+            Text('Tap to add a group photo',
+              style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 18),
 
-            const SizedBox(height: 22),
+            // ── Scrollable form ────────────────────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
 
-            Text(t('add_members_by_email_label'),
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: AppThemeColors.primaryText(context))),
-            const SizedBox(height: 4),
-            Text(
-              t('invite_friends_add_expenses_pay_back'),
-              style: TextStyle(
-                  color: AppThemeColors.secondaryText(context), fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-
-            // Creator info box
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppThemeColors.tinted(context,
-                    light: Colors.blue.shade50, dark: const Color(0xFF1A2A3A)),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppThemeColors.tinted(context,
-                        light: Colors.blue.shade200,
-                        dark: Colors.blue.shade700)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline,
-                      color: AppThemeColors.tinted(context,
-                          light: Colors.blue.shade700,
-                          dark: Colors.blue.shade300),
-                      size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      t('you_creator_auto_added_to_group'),
-                      style: TextStyle(
-                          color: AppThemeColors.tinted(context,
-                              light: Colors.blue.shade700,
-                              dark: Colors.blue.shade300),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Email input + Add button
-            Row(
-              children: [
-                Expanded(
-                  child: _profileStyleField(
-                    icon: Icons.email_outlined,
-                    child: TextField(
-                      controller: _memberEmailController,
+                  // ── Group Details ────────────────────────────────────────
+                  _sectionLabel('GROUP DETAILS'),
+                  _card(child: Column(children: [
+                    _inlineField(Icons.title_rounded, TextField(
+                      controller: _titleController,
                       style: TextStyle(color: AppThemeColors.primaryText(context)),
                       decoration: InputDecoration(
-                        hintText: t('enter_email_one_at_a_time'),
+                        labelText: t('group_title_label'),
+                        labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    )),
+                    Divider(height: 1, color: AppThemeColors.divider(context)),
+                    const SizedBox(height: 2),
+                    _inlineField(Icons.notes_rounded, TextField(
+                      controller: _descriptionController,
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: t('description_optional_label'),
+                        hintText: t('group_description_hint'),
+                        labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
                         hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      keyboardType: TextInputType.emailAddress,
-                      onSubmitted: (_) => _addMemberEmail(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _addMemberEmail,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cyan,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                    elevation: 4,
-                  ),
-                  child: Text(t('add'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ],
-            ),
+                    )),
+                  ])),
 
-            // Friend suggestions
-            if (_friendSuggestions.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _friendSuggestions.map((f) {
-                  final email = (f['email'] ?? '').toString();
-                  final name = (f['name'] ?? f['username'] ?? '').toString();
-                  return Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      gradient: AppColors.tricolorGradient,
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _noteColor(email.hashCode.abs() % 6),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ActionChip(
-                        label: Text(name.isNotEmpty ? '$name ($email)' : email),
-                        onPressed: () {
-                          _memberEmailController.text = email;
-                          _addMemberEmail();
-                        },
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-
-            const SizedBox(height: 4),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                TextButton.icon(
-                  onPressed: _loadingFriends ? null : _addMembersFromFriends,
-                  icon: _loadingFriends
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
-                      : const Icon(Icons.people, color: AppColors.cyan),
-                  label: Text(
-                    _loadingFriends ? t('loading') : t('add_from_friends_label'),
-                    style: const TextStyle(color: AppColors.cyan),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                TextButton.icon(
-                  onPressed: _loadingGroups ? null : _addMembersFromGroups,
-                  icon: _loadingGroups
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
-                      : const Icon(Icons.group_work_rounded, color: AppColors.cyan),
-                  label: Text(
-                    _loadingGroups ? t('loading') : t('add_from_groups_label'),
-                    style: const TextStyle(color: AppColors.cyan),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _addMembersFromCommunities,
-                  icon: const Icon(Icons.hub_rounded, color: AppColors.cyan),
-                  label: const Text('Add from Communities', style: TextStyle(color: AppColors.cyan)),
-                ),
-              ]),
-            ),
-
-            if (_memberAddError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(_memberAddError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-              ),
-
-            ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  // Creator chip (auto-added, non-removable)
-                  Builder(builder: (bCtx) {
-                    final session = Provider.of<SessionProvider>(bCtx, listen: false);
-                    final cEmail = (session.user?['email'] ?? '').toString();
-                    final cName = (session.user?['name'] ?? '').toString().trim();
-                    final cId = (session.user?['_id'] ?? '').toString();
-                    final nameLabel = cName.isNotEmpty ? cName.split(' ')[0] : (cEmail.isNotEmpty ? cEmail.split('@')[0] : 'You');
-                    final initials = cName.isNotEmpty ? cName[0].toUpperCase() : (cEmail.isNotEmpty ? cEmail[0].toUpperCase() : 'Y');
-                    return Container(
-                      padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.cyan.withValues(alpha: 0.13),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.45)),
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Container(
-                          width: 30, height: 30,
-                          decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.22), shape: BoxShape.circle),
-                          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                            Center(child: Text(initials, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyan))),
-                            if (cId.isNotEmpty)
-                              Image.network('${ApiConfig.baseUrl}/api/users/$cId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                          ])),
+                  // ── Color ────────────────────────────────────────────────
+                  _sectionLabel('COLOR'),
+                  _card(child: Wrap(spacing: 10, runSpacing: 10, children: [
+                    ..._colorPresets.map((c) {
+                      final isSel = _selectedColor == c;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedColor = c),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: c, shape: BoxShape.circle,
+                            border: Border.all(color: isSel ? Colors.white : Colors.transparent, width: 2.5),
+                            boxShadow: isSel ? [BoxShadow(color: c.withValues(alpha: 0.55), blurRadius: 8, spreadRadius: 1)] : [],
+                          ),
+                          child: isSel ? const Icon(Icons.check_rounded, color: Colors.white, size: 17) : null,
                         ),
-                        const SizedBox(width: 6),
-                        Text('$nameLabel (You)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(bCtx))),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.shield_rounded, size: 14, color: AppColors.cyan),
-                      ]),
-                    );
-                  }),
-                  ..._memberEmails.map((e) {
-                  final blocked = _isBlocked(e);
-                  final info = _memberUsers[e];
-                  final userId = info?['_id'] ?? '';
-                  final displayName = (info?['name'] ?? '').toString().trim();
-                  final nameLabel = displayName.isNotEmpty ? displayName.split(' ')[0] : e.split('@')[0];
-                  final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : e[0].toUpperCase();
-                  return Container(
-                    padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
-                    decoration: BoxDecoration(
-                      color: blocked ? Colors.red.shade50 : AppColors.cyan.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: blocked ? Colors.red.shade300 : AppColors.cyan.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(
-                        width: 30, height: 30,
+                      );
+                    }),
+                    GestureDetector(
+                      onTap: _pickColor,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: 36, height: 36,
                         decoration: BoxDecoration(
-                          color: blocked ? Colors.red.shade100 : AppColors.cyan.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
+                          border: Border.all(color: AppThemeColors.border(context), width: 1.5),
+                          color: AppThemeColors.surfaceBg(context),
                         ),
-                        child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                          Center(child: Text(initials, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: blocked ? Colors.red : AppColors.cyan))),
-                          if (userId.isNotEmpty && !blocked)
-                            Image.network('${ApiConfig.baseUrl}/api/users/$userId/profile-image', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                        ])),
+                        child: Icon(Icons.add_rounded, size: 18, color: AppThemeColors.secondaryText(context)),
                       ),
-                      const SizedBox(width: 6),
-                      Text(nameLabel, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: blocked ? Colors.red.shade700 : AppThemeColors.primaryText(context))),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => _removeMemberEmail(e),
-                        child: Icon(Icons.close_rounded, size: 16, color: blocked ? Colors.red.shade400 : AppThemeColors.mutedText(context)),
+                    ),
+                  ])),
+
+                  // ── Members ──────────────────────────────────────────────
+                  _sectionLabel('MEMBERS'),
+                  _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // Info strip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.info_outline_rounded, color: AppColors.cyan, size: 15),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(t('you_creator_auto_added_to_group'),
+                          style: const TextStyle(color: AppColors.cyan, fontSize: 12, fontWeight: FontWeight.w500))),
+                      ]),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Email input row
+                    Row(children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppThemeColors.surfaceBg(context),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppThemeColors.border(context)),
+                          ),
+                          child: Row(children: [
+                            const SizedBox(width: 12),
+                            Icon(Icons.email_outlined, color: AppColors.cyan, size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(child: TextField(
+                              controller: _memberEmailController,
+                              style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: t('enter_email_one_at_a_time'),
+                                hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 14),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              onSubmitted: (_) => _addMemberEmail(),
+                            )),
+                            const SizedBox(width: 8),
+                          ]),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: _addMemberEmail,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                          elevation: 3,
+                        ),
+                        child: Text(t('add'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ]),
-                  );
-                }).toList(),
-                ],
-              ),
-            ],
 
-            const SizedBox(height: 20),
-
-            // Community picker
-            GestureDetector(
-              onTap: _showCommunityPicker,
-              child: _profileStyleField(
-                icon: Icons.hub_rounded,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(children: [
-                    Expanded(
-                      child: _selectedCommunityIds.isEmpty
-                          ? Text('Add to Communities (optional)', style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 15))
-                          : Wrap(
-                              spacing: 6, runSpacing: 4,
-                              children: _selectedCommunityIds.map((id) {
-                                final name = _selectedCommunityNames[id] ?? 'Community';
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(20)),
-                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                    Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.cyan)),
-                                    const SizedBox(width: 4),
-                                    GestureDetector(
-                                      onTap: () => setState(() { _selectedCommunityIds.remove(id); _selectedCommunityNames.remove(id); }),
-                                      child: const Icon(Icons.close_rounded, size: 14, color: AppColors.cyan),
-                                    ),
-                                  ]),
-                                );
-                              }).toList(),
+                    // Friend suggestions
+                    if (_friendSuggestions.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(spacing: 8, runSpacing: 8, children: _friendSuggestions.map((f) {
+                        final email = (f['email'] ?? '').toString();
+                        final name = (f['name'] ?? f['username'] ?? '').toString();
+                        return GestureDetector(
+                          onTap: () { _memberEmailController.text = email; _addMemberEmail(); },
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.cyan.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.28)),
                             ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.person_add_rounded, size: 13, color: AppColors.cyan),
+                              const SizedBox(width: 5),
+                              Text(name.isNotEmpty ? name : email,
+                                style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w500)),
+                            ]),
+                          ),
+                        );
+                      }).toList()),
+                    ],
+
+                    if (_memberAddError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(_memberAddError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                    ],
+
+                    const SizedBox(height: 14),
+                    // Add from sources
+                    Row(children: [
+                      _sourceBtn(Icons.people_rounded, 'Friends', _loadingFriends ? null : _addMembersFromFriends, loading: _loadingFriends),
+                      const SizedBox(width: 8),
+                      _sourceBtn(Icons.group_work_rounded, 'Groups', _loadingGroups ? null : _addMembersFromGroups, loading: _loadingGroups),
+                      const SizedBox(width: 8),
+                      _sourceBtn(Icons.hub_rounded, 'Hubs', _addMembersFromCommunities),
+                    ]),
+
+                    // Member chips
+                    const SizedBox(height: 14),
+                    Divider(height: 1, color: AppThemeColors.divider(context)),
+                    const SizedBox(height: 14),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      Builder(builder: (bCtx) {
+                        final session = Provider.of<SessionProvider>(bCtx, listen: false);
+                        final cEmail = (session.user?['email'] ?? '').toString();
+                        final cName = (session.user?['name'] ?? '').toString().trim();
+                        final cId = (session.user?['_id'] ?? '').toString();
+                        final nameLabel = cName.isNotEmpty ? cName.split(' ')[0] : (cEmail.isNotEmpty ? cEmail.split('@')[0] : 'You');
+                        final initials = cName.isNotEmpty ? cName[0].toUpperCase() : (cEmail.isNotEmpty ? cEmail[0].toUpperCase() : 'Y');
+                        return _memberChip(initials: initials, userId: cId, label: '$nameLabel (You)', isCreator: true);
+                      }),
+                      ..._memberEmails.map((e) {
+                        final blocked = _isBlocked(e);
+                        final info = _memberUsers[e];
+                        final userId = info?['_id'] ?? '';
+                        final displayName = (info?['name'] ?? '').toString().trim();
+                        final nameLabel = displayName.isNotEmpty ? displayName.split(' ')[0] : e.split('@')[0];
+                        final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : e[0].toUpperCase();
+                        return _memberChip(
+                          initials: initials, userId: userId, label: nameLabel,
+                          isBlocked: blocked, onRemove: () => _removeMemberEmail(e),
+                        );
+                      }),
+                    ]),
+                  ])),
+
+                  // ── Community ────────────────────────────────────────────
+                  _sectionLabel('LINK TO COMMUNITY (OPTIONAL)'),
+                  _card(
+                    onTap: _showCommunityPicker,
+                    child: Row(children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.cyan.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.hub_rounded, color: AppColors.cyan, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _selectedCommunityIds.isEmpty
+                          ? Text('Link to communities', style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 15))
+                          : Wrap(spacing: 6, runSpacing: 4, children: _selectedCommunityIds.map((id) {
+                              final name = _selectedCommunityNames[id] ?? 'Community';
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(20)),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.cyan)),
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () => setState(() { _selectedCommunityIds.remove(id); _selectedCommunityNames.remove(id); }),
+                                    child: const Icon(Icons.close_rounded, size: 14, color: AppColors.cyan),
+                                  ),
+                                ]),
+                              );
+                            }).toList()),
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: AppThemeColors.mutedText(context)),
+                    ]),
+                  ),
+
+                  // ── Limit banner ─────────────────────────────────────────
+                  Consumer<SessionProvider>(
+                    builder: (context, session, _) {
+                      if (session.hasFeature('group_creation')) return const SizedBox.shrink();
+                      final freeLeft = session.freeGroupsRemaining ?? 0;
+                      final dailyLeft = _dailyGroupRemaining;
+                      if (freeLeft <= 0 && (dailyLeft == null || dailyLeft > 0)) return const SizedBox.shrink();
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppThemeColors.border(context)),
+                        ),
+                        child: Column(children: [
+                          if (freeLeft > 0) _buildLimitRow(
+                            icon: Icons.card_giftcard_rounded, color: Colors.green.shade600,
+                            bgColor: Colors.green.withValues(alpha: 0.12),
+                            label: '$freeLeft free group creation${freeLeft == 1 ? '' : 's'} remaining',
+                          ),
+                          if (freeLeft > 0 && dailyLeft != null) const SizedBox(height: 8),
+                          if (dailyLeft != null) _buildLimitRow(
+                            icon: dailyLeft <= 0 ? Icons.hourglass_empty_rounded : Icons.today_rounded,
+                            color: dailyLeft <= 0 ? Colors.orange.shade700 : Colors.blue.shade600,
+                            bgColor: (dailyLeft <= 0 ? Colors.orange : Colors.blue).withValues(alpha: 0.12),
+                            label: dailyLeft <= 0 ? 'Daily limit reached — resets tomorrow' : 'Daily limit remaining: $dailyLeft',
+                          ),
+                        ]),
+                      );
+                    },
+                  ),
+
+                  // ── Error ────────────────────────────────────────────────
+                  if (_error != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50, border: Border.all(color: Colors.red.shade200),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600))),
+                        GestureDetector(onTap: () => setState(() => _error = null),
+                          child: const Icon(Icons.close, color: Colors.red, size: 18)),
+                      ]),
                     ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.expand_more_rounded, size: 20, color: AppThemeColors.mutedText(context)),
-                  ]),
-                ),
+
+                  // ── Create button ────────────────────────────────────────
+                  Consumer<SessionProvider>(
+                    builder: (context, session, _) {
+                      final dailyLimitReached = !session.hasFeature('group_creation') &&
+                          _dailyGroupRemaining != null && _dailyGroupRemaining! <= 0;
+                      final canCreate = session.hasFeature('group_creation') ||
+                          (!dailyLimitReached && (session.freeGroupsRemaining ?? 0) > 0) ||
+                          (session.lenDenCoins ?? 0) >= 20;
+                      final active = canCreate && !_creatingGroup;
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: active ? const LinearGradient(colors: [AppColors.cyan, AppColors.blue]) : null,
+                          color: active ? null : AppThemeColors.border(context),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: active ? [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6))] : [],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: active ? _createGroup : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            elevation: 0,
+                          ),
+                          child: _creatingGroup
+                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                const Icon(Icons.group_add_rounded, color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Text(t('create_group_title'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white)),
+                              ]),
+                        ),
+                      );
+                    },
+                  ),
+                ]),
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            // Create button with limits info
-            Consumer<SessionProvider>(
-              builder: (context, session, _) {
-                final dailyLimitReached = !session.hasFeature('group_creation') &&
-                    _dailyGroupRemaining != null &&
-                    _dailyGroupRemaining! <= 0;
-                final canCreate = session.hasFeature('group_creation') ||
-                    (!dailyLimitReached && (session.freeGroupsRemaining ?? 0) > 0) ||
-                    (session.lenDenCoins ?? 0) >= 20;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _creatingGroup || !canCreate ? null : _createGroup,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.cyan,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 4,
-                      ),
-                      child: _creatingGroup
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : Text(t('create_group_title'), style: const TextStyle(fontSize: 18, color: Colors.white)),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
+          ]),
         ),
-      ),
+      ]),
     );
   }
 }

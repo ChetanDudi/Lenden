@@ -9,7 +9,6 @@ import 'group_detail_page.dart';
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/app_widgets.dart';
-import '../../../api_config.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
@@ -19,18 +18,8 @@ import '../../../widgets/free_attempts_banner.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../utils/image_picker_utils.dart';
 import '../../../utils/community_helpers.dart';
-
-final _oidRe = RegExp(r'^[0-9a-f]{24}$');
-String _emailOf(dynamic field) {
-  if (field == null) return '-';
-  if (field is Map) {
-    final e = (field['email'] ?? '').toString();
-    return _oidRe.hasMatch(e) || e.isEmpty ? (field['name']?.toString().isNotEmpty == true ? field['name'].toString() : 'Deleted Account') : e;
-  }
-  final s = field.toString();
-  return _oidRe.hasMatch(s) ? 'Deleted Account' : s;
-}
 
 class GroupTransactionPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
@@ -504,48 +493,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     });
   }
 
-  void _showMemberDetails(Map<String, dynamic> member) {
-    final t = AppLocalizations.of(context).t;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: AppThemeColors.cardBg(context),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors
-                  .primaries[(member['email'] ?? '').toString().hashCode %
-                      Colors.primaries.length]
-                  .shade300,
-              radius: 32,
-              child: Text(
-                () {
-                  final email = (member['email'] ?? '').toString();
-                  return email.isNotEmpty ? email[0].toUpperCase() : '?';
-                }(),
-                style: TextStyle(
-                    fontSize: 32,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text((member['email'] ?? '').toString(),
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            if (member['joinedAt'] != null)
-              Text(t('joined_date_label').replaceFirst('{date}', member['joinedAt'].toString().substring(0, 10)),
-                  style: TextStyle(fontSize: 14, color: Colors.grey)),
-            if (member['leftAt'] != null)
-              Text(t('left_date_label').replaceFirst('{date}', member['leftAt'].toString().substring(0, 10)),
-                  style: TextStyle(fontSize: 14, color: Colors.red)),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showGroupDetails(Map<String, dynamic> g) {
     Navigator.push(
       context,
@@ -676,21 +623,17 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
 
     if (action == null) return;
 
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
+    final result = await ImagePickerUtils.pickAndCrop(
+      context,
       source: action == 'camera' ? ImageSource.camera : ImageSource.gallery,
-      imageQuality: 80,
-      maxWidth: 512,
-      maxHeight: 512,
     );
-    if (picked == null || !mounted) return;
+    if (result == null || !mounted) return;
 
     setState(() => _uploadingImageGroupId = gId);
     try {
-      final bytes = await picked.readAsBytes();
       final res = await ApiClient.putMultipart(
         '/api/group-transactions/$gId/image',
-        files: [ApiMultipartFile(field: 'groupImage', filename: picked.name, bytes: bytes)],
+        files: [ApiMultipartFile(field: 'groupImage', filename: result.file.name, bytes: result.bytes)],
       );
       if (res.statusCode == 200 && mounted) {
         final data = json.decode(res.body);

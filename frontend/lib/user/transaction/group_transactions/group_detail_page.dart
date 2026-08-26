@@ -19,6 +19,7 @@ import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../utils/image_picker_utils.dart';
 import '../../../widgets/share_as_note_sheet.dart';
 
 const _kCardColors = [
@@ -513,21 +514,17 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     if (action == null) return;
 
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
+    final result = await ImagePickerUtils.pickAndCrop(
+      context,
       source: action == 'camera' ? ImageSource.camera : ImageSource.gallery,
-      imageQuality: 80,
-      maxWidth: 512,
-      maxHeight: 512,
     );
-    if (picked == null || !mounted) return;
+    if (result == null || !mounted) return;
 
     setState(() => _uploadingImage = true);
     try {
-      final bytes = await picked.readAsBytes();
       final res = await ApiClient.putMultipart(
         '/api/group-transactions/${widget.groupId}/image',
-        files: [ApiMultipartFile(field: 'groupImage', filename: picked.name, bytes: bytes)],
+        files: [ApiMultipartFile(field: 'groupImage', filename: result.file.name, bytes: result.bytes)],
       );
       if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
