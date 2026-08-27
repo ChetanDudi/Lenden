@@ -8,6 +8,8 @@ import '../../widgets/app_widgets.dart';
 import '../../widgets/search_tab_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../../utils/api_client.dart';
 import '../../utils/http_interceptor.dart';
@@ -313,6 +315,14 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   }
 
   Future<List<Uint8List>> _pickAdditionalPhotos() async {
+    if (!kIsWeb) {
+      var status = await Permission.photos.status;
+      if (!status.isGranted) status = await Permission.photos.request();
+      if (!status.isGranted) {
+        if (status.isPermanentlyDenied) await openAppSettings();
+        return const [];
+      }
+    }
     final picker = ImagePicker();
     final result = await picker.pickMultiImage(
       maxWidth: 1024,

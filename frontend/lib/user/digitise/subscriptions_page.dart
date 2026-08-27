@@ -16,6 +16,7 @@ import '../../widgets/wave_widget.dart' show MediumTopWaveClipper;
 import '../support/help_support_page.dart';
 import '../support/contact_page.dart';
 import '../../utils/subscription_feature_catalog.dart';
+import '../wallet/widgets/wallet_auth_step.dart';
 import './subscription_models.dart';
 
 class SubscriptionsPage extends StatefulWidget {
@@ -51,6 +52,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   bool _isTogglingAutoRenew = false;
   bool _showRenewalSection = false;
   double _walletBalance = 0;
+  bool _hasPinSet = false;
 
   // Tracks which subscription cards have their admin-event timeline expanded
   final Set<String> _expandedHistoryIds = {};
@@ -86,7 +88,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       _fetchFaqs(),
       _fetchWalletBalance(),
       _fetchPaymentConfig(),
+      _fetchPinStatus(),
     ]);
+  }
+
+  Future<void> _fetchPinStatus() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/pin/status');
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body);
+        setState(() => _hasPinSet = data['hasPin'] == true);
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchWalletBalance() async {
@@ -601,33 +614,107 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           isError: true);
       return;
     }
-    setState(() => _isPayingViaWallet = true);
-    try {
-      final res = await ApiClient.post('/api/wallet/pay-subscription',
-          body: {'planId': plan.id});
-      if (!mounted) return;
-      setState(() => _isPayingViaWallet = false);
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        setState(() =>
-            _walletBalance = (data['balance'] ?? _walletBalance).toDouble());
-        await session.checkSubscriptionStatus();
-        await session.fetchSubscriptionHistory();
-        if (!mounted) return;
-        _showSuccessDialog();
-      } else {
-        final err = json.decode(res.body);
-        showSnack(context, err['error'] ?? t('wallet_payment_failed_message'),
-            isError: true);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isPayingViaWallet = false);
-        showSnack(context, t('error_colon_label').replaceFirst('{error}', '$e'),
-            isError: true);
-      }
-    }
+    // Show wallet auth sheet (PIN or OTP) before deducting
+    _showWalletAuthSheet(plan);
   }
+
+  void _showWalletAuthSheet(SubscriptionPlan plan) {
+    final t = AppLocalizations.of(context).t;
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    bool paying = false;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheet) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(context),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+                24, 16, 24, MediaQuery.of(sheetCtx).viewInsets.bottom + 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 48, height: 5,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Colors.orange, Colors.white, Colors.green]),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  t('pay_via_lenden_wallet_label'),
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  t('amount_to_pay_colon_label').replaceFirst(
+                      '{amount}', '₹${(plan.price * (1 - plan.discount / 100)).toStringAsFixed(2)}'),
+                  style: TextStyle(
+                      fontSize: 14, color: AppThemeColors.secondaryText(context)),
+                ),
+                const SizedBox(height: 20),
+                WalletAuthStep(
+                  hasPinSet: _hasPinSet,
+                  paying: paying,
+                  onAuthenticated: (authField, credential) async {
+                    setSheet(() => paying = true);
+                    try {
+                      final res = await ApiClient.post(
+                          '/api/wallet/pay-subscription',
+                          body: {'planId': plan.id, authField: credential});
+                      if (!mounted) return;
+                      if (res.statusCode == 200) {
+                        Navigator.pop(sheetCtx);
+                        final data = json.decode(res.body);
+                        setState(() {
+                          _walletBalance =
+                              (data['balance'] ?? _walletBalance).toDouble();
+                        });
+                        await session.checkSubscriptionStatus();
+                        await session.fetchSubscriptionHistory();
+                        if (!mounted) return;
+                        _showSuccessDialog();
+                      } else {
+                        final err = json.decode(res.body);
+                        setSheet(() => paying = false);
+                        if (mounted) {
+                          showSnack(
+                              context,
+                              err['error'] ?? t('wallet_payment_failed_message'),
+                              isError: true);
+                        }
+                      }
+                    } catch (e) {
+                      setSheet(() => paying = false);
+                      if (mounted) {
+                        showSnack(context,
+                            t('error_colon_label').replaceFirst('{error}', '$e'),
+                            isError: true);
+                      }
+                    }
+                  },
+                  onBack: () => Navigator.pop(sheetCtx),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
 
   void _showSuccessDialog() {
     final t = AppLocalizations.of(context).t;

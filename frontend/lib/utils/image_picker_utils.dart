@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,7 +17,7 @@ class ImagePickerUtils {
 
     final permission = source == ImageSource.camera
         ? Permission.camera
-        : (Platform.isAndroid ? Permission.storage : Permission.photos);
+        : Permission.photos;
 
     var status = await permission.status;
     if (status.isGranted) return true;

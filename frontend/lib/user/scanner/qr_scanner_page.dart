@@ -10,6 +10,7 @@ import '../../widgets/app_colors.dart';
 import '../../session.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
@@ -87,6 +88,14 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
   Future<void> _pickFromGallery() async {
     if (_processing) return;
+    if (!kIsWeb) {
+      var status = await Permission.photos.status;
+      if (!status.isGranted) status = await Permission.photos.request();
+      if (!status.isGranted) {
+        if (status.isPermanentlyDenied) await openAppSettings();
+        return;
+      }
+    }
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image == null || !mounted) return;
     // Do NOT set _processing or stop the controller here.

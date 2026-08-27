@@ -1821,6 +1821,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         if (mounted) {
           final giftCardAwarded = data['giftCardAwarded'] as bool?;
           final awardedCard = data['awardedCard'];
+          final skipped = (data['skippedUsers'] as List?)?.cast<Map<String, dynamic>>() ?? [];
           if (giftCardAwarded == true && awardedCard != null) {
             ElegantNotification.success(
               title: Text(t('congratulations_title')),
@@ -1830,6 +1831,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Text(t('view_label'), style: const TextStyle(color: Colors.blue)),
               ),
             ).show(context);
+          } else if (skipped.isNotEmpty) {
+            final emails = skipped.map((u) => u['email']).join(', ');
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('${skipped.length} user(s) couldn\'t be added directly ($emails) — they\'ve been notified and can join the group.'),
+              duration: const Duration(seconds: 4),
+            ));
           } else {
             ElegantNotification.success(
               title: Text(t('success')),
@@ -1929,6 +1936,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         if (mounted) {
           final giftCardAwarded = data['giftCardAwarded'] as bool?;
           final awardedCard = data['awardedCard'];
+          final skipped = (data['skippedUsers'] as List?)?.cast<Map<String, dynamic>>() ?? [];
           if (giftCardAwarded == true && awardedCard != null) {
             ElegantNotification.success(
               title: Text(t('congratulations_title')),
@@ -1938,6 +1946,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Text(t('view_label'), style: const TextStyle(color: Colors.blue)),
               ),
             ).show(context);
+          } else if (skipped.isNotEmpty) {
+            final emails = skipped.map((u) => u['email']).join(', ');
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('${skipped.length} user(s) couldn\'t be added directly ($emails) — they\'ve been notified and can join the group.'),
+              duration: const Duration(seconds: 4),
+            ));
           } else {
             ElegantNotification.success(
               title: Text(t('success')),

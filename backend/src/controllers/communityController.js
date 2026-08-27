@@ -4,9 +4,28 @@ const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
 const Subscription = require('../models/subscription');
 const AdminSettings = require('../models/adminSettings');
+const Notification = require('../models/notification');
 const { getCoinPricing } = require('../utils/coinPricing');
 
-function defaultCommunityImageUrl(name) {
+const _fallbackPool = [
+  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1574957831710-f3c2292ad6e0?w=800&fit=crop&auto=format',
+];
+
+function _idHash(id) {
+  const s = String(id || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function defaultCommunityImageUrl(name, id) {
   const n = (name || '').toLowerCase();
   const categories = [
     ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&fit=crop&auto=format', ['spirit','reiki','heal','meditat','yoga','chakra','zen','mantra','divine']],
@@ -26,7 +45,7 @@ function defaultCommunityImageUrl(name) {
   for (const [url, keywords] of categories) {
     if (keywords.some(k => n.includes(k))) return url;
   }
-  return 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&fit=crop&auto=format';
+  return _fallbackPool[_idHash(id) % _fallbackPool.length];
 }
 
 exports.createCommunity = async (req, res) => {
@@ -304,7 +323,7 @@ exports.getImage = async (req, res) => {
     const community = await Community.findById(req.params.id).select('communityImage communityImageMimeType name');
     if (!community) return res.status(404).end();
     if (!community.communityImage) {
-      return res.redirect(defaultCommunityImageUrl(community.name));
+      return res.redirect(defaultCommunityImageUrl(community.name, req.params.id));
     }
     res.set('Content-Type', community.communityImageMimeType);
     res.send(community.communityImage);
@@ -332,7 +351,25 @@ exports.addMember = async (req, res) => {
     }
 
     if (targetUser.privacySettings?.allowDirectCommunityAdd === false) {
-      return res.status(403).json({ error: 'This user has restricted direct community additions. You can share the invite code with them instead.' });
+      // Send in-app + device notification so the user can join themselves
+      try {
+        const { sendToUser } = require('../services/notificationService');
+        const inviter = await User.findById(req.user._id).select('name email');
+        const inviterName = inviter?.name || inviter?.email || 'Someone';
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User',
+          recipientType: 'specific-users', recipients: [targetUser._id], recipientModel: 'User',
+          message: `${inviterName} invited you to join the community "${community.name}".`,
+          category: 'general',
+          deliveryStatus: 'sent', sentAt: new Date(),
+        });
+        sendToUser(User, targetUser._id, {
+          title: 'Community Invite',
+          body: `${inviterName} invited you to join "${community.name}". Tap to view.`,
+          data: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
+        });
+      } catch (_) {}
+      return res.json({ notified: true, message: 'User has restricted direct additions. They have been notified and can join using the invite code.' });
     }
 
     if (community.settings.allowDirectAdd) {

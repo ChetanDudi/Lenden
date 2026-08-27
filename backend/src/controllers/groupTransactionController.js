@@ -135,6 +135,8 @@ exports.createGroupWithCoins = async (req, res) => {
     if (users.length !== filteredMemberEmails.length) {
       return res.status(400).json({ error: 'One or more members do not exist' });
     }
+    const skippedUsers = [];
+    const allowedUsers = [];
     for (const member of users) {
       if (isBlockedBy(creator, member)) {
         return res.status(403).json({
@@ -147,9 +149,9 @@ exports.createGroupWithCoins = async (req, res) => {
         });
       }
       if (member.privacySettings?.allowDirectGroupAdd === false) {
-        return res.status(403).json({
-          error: `${member.email} has restricted direct group additions. You cannot add them to a group.`,
-        });
+        skippedUsers.push(member);
+      } else {
+        allowedUsers.push(member);
       }
     }
 
@@ -175,8 +177,7 @@ exports.createGroupWithCoins = async (req, res) => {
       },
     });
 
-    const memberIds = users.map(u => u._id.toString());
-    // Always add creator as the first member
+    const memberIds = allowedUsers.map(u => u._id.toString());
     memberIds.unshift(creator._id.toString());
 
     const members = memberIds.map(id => ({ user: id }));
@@ -194,48 +195,52 @@ exports.createGroupWithCoins = async (req, res) => {
     } catch (e) {
       console.error('Referral reward processing failed (non-fatal):', e);
     }
-    // Populate members and creator for response
     const populatedGroup = await GroupTransaction.findById(group._id)
       .populate('members.user', 'email name')
       .populate('creator', 'email');
-    // Map members to include email (guard against deleted users)
     const groupObj = populatedGroup.toObject();
     groupObj.members = groupObj.members
       .filter(m => m.user != null)
-      .map(m => ({
-        _id: m.user._id,
-        email: m.user.email,
-        joinedAt: m.joinedAt,
-        leftAt: m.leftAt
-      }));
+      .map(m => ({ _id: m.user._id, email: m.user.email, joinedAt: m.joinedAt, leftAt: m.leftAt }));
     groupObj.creator = groupObj.creator
       ? { _id: groupObj.creator._id, email: groupObj.creator.email }
       : { _id: creator._id, email: creator.email };
 
-    // Award gift card every 3 group creations (guaranteed, randomized within window)
     const groupCountWithCoins = await GroupTransaction.countDocuments({ creator: creator._id });
     let awardedCardWithCoins = null;
     if (shouldAwardGiftCard(creator._id, groupCountWithCoins, 3)) {
       awardedCardWithCoins = await awardGiftCard(creator._id, 'group');
-    } else {
     }
 
-    res.status(201).json({ 
+    res.status(201).json({
         message: "Group created successfully with LenDen coins",
-        group: groupObj, 
+        group: groupObj,
         lenDenCoins: creator.lenDenCoins,
         warning: accessWarning,
         referralReward,
         giftCardAwarded: awardedCardWithCoins ? true : false,
-        awardedCard: awardedCardWithCoins
+        awardedCard: awardedCardWithCoins,
+        skippedUsers: skippedUsers.map(u => ({ email: u.email, reason: 'direct_add_restricted' })),
     });
-    
-    // Log activity for group creation - all members get notified
+
     try {
-      const creatorInfo = {
-        creatorId: creator._id,
-        creatorEmail: creator.email
-      };
+      const creatorUser = await User.findById(creator._id).select('name email');
+      const creatorName = creatorUser?.name || creatorUser?.email || 'Someone';
+      for (const skipped of skippedUsers) {
+        await Notification.create({
+          sender: creator._id, senderModel: 'User',
+          recipientType: 'specific-users', recipients: [skipped._id], recipientModel: 'User',
+          message: `${creatorName} created a group "${title}" and invited you to join.`,
+          category: 'group',
+          deliveryStatus: 'sent', sentAt: new Date(),
+        });
+        sendToUser(User, skipped._id, {
+          title: 'Group Invite',
+          body: `${creatorName} invited you to join "${title}". Tap to view.`,
+          data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: title },
+        });
+      }
+      const creatorInfo = { creatorId: creator._id, creatorEmail: creator.email };
       await logGroupActivityForAllMembers('group_created_with_coins', group, {}, null, creatorInfo);
       groupTransactionEmail.sendGroupCreatedEmail(populatedGroup, creator);
     } catch (e) {
@@ -294,6 +299,8 @@ exports.createGroup = async (req, res) => {
     if (users.length !== filteredMemberEmails.length) {
       return res.status(400).json({ error: 'One or more members do not exist' });
     }
+    const skippedUsers = [];
+    const allowedUsers = [];
     for (const member of users) {
       if (isBlockedBy(creator, member)) {
         return res.status(403).json({
@@ -306,14 +313,13 @@ exports.createGroup = async (req, res) => {
         });
       }
       if (member.privacySettings?.allowDirectGroupAdd === false) {
-        return res.status(403).json({
-          error: `${member.email} has restricted direct group additions. You cannot add them to a group.`,
-        });
+        skippedUsers.push(member);
+      } else {
+        allowedUsers.push(member);
       }
     }
 
-    const memberIds = users.map(u => u._id.toString());
-    // Always add creator as the first member
+    const memberIds = allowedUsers.map(u => u._id.toString());
     memberIds.unshift(creator._id.toString());
 
     const members = memberIds.map(id => ({ user: id }));
@@ -332,42 +338,31 @@ exports.createGroup = async (req, res) => {
       console.error('Referral reward processing failed (non-fatal):', e);
     }
 
-    // freeGroupsRemaining is handled by the `handleUsage('group')` middleware
-    // so we avoid decrementing it again here to prevent double-counting.
-
-    // Populate members and creator for response
     const populatedGroup = await GroupTransaction.findById(group._id)
       .populate('members.user', 'email name')
       .populate('creator', 'email');
-    // Map members to include email (guard against deleted users)
     const groupObj = populatedGroup.toObject();
     groupObj.members = groupObj.members
       .filter(m => m.user != null)
-      .map(m => ({
-        _id: m.user._id,
-        email: m.user.email,
-        joinedAt: m.joinedAt,
-        leftAt: m.leftAt
-      }));
+      .map(m => ({ _id: m.user._id, email: m.user.email, joinedAt: m.joinedAt, leftAt: m.leftAt }));
     groupObj.creator = groupObj.creator
       ? { _id: groupObj.creator._id, email: groupObj.creator.email }
       : { _id: creator._id, email: creator.email };
 
-    // Award gift card every 3 group creations (guaranteed, randomized within window)
     const groupCount = await GroupTransaction.countDocuments({ creator: creator._id });
     let awardedCard = null;
     if (shouldAwardGiftCard(creator._id, groupCount, 3)) {
       awardedCard = await awardGiftCard(creator._id, 'group');
-    } else {
     }
 
-    res.status(201).json({ 
+    res.status(201).json({
         message: "Group created successfully",
-        group: groupObj, 
+        group: groupObj,
         freeGroupsRemaining: creator.freeGroupsRemaining,
         referralReward,
         giftCardAwarded: awardedCard ? true : false,
-        awardedCard: awardedCard
+        awardedCard: awardedCard,
+        skippedUsers: skippedUsers.map(u => ({ email: u.email, reason: 'direct_add_restricted' })),
     });
     
     // Log activity for group creation - all members get notified
@@ -379,9 +374,9 @@ exports.createGroup = async (req, res) => {
       await logGroupActivityForAllMembers('group_created', group, {}, null, creatorInfo);
       groupTransactionEmail.sendGroupCreatedEmail(populatedGroup, creator);
 
-      // Notify invited members (everyone except the creator)
-      if (users.length > 0) {
-        const eligibleIds = users.map(u => u._id);
+      // Notify added members
+      if (allowedUsers.length > 0) {
+        const eligibleIds = allowedUsers.map(u => u._id);
         const eligible = await User.find({ _id: { $in: eligibleIds }, 'notificationSettings.groupNotifications': { $ne: false } }).select('_id');
         if (eligible.length > 0) {
           await Notification.create(eligible.map(u => ({
@@ -389,8 +384,25 @@ exports.createGroup = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${creator.email} added you to the group "${title}".`,
           })));
-          eligible.forEach(u => sendToUser(User, u._id, { title: 'Added to Group 👥', body: `${creator.email} added you to the group "${title}".`, data: { type: 'group_created' } }));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Added to Group', body: `${creator.email} added you to the group "${title}".`, data: { type: 'group_created' } }));
         }
+      }
+      // Notify skipped users — they have direct-add restricted but are invited to join
+      const creatorUser = await User.findById(creator._id).select('name email');
+      const creatorName = creatorUser?.name || creatorUser?.email || 'Someone';
+      for (const skipped of skippedUsers) {
+        await Notification.create({
+          sender: creator._id, senderModel: 'User',
+          recipientType: 'specific-users', recipients: [skipped._id], recipientModel: 'User',
+          message: `${creatorName} created a group "${title}" and invited you to join.`,
+          category: 'group',
+          deliveryStatus: 'sent', sentAt: new Date(),
+        });
+        sendToUser(User, skipped._id, {
+          title: 'Group Invite',
+          body: `${creatorName} invited you to join "${title}". Tap to view.`,
+          data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: title },
+        });
       }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
@@ -1031,9 +1043,7 @@ exports.getUserGroups = async (req, res) => {
           _id: obj._id,
           title: obj.title,
           description: obj.description || '',
-          groupImageUrl: obj.groupImage
-            ? `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image?v=${new Date(obj.updatedAt).getTime()}`
-            : null,
+          groupImageUrl: `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image?v=${obj.groupImage ? new Date(obj.updatedAt).getTime() : '0'}`,
           creator: obj.creator
             ? { _id: obj.creator._id, email: obj.creator.email }
             : null,
@@ -1286,13 +1296,32 @@ exports.uploadGroupImage = async (req, res) => {
   }
 };
 
+const _groupFallbackPool = [
+  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1574957831710-f3c2292ad6e0?w=800&fit=crop&auto=format',
+  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&fit=crop&auto=format',
+];
+
+function _groupIdHash(id) {
+  const s = String(id || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
 exports.getGroupImage = async (req, res) => {
   try {
     const group = await GroupTransaction.findById(req.params.groupId).select(
       'groupImage groupImageMimeType'
     );
-    if (!group || !group.groupImage) {
-      return res.status(404).send('Not found');
+    if (!group) return res.status(404).send('Not found');
+    if (!group.groupImage) {
+      return res.redirect(_groupFallbackPool[_groupIdHash(req.params.groupId) % _groupFallbackPool.length]);
     }
     res.set('Content-Type', group.groupImageMimeType || 'image/jpeg');
     res.send(group.groupImage);
