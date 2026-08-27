@@ -251,6 +251,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       final response = await ApiClient.post(
           '/api/transactions/send-partial-payment-otp',
           body: {'email': email});
+      if (!mounted) return;
       if (response.statusCode == 200) {
         setState(() {
           if (isLender) {
@@ -269,7 +270,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to send OTP', isError: true);
+        _showMessage(data?['error'] ?? 'Failed to send OTP', isError: true);
         setState(() {
           if (isLender) {
             isSendingLenderOtp = false;
@@ -279,6 +280,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       _showMessage('Network error: ${e.toString()}', isError: true);
       setState(() {
         if (isLender) {
@@ -314,6 +316,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             'otp': otp,
             'transactionId': widget.transaction['transactionId'],
           });
+      if (!mounted) return;
       if (response.statusCode == 200) {
         setState(() {
           if (isLender) {
@@ -328,7 +331,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to verify OTP', isError: true);
+        _showMessage(data?['error'] ?? 'Failed to verify OTP', isError: true);
         setState(() {
           if (isLender) {
             isVerifyingLenderOtp = false;
@@ -338,6 +341,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       _showMessage('Network error: ${e.toString()}', isError: true);
       setState(() {
         if (isLender) {
@@ -419,9 +423,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
         _showMessage(errMsg, isError: true);
       }
     } catch (e) {
-      _showMessage('Network error: ${e.toString()}', isError: true);
+      if (mounted) _showMessage('Network error: ${e.toString()}', isError: true);
     } finally {
-      setState(() => isProcessing = false);
+      if (mounted) setState(() => isProcessing = false);
     }
   }
 

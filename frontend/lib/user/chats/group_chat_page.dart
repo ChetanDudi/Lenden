@@ -870,8 +870,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
                                             (_extractMemberId(m) ??
                                                 _memberDisplayName(m)) ==
                                             key,
+                                        orElse: () => null,
                                       );
-                                      return '@${_memberDisplayName(member)} ';
+                                      return member != null ? '@${_memberDisplayName(member)} ' : '';
                                     }).join();
                                   }
                                   final current = _messageController.text;

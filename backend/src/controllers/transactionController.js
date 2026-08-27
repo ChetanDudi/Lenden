@@ -326,10 +326,10 @@ exports.generateReceipt = async (req, res) => {
 };
 
 exports.createTransactionWithCoins = async (req, res) => {
-  const pricing = await getCoinPricing();
-  const TRANSACTION_COST = pricing.secureTransactionCost;
-  const USER_TRANSACTION_DAILY_LIMIT = 2;
   try {
+    const pricing = await getCoinPricing();
+    const TRANSACTION_COST = pricing.secureTransactionCost;
+    const USER_TRANSACTION_DAILY_LIMIT = 2;
     const {
       amount,
       currency,
@@ -535,13 +535,9 @@ exports.createTransactionWithCoins = async (req, res) => {
       referralReward
     });
 
-    // Send receipt emails to both parties (fire and forget)
-    try {
-      sendTransactionReceipt(userEmail, transaction, counterpartyEmail);
-      sendTransactionReceipt(counterpartyEmail, transaction, userEmail);
-    } catch (e) {
-      console.error('Failed to send transaction receipt:', e);
-    }
+    // Send receipt emails to both parties (fire and forget — after response)
+    sendTransactionReceipt(userEmail, transaction, counterpartyEmail).catch(e => console.error('Failed to send transaction receipt:', e));
+    sendTransactionReceipt(counterpartyEmail, transaction, userEmail).catch(e => console.error('Failed to send transaction receipt:', e));
   } catch (err) {
     res.status(500).json({ error: 'Failed to create transaction' });
   }
@@ -734,13 +730,9 @@ exports.createTransaction = async (req, res) => {
       awardedCard: awardedCard
     });
 
-    // Send receipt emails to both parties (fire and forget)
-    try {
-      sendTransactionReceipt(userEmail, transaction, counterpartyEmail);
-      sendTransactionReceipt(counterpartyEmail, transaction, userEmail);
-    } catch (e) {
-      console.error('Failed to send transaction receipt:', e);
-    }
+    // Send receipt emails to both parties (fire and forget — after response)
+    sendTransactionReceipt(userEmail, transaction, counterpartyEmail).catch(e => console.error('Failed to send transaction receipt:', e));
+    sendTransactionReceipt(counterpartyEmail, transaction, userEmail).catch(e => console.error('Failed to send transaction receipt:', e));
   } catch (err) {
     res.status(500).json({ error: 'Failed to create transaction' });
   }

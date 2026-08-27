@@ -305,15 +305,16 @@ exports.getAllSubscriptions = async (req, res) => {
 // GET /admin/personal-budget/users — list users who have personal budgets
 exports.getPersonalBudgetUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const parsedPage = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const parsedLimit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (parsedPage - 1) * parsedLimit;
 
     const [grouped, total] = await Promise.all([
       PersonalBudget.aggregate([
         { $group: { _id: '$user', count: { $sum: 1 }, latest: { $max: '$createdAt' }, activeCount: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } } } },
         { $sort: { latest: -1 } },
         { $skip: skip },
-        { $limit: parseInt(limit, 10) },
+        { $limit: parsedLimit },
         { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
         { $unwind: '$user' },
         { $project: { userId: '$_id', name: '$user.name', email: '$user.email', count: 1, activeCount: 1, latest: 1 } },
@@ -321,7 +322,7 @@ exports.getPersonalBudgetUsers = async (req, res) => {
       PersonalBudget.distinct('user').then(ids => ids.length),
     ]);
 
-    res.json({ rows: grouped, total, page: parseInt(page, 10), pages: Math.ceil(total / parseInt(limit, 10)) });
+    res.json({ rows: grouped, total, page: parsedPage, pages: Math.ceil(total / parsedLimit) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

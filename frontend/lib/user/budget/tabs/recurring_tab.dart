@@ -243,7 +243,7 @@ class _RecurringTabState extends State<RecurringTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) {
-          final catMeta = _categories.firstWhere((c) => c.$1 == selectedCat);
+          final catMeta = _categories.firstWhere((c) => c.$1 == selectedCat, orElse: () => _categories.last);
           return Dialog(
             insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

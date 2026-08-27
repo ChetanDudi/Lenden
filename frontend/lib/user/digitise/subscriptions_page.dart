@@ -266,7 +266,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       return;
     }
 
-    final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
+    final planList = _plans.where((p) => p.name == _selectedPlan);
+    if (planList.isEmpty) return;
+    final plan = planList.first;
     _showManualPaymentSheet(plan);
   }
 
@@ -603,7 +605,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       showSnack(context, t('please_login_to_subscribe_message'), isError: true);
       return;
     }
-    final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
+    final planList = _plans.where((p) => p.name == _selectedPlan);
+    if (planList.isEmpty) return;
+    final plan = planList.first;
     final actualPrice = plan.price * (1 - plan.discount / 100);
     if (_walletBalance < actualPrice) {
       showSnack(

@@ -196,17 +196,19 @@ exports.initiateWithdrawal = async (req, res) => {
   } catch (err) {
     if (withdrawal) {
       try {
-        await User.findByIdAndUpdate(req.user._id, { $inc: { walletBalance: parsedAmount } });
-        await WalletTransaction.create({
-          user: req.user._id,
-          type: 'credit',
-          amount: parsedAmount,
-          note: 'Withdrawal failed — auto refund',
-          sourceType: 'withdrawal',
-        });
-        await WithdrawalRequest.findByIdAndUpdate(withdrawal._id, {
-          status: 'failed',
-          failureReason: err.message,
+        await session.withTransaction(async () => {
+          await User.findByIdAndUpdate(req.user._id, { $inc: { walletBalance: parsedAmount } }, { session });
+          await WalletTransaction.create([{
+            user: req.user._id,
+            type: 'credit',
+            amount: parsedAmount,
+            note: 'Withdrawal failed — auto refund',
+            sourceType: 'withdrawal',
+          }], { session });
+          await WithdrawalRequest.findByIdAndUpdate(withdrawal._id, {
+            status: 'failed',
+            failureReason: err.message,
+          }, { session });
         });
       } catch (refundErr) {
         console.error('[Withdrawal] Auto-refund failed — manual intervention needed:', refundErr);

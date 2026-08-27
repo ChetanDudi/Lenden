@@ -35,6 +35,7 @@ exports.createQuickTransaction = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id).select('email blockedUsers');
+    if (!user) return res.status(404).json({ error: 'User not found' });
     const userEmail = user.email;
 
     let counterparty = null;
@@ -147,6 +148,7 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
     const user = await User.findById(req.user._id).select(
       'email blockedUsers lenDenCoins freeQuickTransactionsRemaining'
     );
+    if (!user) return res.status(404).json({ error: 'User not found' });
     const userEmail = user.email;
 
     let counterparty = null;
