@@ -33,6 +33,22 @@ exports.sendWalletTransactionAuthOTP = async (to, otp, username) => {
   });
 };
 
+exports.sendSubscriptionPaymentOTP = async (to, otp, username) => {
+  return sendEmail({
+    to,
+    subject: 'LenDen – Subscription Payment Authorisation',
+    text: `Your OTP to authorise the subscription payment on LenDen is: ${otp}\nThis code expires in 2 minutes. If you did not initiate this, please ignore this email.`,
+    html: shell(`
+        <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Subscription Payment Authorisation</p>
+        <p style="margin:0 0 16px;">Dear ${username},</p>
+        <p style="margin:0 0 16px;">You are about to pay for a LenDen Premium subscription using your LenDen Wallet. Enter the verification code below in the app to authorise and complete the payment.</p>
+        ${otpBlock(otp)}
+        <p style="margin:0 0 8px;">Do not share this code with anyone. LenDen will never ask for your OTP.</p>
+        ${alertBox('If you did not request a subscription, do not share this code. No money has been deducted yet.', 'error')}
+      `),
+  });
+};
+
 exports.sendWalletPayOTP = async (to, otp, username) => {
   return sendEmail({
     to,

@@ -7,7 +7,7 @@ const SubscriptionPlan = require('../models/subscriptionPlan');
 const Subscription = require('../models/subscription');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const Admin = require('../models/admin');
-const { sendWalletPayOTP, sendWalletPinSetupOTP, sendWalletTransactionAuthOTP } = require('../utils/email/walletPayOtp');
+const { sendWalletPayOTP, sendWalletPinSetupOTP, sendWalletTransactionAuthOTP, sendSubscriptionPaymentOTP } = require('../utils/email/walletPayOtp');
 const Notification = require('../models/notification');
 const { sendToUser } = require('../services/notificationService');
 const { createActivityLog } = require('./activityController');
@@ -487,6 +487,50 @@ exports.sendWalletAuthOtp = async (req, res) => {
     await user.save();
 
     await sendWalletTransactionAuthOTP(user.email, otp, user.name);
+    res.json({ message: 'OTP sent to your registered email', email: user.email });
+  } catch (err) {
+    handleRouteError(res, err);
+  }
+};
+
+// OTP for subscription payment — same rate-limit / storage as sendWalletAuthOtp
+// but sends a subscription-specific email so users aren't confused.
+exports.sendSubscriptionAuthOtp = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const now = new Date();
+
+    if (user.walletPayOTP?.sentAt) {
+      const elapsed = (now - new Date(user.walletPayOTP.sentAt)) / 1000;
+      if (elapsed < 60) {
+        return res.status(429).json({
+          error: `Please wait ${Math.ceil(60 - elapsed)} seconds before requesting another OTP.`,
+        });
+      }
+    }
+
+    const windowStart = user.walletPayOTP?.windowStart;
+    const withinWindow = windowStart && (now - new Date(windowStart)) < 60 * 60 * 1000;
+    const attemptCount = withinWindow ? (user.walletPayOTP.attemptCount || 0) : 0;
+    if (attemptCount >= 5) {
+      return res.status(429).json({ error: 'Too many OTP requests. Please try again later.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+
+    user.walletPayOTP = {
+      code: otp,
+      expiry: otpExpiry,
+      sentAt: now,
+      attemptCount: attemptCount + 1,
+      windowStart: withinWindow ? windowStart : now,
+    };
+    await user.save();
+
+    await sendSubscriptionPaymentOTP(user.email, otp, user.name);
     res.json({ message: 'OTP sent to your registered email', email: user.email });
   } catch (err) {
     handleRouteError(res, err);

@@ -436,7 +436,29 @@ exports.addMember = async (req, res) => {
 
     // Respect target user's group-add privacy setting only for genuinely new adds
     if (user.privacySettings?.allowDirectGroupAdd === false) {
-      return res.status(403).json({ error: 'This user has restricted direct group additions. You can share an invite link with them instead.' });
+      // Add to pendingInvites if not already there
+      if (!group.pendingInvites.some(i => i.email === user.email.toLowerCase())) {
+        group.pendingInvites.push({ email: user.email.toLowerCase(), invitedBy: req.user._id });
+        await group.save();
+      }
+      // In-app notification
+      try {
+        const inviter = await User.findById(req.user._id).select('name email');
+        const inviterName = inviter?.name || inviter?.email || 'Someone';
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User',
+          recipientType: 'specific-users', recipients: [user._id], recipientModel: 'User',
+          title: 'Group Invite',
+          message: `${inviterName} invited you to join "${group.title}". Use code ${group.joinCode ?? 'shared by admin'} to join.`,
+          category: 'group', deliveryStatus: 'sent', sentAt: new Date(),
+        });
+        sendToUser(User, user._id, {
+          title: 'Group Invite 👥',
+          body: `${inviterName} invited you to join "${group.title}". Tap to view.`,
+          data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: group.title },
+        });
+      } catch (_) {}
+      return res.json({ notified: true, message: 'User has restricted direct group additions. An invite notification has been sent — they can join using the group code.' });
     }
     
     // Check if user was previously removed and handle re-adding
@@ -1074,6 +1096,7 @@ exports.getUserGroups = async (req, res) => {
           userStatus,
           userPendingBalance: Number(userPendingBalance.toFixed(2)),
           joinCode: obj.joinCode || null,
+          pendingInvites: (obj.pendingInvites || []).map(i => ({ email: i.email, invitedAt: i.invitedAt })),
         };
       })
     );
@@ -2717,6 +2740,9 @@ exports.joinByCode = async (req, res) => {
     if (!group.balances.find(b => b.user.toString() === req.user._id.toString())) {
       group.balances.push({ user: req.user._id, balance: 0 });
     }
+
+    // Clear any pending invite for this user's email
+    group.pendingInvites = (group.pendingInvites || []).filter(i => i.email !== userEmail.toLowerCase());
 
     await group.save();
     res.json({ success: true, group });

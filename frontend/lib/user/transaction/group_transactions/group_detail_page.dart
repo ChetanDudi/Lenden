@@ -1534,6 +1534,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                                 userEmail: _userEmail ?? '',
                                 creatorEmail: _emailOf(_group['creator']),
                                 initialMembers: members,
+                                initialPendingInvites: List<dynamic>.from(_group['pendingInvites'] ?? []),
                               ),
                             ),
                           );
@@ -1601,6 +1602,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                                 userEmail: _userEmail ?? '',
                                 creatorEmail: _emailOf(_group['creator']),
                                 initialMembers: members,
+                                initialPendingInvites: List<dynamic>.from(_group['pendingInvites'] ?? []),
                                 openAddMember: true,
                               ),
                             ),

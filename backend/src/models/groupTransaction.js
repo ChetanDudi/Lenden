@@ -1,5 +1,11 @@
 const mongoose = require('mongoose');
 
+const pendingGroupInviteSchema = new mongoose.Schema({
+  email: { type: String, required: true, lowercase: true, trim: true },
+  invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  invitedAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const groupTransactionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -48,6 +54,7 @@ const groupTransactionSchema = new mongoose.Schema({
     paidAt: { type: Date, default: Date.now },
   }],
   joinCode: { type: String },
+  pendingInvites: [pendingGroupInviteSchema],
   communityIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
   favourite: [{ type: String }], // Array of user emails
   messageCounts: [{

@@ -213,32 +213,128 @@ exports.addGroupToCommunity = async (req, res) => {
     const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
     if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
 
-    const { groupId } = req.body;
-    const group = await GroupTransaction.findById(groupId);
-    if (!group) return res.status(404).json({ error: 'Group not found' });
+    // Accept single groupId or array of groupIds
+    const rawIds = req.body.groupIds ?? (req.body.groupId ? [req.body.groupId] : []);
+    if (!rawIds.length) return res.status(400).json({ error: 'No groups specified' });
 
-    // Link group ↔ community
-    const gidStr = group._id.toString();
-    if (!community.groups.map(g => g.toString()).includes(gidStr)) {
-      community.groups.push(group._id);
-    }
-    if (!group.communityIds.map(id => id.toString()).includes(req.params.id)) {
-      group.communityIds.push(community._id);
-      await group.save();
-    }
-
-    // Auto-add active group members who aren't already in the community
     const existingMemberIds = new Set(community.members.map(m => m.user.toString()));
-    const activeGroupMembers = group.members.filter(m => !m.leftAt);
-    for (const gm of activeGroupMembers) {
-      if (!existingMemberIds.has(gm.user.toString())) {
+    const communityGroupIds = new Set(community.groups.map(g => g.toString()));
+    const communityIdStr = req.params.id;
+    const skippedUsers = [];
+
+    for (const groupId of rawIds) {
+      const group = await GroupTransaction.findById(groupId);
+      if (!group) continue;
+
+      // Link group ↔ community
+      if (!communityGroupIds.has(group._id.toString())) {
+        community.groups.push(group._id);
+        communityGroupIds.add(group._id.toString());
+      }
+      if (!group.communityIds.map(id => id.toString()).includes(communityIdStr)) {
+        group.communityIds.push(community._id);
+        await group.save();
+      }
+
+      // Auto-add active group members who aren't already in the community,
+      // but skip those who have restricted direct community adds.
+      const activeGroupMembers = group.members.filter(m => !m.leftAt);
+      const userIds = activeGroupMembers.map(m => m.user);
+      const users = await User.find({ _id: { $in: userIds } }).select('_id privacySettings');
+      const privacyMap = new Map(users.map(u => [u._id.toString(), u]));
+
+      for (const gm of activeGroupMembers) {
+        const uidStr = gm.user.toString();
+        if (existingMemberIds.has(uidStr)) continue;
+        const user = privacyMap.get(uidStr);
+        if (user?.privacySettings?.allowDirectCommunityAdd === false) {
+          skippedUsers.push(uidStr);
+          continue;
+        }
         community.members.push({ user: gm.user, role: 'member', invitedBy: req.user._id });
-        existingMemberIds.add(gm.user.toString());
+        existingMemberIds.add(uidStr);
       }
     }
 
     await community.save();
+    res.json({ success: true, skippedCount: skippedUsers.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Leave community (self) or admin removes a member
+exports.removeMember = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    const requesterId = req.user._id.toString();
+    const targetId = req.params.userId;
+    const isSelf = requesterId === targetId;
+    const requester = community.members.find(m => m.user.toString() === requesterId);
+    if (!requester) return res.status(403).json({ error: 'Not a member' });
+
+    if (!isSelf && requester.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    // Last admin cannot leave without transferring first
+    if (isSelf && requester.role === 'admin') {
+      const otherAdmins = community.members.filter(m => m.user.toString() !== requesterId && m.role === 'admin');
+      if (otherAdmins.length === 0) {
+        return res.status(400).json({ error: 'Transfer admin to another member before leaving' });
+      }
+    }
+
+    community.members = community.members.filter(m => m.user.toString() !== targetId);
+    await community.save();
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Change a member's role (admin only) — use to promote or transfer admin
+exports.changeMemberRole = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    const { role } = req.body;
+    if (!['admin', 'member'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+
+    const target = community.members.find(m => m.user.toString() === req.params.userId);
+    if (!target) return res.status(404).json({ error: 'Member not found' });
+
+    target.role = role;
+    await community.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Regenerate invite code (admin only) — invalidates old code
+exports.regenerateInviteCode = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    let newCode;
+    do {
+      newCode = require('crypto').randomBytes(3).toString('hex').toUpperCase();
+    } while (await Community.findOne({ inviteCode: newCode }));
+
+    community.inviteCode = newCode;
+    await community.save();
+    res.json({ inviteCode: newCode });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -250,9 +346,76 @@ exports.removeGroupFromCommunity = async (req, res) => {
     if (!community) return res.status(404).json({ error: 'Community not found' });
     const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
     if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
-    await Community.findByIdAndUpdate(req.params.id, { $pull: { groups: req.params.groupId } });
+
+    const group = await GroupTransaction.findById(req.params.groupId);
+    if (!group) {
+      // Group already gone — just unlink
+      await Community.findByIdAndUpdate(req.params.id, { $pull: { groups: req.params.groupId } });
+      return res.json({ success: true, removedMembers: 0 });
+    }
+
+    // Members to potentially remove: active members of this group
+    const groupMemberIds = new Set(
+      group.members.filter(m => !m.leftAt).map(m => m.user.toString())
+    );
+    const groupCreatorId = group.createdBy?.toString() ?? group.members[0]?.user?.toString();
+
+    // Members to keep: community admins + group creator + members in OTHER community groups
+    const remainingGroupIds = community.groups
+      .map(g => g.toString())
+      .filter(gid => gid !== req.params.groupId);
+
+    let keepIds = new Set();
+
+    // Keep community admins
+    for (const m of community.members) {
+      if (m.role === 'admin') keepIds.add(m.user.toString());
+    }
+    // Keep group creator
+    if (groupCreatorId) keepIds.add(groupCreatorId);
+
+    // Keep anyone who is also active in another community group
+    if (remainingGroupIds.length > 0) {
+      const otherGroups = await GroupTransaction.find({ _id: { $in: remainingGroupIds } }).select('members');
+      for (const og of otherGroups) {
+        for (const m of og.members) {
+          if (!m.leftAt) keepIds.add(m.user.toString());
+        }
+      }
+    }
+
+    // Remove group members not in keepIds
+    const toRemove = [...groupMemberIds].filter(uid => !keepIds.has(uid));
+    community.members = community.members.filter(m => !toRemove.includes(m.user.toString()));
+    community.groups = community.groups.filter(g => g.toString() !== req.params.groupId);
+    await community.save();
+
     await GroupTransaction.findByIdAndUpdate(req.params.groupId, { $pull: { communityIds: req.params.id } });
-    res.json({ success: true });
+
+    res.json({ success: true, removedMembers: toRemove.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Bulk-remove multiple members (admin only)
+exports.removeMembersBulk = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    const userIds = Array.isArray(req.body.userIds) ? req.body.userIds.map(String) : [];
+    if (!userIds.length) return res.status(400).json({ error: 'No users specified' });
+
+    // Cannot remove self this way; cannot remove other admins unless there's another
+    const selfId = req.user._id.toString();
+    const filtered = userIds.filter(uid => uid !== selfId);
+
+    community.members = community.members.filter(m => !filtered.includes(m.user.toString()));
+    await community.save();
+    res.json({ success: true, removedCount: filtered.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -359,8 +522,9 @@ exports.addMember = async (req, res) => {
         await Notification.create({
           sender: req.user._id, senderModel: 'User',
           recipientType: 'specific-users', recipients: [targetUser._id], recipientModel: 'User',
-          message: `${inviterName} invited you to join the community "${community.name}".`,
-          category: 'general',
+          title: 'Community Invite',
+          message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
+          category: 'community',
           deliveryStatus: 'sent', sentAt: new Date(),
         });
         sendToUser(User, targetUser._id, {
@@ -469,11 +633,27 @@ exports.deleteCommunity = async (req, res) => {
 
 // ── Community Feed ────────────────────────────────────────────────────────────
 
+const POPULATE_POST = [
+  { path: 'author', select: 'name email username' },
+  { path: 'comments.author', select: 'name username' },
+];
+
 function _fmtPost(post, uid) {
   const p = post.toObject ? post.toObject() : { ...post };
   p.likesCount = Array.isArray(p.likes) ? p.likes.length : 0;
   p.likedByMe = Array.isArray(p.likes) ? p.likes.some(id => id.toString() === uid) : false;
   delete p.likes;
+  // Format poll: expose voteCounts + whether this user voted on each option
+  if (p.poll?.options) {
+    const totalVotes = p.poll.options.reduce((s, o) => s + (o.votes?.length ?? 0), 0);
+    p.poll.totalVotes = totalVotes;
+    p.poll.options = p.poll.options.map(opt => ({
+      _id: opt._id,
+      text: opt.text,
+      voteCount: opt.votes?.length ?? 0,
+      votedByMe: (opt.votes ?? []).some(v => v.toString() === uid),
+    }));
+  }
   return p;
 }
 
@@ -481,19 +661,122 @@ exports.createPost = async (req, res) => {
   try {
     const community = await Community.findById(req.params.id).select('members');
     if (!community) return res.status(404).json({ error: 'Community not found' });
-    const isMember = community.members.some(m => m.user.toString() === req.user._id.toString());
-    if (!isMember) return res.status(403).json({ error: 'Members only' });
+    const member = community.members.find(m => m.user.toString() === req.user._id.toString());
+    if (!member) return res.status(403).json({ error: 'Members only' });
 
-    const { text } = req.body;
+    const { text, type = 'text', dueDate, amount, pollOptions } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: 'Post text is required' });
     if (text.trim().length > 1000) return res.status(400).json({ error: 'Post cannot exceed 1000 characters' });
 
-    const post = await CommunityPost.create({ community: req.params.id, author: req.user._id, text: text.trim() });
-    await post.populate([
-      { path: 'author', select: 'name email username' },
-      { path: 'comments.author', select: 'name username' },
-    ]);
+    // Announcements are admin-only
+    if (type === 'announcement' && member.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can post announcements' });
+    }
+
+    const postData = { community: req.params.id, author: req.user._id, text: text.trim(), type };
+
+    if (type === 'reminder') {
+      if (dueDate) postData.dueDate = new Date(dueDate);
+      const parsedAmount = parseFloat(amount);
+      if (!isNaN(parsedAmount) && parsedAmount > 0) postData.amount = parsedAmount;
+    }
+
+    if (type === 'poll') {
+      const opts = Array.isArray(pollOptions)
+        ? pollOptions.map(t => t?.toString().trim()).filter(Boolean)
+        : [];
+      if (opts.length < 2) return res.status(400).json({ error: 'Poll requires at least 2 options' });
+      postData.poll = { options: opts.slice(0, 6).map(t => ({ text: t, votes: [] })) };
+    }
+
+    const post = await CommunityPost.create(postData);
+    await post.populate(POPULATE_POST);
     res.status(201).json({ post: _fmtPost(post, req.user._id.toString()) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Edit text or toggle pin
+exports.updatePost = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const community = await Community.findById(post.community).select('members');
+    const member = community?.members.find(m => m.user.toString() === req.user._id.toString());
+    const isAdmin = member?.role === 'admin';
+    const isAuthor = post.author.toString() === req.user._id.toString();
+
+    const { text, isPinned } = req.body;
+
+    // Edit text — author only, text/announcement/reminder posts
+    if (text !== undefined) {
+      if (!isAuthor) return res.status(403).json({ error: 'Only the author can edit' });
+      if (post.type === 'poll') return res.status(400).json({ error: 'Poll posts cannot be edited' });
+      if (!text.trim()) return res.status(400).json({ error: 'Text cannot be empty' });
+      post.text = text.trim();
+    }
+
+    // Pin / unpin — admin only
+    if (isPinned !== undefined) {
+      if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+      // Unpin any currently pinned post in this community first
+      if (isPinned) {
+        await CommunityPost.updateMany({ community: post.community, isPinned: true }, { isPinned: false });
+      }
+      post.isPinned = !!isPinned;
+    }
+
+    await post.save();
+    await post.populate(POPULATE_POST);
+    res.json({ post: _fmtPost(post, req.user._id.toString()) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// Vote on a poll option (toggles — vote again to unvote)
+exports.votePoll = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    if (post.type !== 'poll') return res.status(400).json({ error: 'Not a poll post' });
+
+    const community = await Community.findById(post.community).select('members');
+    const isMember = community?.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ error: 'Members only' });
+
+    const { optionId } = req.body;
+    const uid = req.user._id.toString();
+
+    const target = post.poll.options.id(optionId);
+    if (!target) return res.status(404).json({ error: 'Option not found' });
+
+    // Check if user already voted on this option (toggle = unvote)
+    const alreadyVotedTarget = target.votes.some(v => v.toString() === uid);
+
+    // Remove user's vote from all options
+    for (const opt of post.poll.options) {
+      opt.votes = opt.votes.filter(v => v.toString() !== uid);
+    }
+
+    // Re-add only if it wasn't a toggle-off
+    if (!alreadyVotedTarget) {
+      target.votes.push(req.user._id);
+    }
+
+    await post.save();
+    const uid2 = uid;
+    const totalVotes = post.poll.options.reduce((s, o) => s + o.votes.length, 0);
+    res.json({
+      totalVotes,
+      options: post.poll.options.map(opt => ({
+        _id: opt._id,
+        voteCount: opt.votes.length,
+        votedByMe: opt.votes.some(v => v.toString() === uid2),
+      })),
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -508,18 +791,28 @@ exports.getPosts = async (req, res) => {
 
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const before = req.query.before;
-    const query = { community: req.params.id };
+    const uid = req.user._id.toString();
+
+    // Pinned post always leads on the first page (no cursor)
+    let pinnedPosts = [];
+    if (!before) {
+      pinnedPosts = await CommunityPost.find({ community: req.params.id, isPinned: true })
+        .populate(POPULATE_POST).lean();
+    }
+
+    const query = { community: req.params.id, isPinned: { $ne: true } };
     if (before) query.createdAt = { $lt: new Date(before) };
 
     const posts = await CommunityPost.find(query)
       .sort({ createdAt: -1 })
       .limit(limit + 1)
-      .populate('author', 'name email username')
-      .populate('comments.author', 'name username');
+      .populate(POPULATE_POST);
 
     const hasMore = posts.length > limit;
-    const uid = req.user._id.toString();
-    res.json({ posts: posts.slice(0, limit).map(p => _fmtPost(p, uid)), hasMore });
+    const regular = posts.slice(0, limit).map(p => _fmtPost(p, uid));
+    const pinned = pinnedPosts.map(p => _fmtPost(p, uid));
+
+    res.json({ posts: [...pinned, ...regular], hasMore });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -536,7 +829,7 @@ exports.getFeed = async (req, res) => {
     if (before) query.createdAt = { $lt: new Date(before) };
 
     const posts = await CommunityPost.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ isPinned: -1, createdAt: -1 })
       .limit(limit + 1)
       .populate('author', 'name email username')
       .populate('community', 'name color')

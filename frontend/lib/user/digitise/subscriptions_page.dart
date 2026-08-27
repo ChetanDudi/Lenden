@@ -672,6 +672,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                 WalletAuthStep(
                   hasPinSet: _hasPinSet,
                   paying: paying,
+                  otpEndpoint: '/api/wallet/auth/send-subscription-otp',
                   onAuthenticated: (authField, credential) async {
                     setSheet(() => paying = true);
                     try {

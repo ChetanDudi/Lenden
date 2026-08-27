@@ -16,6 +16,8 @@ class WalletAuthStep extends StatefulWidget {
   final bool paying;
   final void Function(String authField, String credential) onAuthenticated;
   final VoidCallback onBack;
+  /// Override the OTP send endpoint. Defaults to the generic wallet-auth OTP.
+  final String otpEndpoint;
 
   const WalletAuthStep({
     super.key,
@@ -23,6 +25,7 @@ class WalletAuthStep extends StatefulWidget {
     required this.onAuthenticated,
     required this.onBack,
     this.paying = false,
+    this.otpEndpoint = '/api/wallet/auth/send-otp',
   });
 
   @override
@@ -79,7 +82,7 @@ class _WalletAuthStepState extends State<WalletAuthStep> {
       _error = null;
     });
     try {
-      final res = await ApiClient.post('/api/wallet/auth/send-otp', body: {});
+      final res = await ApiClient.post(widget.otpEndpoint, body: {});
       if (!mounted) return;
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);

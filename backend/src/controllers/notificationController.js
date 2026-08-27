@@ -181,7 +181,7 @@ exports.createNotification = async (req, res) => {
     } = await resolveRecipients({
       recipientType,
       recipients: safeRecipients,
-      requirePush: true,
+      requirePush: false,
     });
 
     if (invalidRecipients.length > 0) {

@@ -104,7 +104,7 @@ class ApiClient {
           break;
         case 'DELETE':
           resp = await _client
-              .delete(uri, headers: headers)
+              .delete(uri, headers: headers, body: body != null ? jsonEncode(body) : null)
               .timeout(effectiveTimeout, onTimeout: _onTimeout);
           break;
         default:
@@ -167,7 +167,7 @@ class ApiClient {
             break;
           case 'DELETE':
             resp = await _client
-                .delete(uri, headers: retryHeaders)
+                .delete(uri, headers: retryHeaders, body: body != null ? jsonEncode(body) : null)
                 .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
         }
@@ -235,8 +235,8 @@ class ApiClient {
   }
 
   static Future<http.Response> delete(String path,
-      {Map<String, String>? headers, Duration? timeout}) {
-    return _request('DELETE', path, extraHeaders: headers, timeout: timeout);
+      {Map<String, dynamic>? body, Map<String, String>? headers, Duration? timeout}) {
+    return _request('DELETE', path, body: body, extraHeaders: headers, timeout: timeout);
   }
 
   static Future<http.Response> postMultipart(

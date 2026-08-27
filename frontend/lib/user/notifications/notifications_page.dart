@@ -33,7 +33,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   int _unreadCount = 0;
 
   static const List<String> _tabCategories = [
-    'all', 'friend', 'transaction', 'group', 'offer', 'system', 'subscription', 'update', 'general',
+    'all', 'friend', 'transaction', 'group', 'community', 'offer', 'system', 'subscription', 'update', 'general',
   ];
 
   String t(String key) => AppLocalizations.of(context).t(key);
@@ -44,6 +44,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       case 'offer':       return t('offers');
       case 'transaction': return t('transactions');
       case 'group':       return t('groups');
+      case 'community':   return 'Community';
       case 'system':      return 'System';
       case 'subscription': return 'Premium';
       case 'update':      return t('updates_tab_label');
@@ -55,7 +56,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabCategories.length, vsync: this);
+    _tabController = TabController(length: _tabCategories.length, vsync: this); // 10 tabs
     _fetchNotifications();
     _fetchFriendRequests();
     _markNotificationsAsRead();
@@ -226,6 +227,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     final combined = '$title $message';
 
     if (combined.contains('friend') || combined.contains('request') || combined.contains('follow')) return 'friend';
+    if (combined.contains('community') || combined.contains('invite') || combined.contains('invite code') || combined.contains('joined the community')) return 'community';
     if (combined.contains('subscri') || combined.contains('premium') || combined.contains('plan') || combined.contains('upgrade')) return 'subscription';
     if (combined.contains('new version') || combined.contains('app update') ||
         combined.contains('whats new') || combined.contains("what's new") ||
@@ -897,6 +899,12 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           accent: const Color(0xFF283593),
           icon: Icons.groups_rounded,
           label: 'Group',
+        );
+      case 'community':
+        return _NotifTheme(
+          accent: const Color(0xFF00897B),
+          icon: Icons.hub_rounded,
+          label: 'Community',
         );
       case 'system':
         return _NotifTheme(

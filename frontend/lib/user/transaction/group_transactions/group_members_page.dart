@@ -65,6 +65,7 @@ class GroupMembersPage extends StatefulWidget {
   final String userEmail;
   final String creatorEmail;
   final List<dynamic> initialMembers;
+  final List<dynamic> initialPendingInvites;
   final bool openAddMember;
 
   const GroupMembersPage({
@@ -75,6 +76,7 @@ class GroupMembersPage extends StatefulWidget {
     required this.userEmail,
     required this.creatorEmail,
     required this.initialMembers,
+    this.initialPendingInvites = const [],
     this.openAddMember = false,
   });
 
@@ -84,6 +86,7 @@ class GroupMembersPage extends StatefulWidget {
 
 class _GroupMembersPageState extends State<GroupMembersPage> {
   late List<dynamic> _members;
+  late List<dynamic> _pendingInvites;
   bool _loading = false;
   String? _error;
   String _filter = 'active';
@@ -94,6 +97,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   void initState() {
     super.initState();
     _members = List<dynamic>.from(widget.initialMembers);
+    _pendingInvites = List<dynamic>.from(widget.initialPendingInvites);
     if (widget.openAddMember) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _showAddMemberSheet());
     }
@@ -128,8 +132,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           orElse: () => <String, dynamic>{},
         );
         if (group.isNotEmpty && mounted) {
-          setState(() =>
-              _members = List<dynamic>.from(group['members'] ?? []));
+          setState(() {
+            _members = List<dynamic>.from(group['members'] ?? []);
+            _pendingInvites = List<dynamic>.from(group['pendingInvites'] ?? []);
+          });
         }
       } else {
         if (mounted) setState(() => _error = 'Failed to load members. Please try again.');
@@ -150,13 +156,85 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     final t = AppLocalizations.of(context).t;
     final body = jsonDecode(res.body);
     if (res.statusCode == 200 || res.statusCode == 201) {
-      if (!silent) {
+      if (body['notified'] == true) {
+        _refresh();
+        _showGroupRestrictedSheet(email, widget.groupTitle);
+      } else if (!silent) {
         _showSnack(t('member_added_message'), success: true);
         _refresh();
       }
     } else {
       _showError(body['error'] ?? t('failed_to_add_member_message'));
     }
+  }
+
+  void _showGroupRestrictedSheet(String email, String groupTitle) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.lock_person_rounded, color: Color(0xFFFF9800), size: 32),
+          ),
+          const SizedBox(height: 14),
+          Text('Direct Add Restricted', style: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.bold,
+            color: AppThemeColors.primaryText(ctx),
+          )),
+          const SizedBox(height: 6),
+          Text(email, style: TextStyle(fontSize: 13, color: AppThemeColors.mutedText(ctx))),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [
+                Icon(Icons.notifications_active_rounded, color: Color(0xFFFF9800), size: 16),
+                SizedBox(width: 8),
+                Text('Invite Sent Automatically',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                'This user has restricted direct group additions. An in-app notification and device push have been sent — they can join "$groupTitle" using the group join code.',
+                style: TextStyle(fontSize: 12.5, color: AppThemeColors.secondaryText(ctx), height: 1.5),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.cyan, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Got it', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 
   Future<void> _removeMember(String email) async {
@@ -769,7 +847,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           Expanded(
             child: _error != null
                 ? errorStateWidget(context, _error!, _refresh)
-                : filtered.isEmpty
+                : filtered.isEmpty && _pendingInvites.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -785,8 +863,66 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + (_pendingInvites.isNotEmpty ? _pendingInvites.length + 1 : 0),
                     itemBuilder: (_, i) {
+                      // Pending invites section header + rows
+                      if (_pendingInvites.isNotEmpty && i == filtered.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 4),
+                          child: Row(children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF9800).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.mail_outline_rounded, color: Color(0xFFFF9800), size: 13),
+                                const SizedBox(width: 5),
+                                Text('Invited (${_pendingInvites.length})',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                              ]),
+                            ),
+                          ]),
+                        );
+                      }
+                      if (_pendingInvites.isNotEmpty && i > filtered.length) {
+                        final inv = _pendingInvites[i - filtered.length - 1] as Map<String, dynamic>;
+                        final invEmail = (inv['email'] ?? '').toString();
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF9800).withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+                          ),
+                          child: Row(children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xFFFF9800).withValues(alpha: 0.15),
+                              child: Text(invEmail.isNotEmpty ? invEmail[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Color(0xFFFF9800), fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(invEmail, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                                color: AppThemeColors.primaryText(context)), overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 2),
+                              const Text('Invite sent · awaiting', style: TextStyle(fontSize: 11, color: Color(0xFFFF9800), fontWeight: FontWeight.w500)),
+                            ])),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF9800).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text('Invited', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                            ),
+                          ]),
+                        );
+                      }
+                      // Normal member rows
                       final m = filtered[i] as Map<String, dynamic>;
                       final email = (m['email'] != null
                               ? m['email'].toString()

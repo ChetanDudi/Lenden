@@ -34,12 +34,15 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   List<Map<String, dynamic>> _groupBalances = [];
   bool _loadingBalance = false;
 
+  // Members selection (bulk remove)
+  bool _memberSelectMode = false;
+  final Set<String> _selectedMemberIds = {};
+
   // Feed
   List<Map<String, dynamic>> _posts = [];
   bool _feedLoading = false;
   bool _hasMorePosts = false;
   bool _loadingMorePosts = false;
-  final _postCtrl = TextEditingController();
   bool _posting = false;
 
   @override
@@ -54,7 +57,6 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   @override
   void dispose() {
     _tabController.dispose();
-    _postCtrl.dispose();
     super.dispose();
   }
 
@@ -94,25 +96,412 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     }
   }
 
-  Future<void> _submitPost(Color color) async {
-    final text = _postCtrl.text.trim();
-    if (text.isEmpty) { _showSnack(AppLocalizations.of(context).t('post_text_empty'), icon: Icons.warning_rounded); return; }
+  Future<void> _submitPost(Map<String, dynamic> body) async {
     setState(() => _posting = true);
     try {
-      final res = await ApiClient.post('/api/communities/${widget.communityId}/posts', body: {'text': text});
+      final res = await ApiClient.post('/api/communities/${widget.communityId}/posts', body: body);
       if (res.statusCode == 201 && mounted) {
         final data = jsonDecode(res.body);
-        _postCtrl.clear();
         _showSnack(AppLocalizations.of(context).t('post_published'), icon: Icons.check_circle_rounded);
         if (data['post'] != null) {
           setState(() => _posts = [Map<String, dynamic>.from(data['post']), ..._posts]);
         } else {
           _loadPosts();
         }
+      } else if (mounted) {
+        final d = jsonDecode(res.body);
+        _showSnack(d['error'] ?? 'Failed to post', isError: true);
       }
     } catch (_) {} finally {
       if (mounted) setState(() => _posting = false);
     }
+  }
+
+  Future<void> _votePoll(String postId, String optionId, bool wasVotedOnTarget) async {
+    final idx = _posts.indexWhere((p) => p['_id'].toString() == postId);
+    if (idx == -1) return;
+    try {
+      final res = await ApiClient.post(
+        '/api/communities/${widget.communityId}/posts/$postId/vote',
+        body: {'optionId': optionId},
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        final i = _posts.indexWhere((p) => p['_id'].toString() == postId);
+        if (i == -1) return;
+        final updatedOptions = (data['options'] as List).map((o) => Map<String, dynamic>.from(o as Map)).toList();
+        final existing = List<Map<String, dynamic>>.from(_posts[i]['poll']['options']);
+        for (int j = 0; j < existing.length; j++) {
+          final match = updatedOptions.firstWhere((o) => o['_id'].toString() == existing[j]['_id'].toString(), orElse: () => <String, dynamic>{});
+          if (match.isNotEmpty) {
+            existing[j] = {...existing[j], ...match};
+          }
+        }
+        setState(() {
+          _posts[i] = {
+            ..._posts[i],
+            'poll': {...(_posts[i]['poll'] as Map), 'options': existing, 'totalVotes': data['totalVotes']},
+          };
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _pinPost(String postId, bool pin) async {
+    try {
+      final res = await ApiClient.patch(
+        '/api/communities/${widget.communityId}/posts/$postId',
+        body: {'isPinned': pin},
+      );
+      if (res.statusCode == 200 && mounted) {
+        final updated = Map<String, dynamic>.from(jsonDecode(res.body)['post'] as Map);
+        setState(() {
+          if (pin) {
+            for (int i = 0; i < _posts.length; i++) {
+              if (_posts[i]['isPinned'] == true) _posts[i] = {..._posts[i], 'isPinned': false};
+            }
+          }
+          final idx = _posts.indexWhere((p) => p['_id'].toString() == postId);
+          if (idx != -1) _posts[idx] = updated;
+          if (pin && idx > 0) {
+            final pinned = _posts.removeAt(idx);
+            _posts.insert(0, pinned);
+          }
+        });
+        _showSnack(pin ? 'Post pinned' : 'Post unpinned', icon: Icons.push_pin_rounded);
+      }
+    } catch (_) {}
+  }
+
+  void _showEditPostSheet(Map<String, dynamic> post) {
+    final editCtrl = TextEditingController(text: (post['text'] ?? '').toString());
+    bool saving = false;
+    final postId = post['_id'].toString();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(ctx),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Center(child: Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 14),
+              Text('Edit Post', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppThemeColors.primaryText(ctx))),
+              const SizedBox(height: 14),
+              TextField(
+                controller: editCtrl,
+                maxLines: 5, minLines: 2, maxLength: 1000,
+                style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Edit your post…',
+                  hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 13)),
+                  onPressed: saving ? null : () async {
+                    final newText = editCtrl.text.trim();
+                    if (newText.isEmpty) return;
+                    setSheet(() => saving = true);
+                    try {
+                      final res = await ApiClient.patch(
+                        '/api/communities/${widget.communityId}/posts/$postId',
+                        body: {'text': newText},
+                      );
+                      if (res.statusCode == 200 && mounted) {
+                        final updated = Map<String, dynamic>.from(jsonDecode(res.body)['post'] as Map);
+                        final idx = _posts.indexWhere((p) => p['_id'].toString() == postId);
+                        if (idx != -1) setState(() => _posts[idx] = updated);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      } else {
+                        setSheet(() => saving = false);
+                      }
+                    } catch (_) { setSheet(() => saving = false); }
+                  },
+                  child: saving
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    ).whenComplete(() => editCtrl.dispose());
+  }
+
+  void _showNewPostSheet(Color color) {
+    String selectedType = 'text';
+    final textCtrl = TextEditingController();
+    DateTime? dueDate;
+    final amountCtrl = TextEditingController();
+    final List<TextEditingController> pollCtrls = [TextEditingController(), TextEditingController()];
+    bool posting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final types = <String, Map<String, dynamic>>{
+            'text': {'label': 'Text', 'icon': Icons.notes_rounded, 'color': AppColors.cyan},
+            if (_isAdmin) 'announcement': {'label': 'Announce', 'icon': Icons.campaign_rounded, 'color': const Color(0xFFFF9800)},
+            'reminder': {'label': 'Reminder', 'icon': Icons.alarm_rounded, 'color': const Color(0xFF8B5CF6)},
+            'poll': {'label': 'Poll', 'icon': Icons.poll_rounded, 'color': const Color(0xFF10B981)},
+          };
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(child: Container(width: 36, height: 4,
+                    decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 14),
+
+                  // Type selector chips
+                  SizedBox(
+                    height: 38,
+                    child: ListView(scrollDirection: Axis.horizontal, children: types.entries.map((e) {
+                      final sel = selectedType == e.key;
+                      final tc = e.value['color'] as Color;
+                      return GestureDetector(
+                        onTap: () => setSheet(() => selectedType = e.key),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: sel ? tc : AppThemeColors.surfaceBg(ctx),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: sel ? tc : AppThemeColors.border(ctx)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(e.value['icon'] as IconData, size: 14, color: sel ? Colors.white : tc),
+                            const SizedBox(width: 5),
+                            Text(e.value['label'] as String,
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
+                                color: sel ? Colors.white : AppThemeColors.primaryText(ctx))),
+                          ]),
+                        ),
+                      );
+                    }).toList()),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Announcement notice
+                  if (selectedType == 'announcement') ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF9800).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.campaign_rounded, color: Color(0xFFFF9800), size: 16),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text('Announcements are pinnable and visible at the top of the feed.',
+                          style: TextStyle(fontSize: 11.5, color: AppThemeColors.secondaryText(ctx)))),
+                      ]),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // Text field (always shown)
+                  TextField(
+                    controller: textCtrl,
+                    maxLines: selectedType == 'poll' ? 2 : 4,
+                    minLines: 2,
+                    maxLength: 1000,
+                    style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: selectedType == 'reminder'
+                        ? 'Describe what needs to be paid…'
+                        : selectedType == 'poll'
+                          ? 'What are you deciding on?'
+                          : selectedType == 'announcement'
+                            ? 'Write your announcement…'
+                            : 'Share something with the community…',
+                      hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 13),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: types[selectedType]!['color'] as Color)),
+                      contentPadding: const EdgeInsets.all(12),
+                      counterText: '',
+                    ),
+                  ),
+
+                  // Reminder extras
+                  if (selectedType == 'reminder') ...[
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: dueDate ?? DateTime.now().add(const Duration(days: 7)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) setSheet(() => dueDate = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.surfaceBg(ctx),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: dueDate != null
+                                ? const Color(0xFF8B5CF6).withValues(alpha: 0.5)
+                                : AppThemeColors.border(ctx)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF8B5CF6)),
+                              const SizedBox(width: 8),
+                              Text(dueDate != null
+                                ? 'Due: ${dueDate!.day}/${dueDate!.month}/${dueDate!.year}'
+                                : 'Due date (optional)',
+                                style: TextStyle(fontSize: 13, color: dueDate != null
+                                  ? AppThemeColors.primaryText(ctx) : AppThemeColors.mutedText(ctx))),
+                            ]),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: amountCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: 'Amount (₹)',
+                            hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                            prefixText: '₹ ',
+                            prefixStyle: const TextStyle(color: Color(0xFF8B5CF6), fontWeight: FontWeight.bold),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ],
+
+                  // Poll options
+                  if (selectedType == 'poll') ...[
+                    const SizedBox(height: 12),
+                    ...List.generate(pollCtrls.length, (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: pollCtrls[i],
+                            maxLength: 200,
+                            style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: 'Option ${i + 1}',
+                              hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              counterText: '',
+                            ),
+                          ),
+                        ),
+                        if (i >= 2) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => setSheet(() => pollCtrls.removeAt(i)),
+                            child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.red, size: 22),
+                          ),
+                        ],
+                      ]),
+                    )),
+                    if (pollCtrls.length < 6)
+                      GestureDetector(
+                        onTap: () => setSheet(() => pollCtrls.add(TextEditingController())),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(children: [
+                            const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF10B981), size: 18),
+                            const SizedBox(width: 6),
+                            Text('Add option', style: TextStyle(color: AppThemeColors.secondaryText(ctx), fontSize: 13)),
+                          ]),
+                        ),
+                      ),
+                  ],
+
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: types[selectedType]!['color'] as Color,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      onPressed: posting ? null : () async {
+                        final text = textCtrl.text.trim();
+                        if (text.isEmpty) return;
+                        if (selectedType == 'poll') {
+                          final opts = pollCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+                          if (opts.length < 2) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text('Add at least 2 poll options')));
+                            return;
+                          }
+                        }
+                        setSheet(() => posting = true);
+                        final body = <String, dynamic>{'text': text, 'type': selectedType};
+                        if (selectedType == 'reminder') {
+                          if (dueDate != null) body['dueDate'] = dueDate!.toIso8601String();
+                          final amt = double.tryParse(amountCtrl.text.trim());
+                          if (amt != null && amt > 0) body['amount'] = amt;
+                        }
+                        if (selectedType == 'poll') {
+                          body['pollOptions'] = pollCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _submitPost(body);
+                      },
+                      child: posting
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text('Post', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          );
+        },
+      ),
+    ).whenComplete(() {
+      textCtrl.dispose();
+      amountCtrl.dispose();
+      for (final c in pollCtrls) c.dispose();
+    });
   }
 
   Future<void> _toggleLike(Map<String, dynamic> post) async {
@@ -380,6 +769,13 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     return me?['role']?.toString() == 'admin';
   }
 
+  bool get _isMember {
+    final members = (_community['members'] as List?) ?? [];
+    return members.any((m) => (m['user'] is Map ? (m['user'] as Map)['_id'] : m['user'])?.toString() == _uid);
+  }
+
+  void _loadCommunity() => _load();
+
   Color get _communityColor => _parseColor(_community['color']);
   String get _name => (_community['name'] ?? 'Community').toString();
   String get _inviteCode => (_community['inviteCode'] ?? '').toString();
@@ -401,7 +797,6 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   }
 
   Future<void> _addGroupToCommunity() async {
-    // Load user's groups that are not already in this community
     List<Map<String, dynamic>> available = [];
     try {
       final res = await ApiClient.get('/api/group-transactions/user-groups');
@@ -419,70 +814,142 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
       return;
     }
 
+    final Set<String> selected = {};
+
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(ctx),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Center(child: Container(width: 40, height: 4,
-            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Row(children: [
-            Container(width: 40, height: 40,
-              decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 20)),
-            const SizedBox(width: 12),
-            Text(AppLocalizations.of(ctx).t('add_group_to_community_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
-          ]),
-          const SizedBox(height: 16),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.45),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: available.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (_, i) {
-                final g = available[i];
-                final gId = (g['_id'] ?? '').toString();
-                final gName = (g['title'] ?? '').toString();
-                final gColor = _parseColor(g['color']);
-                return GestureDetector(
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    try {
-                      final r = await ApiClient.post('/api/communities/${widget.communityId}/groups', body: {'groupId': gId});
-                      if (r.statusCode == 200) { _load(); _showSnack(AppLocalizations.of(context).t('group_added_community_snack'), icon: Icons.check_rounded); }
-                      else { _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true); }
-                    } catch (e) { _showSnack(e.toString(), isError: true); }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppThemeColors.surfaceBg(ctx),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: gColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(children: [
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final color = _communityColor;
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.88,
+            expand: false,
+            builder: (ctx2, scrollCtrl) => Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx2),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: Column(children: [
+                    Center(child: Container(width: 40, height: 4,
+                      decoration: BoxDecoration(color: AppThemeColors.divider(ctx2), borderRadius: BorderRadius.circular(2)))),
+                    const SizedBox(height: 14),
+                    Row(children: [
                       Container(width: 38, height: 38,
-                        decoration: BoxDecoration(color: gColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                        child: Center(child: Text(gName.isNotEmpty ? gName[0].toUpperCase() : 'G',
-                          style: TextStyle(color: gColor, fontWeight: FontWeight.bold, fontSize: 16)))),
+                        decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]), borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.playlist_add_rounded, color: Colors.white, size: 20)),
                       const SizedBox(width: 12),
-                      Expanded(child: Text(gName, style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx)))),
-                      Icon(Icons.add_circle_outline_rounded, color: AppColors.cyan, size: 20),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Add Groups', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx2))),
+                        Text('Select one or more groups', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx2))),
+                      ])),
+                      if (selected.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                          child: Text('${selected.length} selected', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+                        ),
                     ]),
+                  ]),
+                ),
+                Divider(height: 1, color: AppThemeColors.divider(ctx2)),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    itemCount: available.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final g = available[i];
+                      final gId = (g['_id'] ?? '').toString();
+                      final gName = (g['title'] ?? '').toString();
+                      final gColor = _parseColor(g['color']);
+                      final isSelected = selected.contains(gId);
+                      return GestureDetector(
+                        onTap: () => setSheet(() {
+                          if (isSelected) selected.remove(gId); else selected.add(gId);
+                        }),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected ? color.withValues(alpha: 0.07) : AppThemeColors.surfaceBg(ctx2),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected ? color : gColor.withValues(alpha: 0.3),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(children: [
+                            Container(width: 38, height: 38,
+                              decoration: BoxDecoration(color: gColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                              child: Center(child: Text(gName.isNotEmpty ? gName[0].toUpperCase() : 'G',
+                                style: TextStyle(color: gColor, fontWeight: FontWeight.bold, fontSize: 16)))),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(gName, style: TextStyle(fontWeight: FontWeight.w600,
+                              color: AppThemeColors.primaryText(ctx2)))),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 150),
+                              child: isSelected
+                                ? Icon(Icons.check_circle_rounded, color: color, size: 22, key: const ValueKey('checked'))
+                                : Icon(Icons.radio_button_unchecked_rounded, color: AppThemeColors.mutedText(ctx2), size: 22, key: const ValueKey('unchecked')),
+                            ),
+                          ]),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(ctx2).padding.bottom + 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: selected.isEmpty ? null : () async {
+                        Navigator.pop(ctx);
+                        try {
+                          final r = await ApiClient.post(
+                            '/api/communities/${widget.communityId}/groups',
+                            body: {'groupIds': selected.toList()},
+                          );
+                          if (r.statusCode == 200 && mounted) {
+                            _load();
+                            final d = jsonDecode(r.body);
+                            final skipped = (d['skippedCount'] ?? 0) as int;
+                            final addedMsg = selected.length == 1 ? 'Group added' : '${selected.length} groups added';
+                            if (skipped > 0) {
+                              _showSkippedMembersSheet(addedMsg, skipped);
+                            } else {
+                              _showSnack(addedMsg, icon: Icons.check_rounded);
+                            }
+                          } else if (mounted) {
+                            _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true);
+                          }
+                        } catch (e) { if (mounted) _showSnack(e.toString(), isError: true); }
+                      },
+                      child: Text(
+                        selected.isEmpty ? 'Select groups to add' : 'Add ${selected.length} group${selected.length == 1 ? "" : "s"}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
             ),
-          ),
-        ]),
+          );
+        },
       ),
     );
   }
@@ -805,112 +1272,313 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   void _showSettings() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (ctx2, scrollCtrl) => Container(
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(ctx2),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(children: [
+            // Drag handle + title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+              child: Column(children: [
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx2), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Text('Community Settings', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx2))),
+              ]),
+            ),
+            Divider(height: 1, color: AppThemeColors.divider(ctx2)),
+            // Scrollable content
+            Expanded(
+              child: ListView(
+                controller: scrollCtrl,
+                padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(ctx2).padding.bottom + 32),
+                children: [
+                  // ── General ─────────────────────────────────────────────
+                  _settingsSectionLabel(ctx2, 'General'),
+                  const SizedBox(height: 8),
+                  _settingsRow(ctx2, Icons.camera_alt_rounded, const Color(0xFF00897B), 'Change Photo', () {
+                    Navigator.pop(ctx);
+                    _pickAndUploadImage();
+                  }),
+                  const SizedBox(height: 8),
+                  _settingsRow(ctx2, Icons.edit_rounded, const Color(0xFF8B5CF6), 'Edit Community', () {
+                    Navigator.pop(ctx);
+                    _showEditCommunity();
+                  }),
+
+                  const SizedBox(height: 20),
+                  // ── Invite ───────────────────────────────────────────────
+                  _settingsSectionLabel(ctx2, 'Invite'),
+                  const SizedBox(height: 8),
+                  _settingsRow(ctx2, Icons.copy_rounded, AppColors.cyan, 'Copy Invite Code', () {
+                    Clipboard.setData(ClipboardData(text: _inviteCode));
+                    Navigator.pop(ctx);
+                    _showSnack('Invite code copied', icon: Icons.copy_rounded);
+                  }),
+                  const SizedBox(height: 8),
+                  _settingsRow(ctx2, Icons.refresh_rounded, const Color(0xFFFF9800), 'Regenerate Invite Code', () async {
+                    Navigator.pop(ctx);
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (d) => AlertDialog(
+                        backgroundColor: AppThemeColors.cardBg(d),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        title: Text('Regenerate Invite Code', style: TextStyle(color: AppThemeColors.primaryText(d), fontWeight: FontWeight.bold)),
+                        content: Text('The old invite code will stop working. Members who haven\'t joined yet will need the new code.',
+                          style: TextStyle(color: AppThemeColors.secondaryText(d))),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                          ElevatedButton(onPressed: () => Navigator.pop(d, true),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF9800), foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                            child: const Text('Regenerate')),
+                        ],
+                      ),
+                    );
+                    if (confirm == true && mounted) {
+                      try {
+                        final r = await ApiClient.post('/api/communities/${widget.communityId}/invite/regenerate', body: {});
+                        if (r.statusCode == 200 && mounted) {
+                          final newCode = jsonDecode(r.body)['inviteCode'] as String;
+                          setState(() => _community['inviteCode'] = newCode);
+                          _showSnack('New invite code: $newCode', icon: Icons.refresh_rounded);
+                        } else if (mounted) {
+                          _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true);
+                        }
+                      } catch (e) { if (mounted) _showSnack(e.toString(), isError: true); }
+                    }
+                  }),
+
+                  const SizedBox(height: 20),
+                  // ── Admin ────────────────────────────────────────────────
+                  _settingsSectionLabel(ctx2, 'Admin'),
+                  const SizedBox(height: 8),
+                  _settingsRow(ctx2, Icons.admin_panel_settings_rounded, const Color(0xFF3F51B5), 'Transfer Admin', () async {
+                    Navigator.pop(ctx);
+                    _showTransferAdminSheet();
+                  }),
+
+                  const SizedBox(height: 20),
+                  // ── Danger ───────────────────────────────────────────────
+                  _settingsSectionLabel(ctx2, 'Danger Zone'),
+                  const SizedBox(height: 8),
+                  _settingsRow(ctx2, Icons.delete_rounded, Colors.red, 'Delete Community', () async {
+                    Navigator.pop(ctx);
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (d) => AlertDialog(
+                        backgroundColor: AppThemeColors.cardBg(d),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        title: Text(AppLocalizations.of(d).t('delete_community_confirm_title'),
+                          style: TextStyle(color: AppThemeColors.primaryText(d), fontWeight: FontWeight.bold)),
+                        content: Text(AppLocalizations.of(d).t('delete_community_confirm_body'),
+                          style: TextStyle(color: AppThemeColors.secondaryText(d))),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(AppLocalizations.of(d).t('cancel'))),
+                          ElevatedButton(onPressed: () => Navigator.pop(d, true),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                            child: Text(AppLocalizations.of(d).t('delete'))),
+                        ],
+                      ),
+                    );
+                    if (confirm == true && mounted) {
+                      try {
+                        final r = await ApiClient.delete('/api/communities/${widget.communityId}');
+                        if (r.statusCode == 200) { if (mounted) Navigator.pop(context); }
+                        else if (mounted) { _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true); }
+                      } catch (e) { if (mounted) _showSnack(e.toString(), isError: true); }
+                    }
+                  }, isDestructive: true),
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // Settings sheet for non-admin members (Leave only)
+  void _showMemberSettings() {
+    showModalBottomSheet(
+      context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
           color: AppThemeColors.cardBg(ctx),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(ctx).padding.bottom + 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Center(child: Container(width: 40, height: 4,
             decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 14),
+          Text('Options', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
           const SizedBox(height: 16),
-          Text(AppLocalizations.of(ctx).t('community_settings_title'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
-          const SizedBox(height: 16),
-          _settingsRow(ctx, Icons.copy_rounded, AppColors.cyan, AppLocalizations.of(ctx).t('copy_invite_code_label'), () {
-            Clipboard.setData(ClipboardData(text: _inviteCode));
-            Navigator.pop(ctx);
-            _showSnack(AppLocalizations.of(context).t('invite_code_copied_snack'), icon: Icons.copy_rounded);
-          }),
-          const SizedBox(height: 8),
-          // Allow direct add toggle
-          StatefulBuilder(
-            builder: (ctx2, setSt) {
-              final allowDirect = (_community['settings'] as Map?)?['allowDirectAdd'] as bool? ?? true;
-              return GestureDetector(
-                onTap: () async {
-                  final newVal = !allowDirect;
-                  try {
-                    final r = await ApiClient.patch('/api/communities/${widget.communityId}',
-                      body: {'settings': {'allowDirectAdd': newVal}});
-                    if (r.statusCode == 200) {
-                      setState(() {
-                        final s = Map<String, dynamic>.from((_community['settings'] as Map?) ?? {});
-                        s['allowDirectAdd'] = newVal;
-                        _community['settings'] = s;
-                      });
-                      setSt(() {});
-                    }
-                  } catch (_) {}
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.surfaceBg(ctx2),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppThemeColors.border(ctx2)),
-                  ),
-                  child: Row(children: [
-                    Container(width: 36, height: 36,
-                      decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.person_add_rounded, color: AppColors.cyan, size: 18)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(AppLocalizations.of(ctx2).t('allow_direct_add_label'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
-                      Text(allowDirect ? AppLocalizations.of(ctx2).t('allow_direct_add_on_desc') : AppLocalizations.of(ctx2).t('allow_direct_add_off_desc'),
-                        style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx2))),
-                    ])),
-                    Switch(
-                      value: allowDirect,
-                      onChanged: null,
-                      activeColor: AppColors.cyan,
-                    ),
-                  ]),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          _settingsRow(ctx, Icons.camera_alt_rounded, const Color(0xFF00897B), AppLocalizations.of(ctx).t('upload_photo_label'), () {
-            Navigator.pop(ctx);
-            _pickAndUploadImage();
-          }),
-          const SizedBox(height: 8),
-          _settingsRow(ctx, Icons.edit_rounded, const Color(0xFF8B5CF6), AppLocalizations.of(ctx).t('edit_community_label'), () {
-            Navigator.pop(ctx);
-            _showEditCommunity();
-          }),
-          const SizedBox(height: 8),
-          _settingsRow(ctx, Icons.delete_rounded, Colors.red, AppLocalizations.of(ctx).t('delete_community_label'), () async {
+          _settingsRow(ctx, Icons.exit_to_app_rounded, Colors.red, 'Leave Community', () async {
             Navigator.pop(ctx);
             final confirm = await showDialog<bool>(
               context: context,
               builder: (d) => AlertDialog(
                 backgroundColor: AppThemeColors.cardBg(d),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: Text(AppLocalizations.of(d).t('delete_community_confirm_title'), style: TextStyle(color: AppThemeColors.primaryText(d), fontWeight: FontWeight.bold)),
-                content: Text(AppLocalizations.of(d).t('delete_community_confirm_body'),
+                title: Text('Leave Community', style: TextStyle(color: AppThemeColors.primaryText(d), fontWeight: FontWeight.bold)),
+                content: Text('Are you sure you want to leave "${_name}"?',
                   style: TextStyle(color: AppThemeColors.secondaryText(d))),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(d, false), child: Text(AppLocalizations.of(d).t('cancel'))),
+                  TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
                   ElevatedButton(onPressed: () => Navigator.pop(d, true),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                    child: Text(AppLocalizations.of(d).t('delete'))),
+                    child: const Text('Leave')),
                 ],
               ),
             );
-            if (confirm == true) {
+            if (confirm == true && mounted) {
               try {
-                final r = await ApiClient.delete('/api/communities/${widget.communityId}');
+                final r = await ApiClient.delete('/api/communities/${widget.communityId}/members/$_uid');
                 if (r.statusCode == 200) { if (mounted) Navigator.pop(context); }
-                else { _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true); }
-              } catch (e) { _showSnack(e.toString(), isError: true); }
+                else if (mounted) { _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true); }
+              } catch (e) { if (mounted) _showSnack(e.toString(), isError: true); }
             }
           }, isDestructive: true),
         ]),
       ),
+    );
+  }
+
+  void _showTransferAdminSheet() {
+    final others = _members.where((m) {
+      final userId = (m['user'] is Map ? (m['user'] as Map)['_id'] : m['user'])?.toString() ?? '';
+      return userId != _uid;
+    }).toList();
+
+    if (others.isEmpty) {
+      _showSnack('No other members to transfer admin to', isError: true);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.35,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (ctx2, scrollCtrl) => Container(
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(ctx2),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+              child: Column(children: [
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx2), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Text('Transfer Admin', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx2))),
+                const SizedBox(height: 4),
+                Text('Choose a member to become the new admin', style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx2))),
+              ]),
+            ),
+            Divider(height: 1, color: AppThemeColors.divider(ctx2)),
+            Expanded(
+              child: ListView.separated(
+                controller: scrollCtrl,
+                padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx2).padding.bottom + 24),
+                itemCount: others.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) {
+                  final m = others[i];
+                  final user = m['user'] is Map ? m['user'] as Map : <String, dynamic>{};
+                  final name = (user['name'] ?? user['email'] ?? 'Member').toString();
+                  final initials = name.isNotEmpty ? name[0].toUpperCase() : 'M';
+                  final targetId = (user['_id'] ?? m['user'])?.toString() ?? '';
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _communityColor.withValues(alpha: 0.15),
+                      child: Text(initials, style: TextStyle(color: _communityColor, fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text(name, style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
+                    subtitle: Text((user['email'] ?? '').toString(), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx2))),
+                    trailing: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (d) => AlertDialog(
+                            backgroundColor: AppThemeColors.cardBg(d),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: Text('Transfer Admin', style: TextStyle(color: AppThemeColors.primaryText(d), fontWeight: FontWeight.bold)),
+                            content: Text('Make $name the admin? You\'ll become a regular member.',
+                              style: TextStyle(color: AppThemeColors.secondaryText(d))),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                              ElevatedButton(onPressed: () => Navigator.pop(d, true),
+                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3F51B5), foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                                child: const Text('Transfer')),
+                            ],
+                          ),
+                        );
+                        if (confirm == true && mounted) {
+                          try {
+                            // Promote target to admin
+                            final r1 = await ApiClient.patch(
+                              '/api/communities/${widget.communityId}/members/$targetId/role',
+                              body: {'role': 'admin'});
+                            // Demote self to member
+                            if (r1.statusCode == 200) {
+                              await ApiClient.patch(
+                                '/api/communities/${widget.communityId}/members/$_uid/role',
+                                body: {'role': 'member'});
+                            }
+                            if (r1.statusCode == 200 && mounted) {
+                              _showSnack('$name is now the admin');
+                              _loadCommunity();
+                            } else if (mounted) {
+                              _showSnack(jsonDecode(r1.body)['error'] ?? 'Failed', isError: true);
+                            }
+                          } catch (e) { if (mounted) _showSnack(e.toString(), isError: true); }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3F51B5),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                      child: const Text('Select'),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsSectionLabel(BuildContext ctx, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 2),
+      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+          letterSpacing: 0.8, color: AppThemeColors.secondaryText(ctx))),
     );
   }
 
@@ -922,15 +1590,21 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
         decoration: BoxDecoration(
           color: AppThemeColors.surfaceBg(ctx),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppThemeColors.border(ctx)),
+          border: Border.all(color: isDestructive
+              ? Colors.red.withValues(alpha: 0.2)
+              : AppThemeColors.border(ctx)),
         ),
         child: Row(children: [
           Container(width: 36, height: 36,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 18)),
           const SizedBox(width: 12),
-          Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-              color: isDestructive ? Colors.red : AppThemeColors.primaryText(ctx))),
+          Expanded(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+              color: isDestructive ? Colors.red : AppThemeColors.primaryText(ctx)))),
+          Icon(Icons.chevron_right_rounded, size: 18,
+              color: AppThemeColors.mutedText(ctx)),
         ]),
       ),
     );
@@ -997,10 +1671,10 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
-                  if (_isAdmin)
+                  if (_isMember)
                     IconButton(
                       icon: Icon(Icons.settings_rounded, color: AppThemeColors.primaryText(context)),
-                      onPressed: _showSettings,
+                      onPressed: _isAdmin ? _showSettings : _showMemberSettings,
                     ),
                   if (_inviteCode.isNotEmpty)
                     IconButton(
@@ -1279,8 +1953,13 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                                 onPressed: () async {
                                   try {
                                     final r = await ApiClient.delete('/api/communities/${widget.communityId}/groups/$gId');
-                                    if (r.statusCode == 200) { _load(); _showSnack(AppLocalizations.of(context).t('group_removed_community_snack')); }
-                                    else { _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true); }
+                                    if (r.statusCode == 200) {
+                                      _load();
+                                      final d = jsonDecode(r.body);
+                                      final removed = d['removedMembers'] ?? 0;
+                                      final extra = removed > 0 ? ' · $removed member${removed == 1 ? "" : "s"} auto-removed' : '';
+                                      _showSnack('Group removed$extra');
+                                    } else { _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true); }
                                   } catch (e) { _showSnack(e.toString(), isError: true); }
                                 },
                               )
@@ -1292,6 +1971,209 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               ),
       ),
     ]);
+  }
+
+  void _showSkippedMembersSheet(String addedMsg, int skippedCount) {
+    final color = _communityColor;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 20),
+          Row(children: [
+            Container(width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.check_rounded, color: AppColors.cyan, size: 24)),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(addedMsg, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(ctx))),
+              Text('Groups linked to community', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+            ])),
+          ]),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.person_off_rounded, color: Color(0xFFFF9800), size: 20),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('$skippedCount member${skippedCount == 1 ? "" : "s"} not added',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                const SizedBox(height: 4),
+                Text(
+                  'These members have privacy settings that restrict direct community additions. '
+                  'They can still join using the invite code.',
+                  style: TextStyle(fontSize: 12.5, color: AppThemeColors.secondaryText(ctx), height: 1.5),
+                ),
+              ])),
+            ]),
+          ),
+          if (_inviteCode.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: color.withValues(alpha: 0.25)),
+              ),
+              child: Row(children: [
+                Icon(Icons.key_rounded, color: color, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Share this code with them', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                    color: AppThemeColors.mutedText(ctx), letterSpacing: 1.1)),
+                  const SizedBox(height: 2),
+                  Text(_inviteCode, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                    letterSpacing: 6, color: color)),
+                ])),
+                IconButton(
+                  icon: Icon(Icons.copy_rounded, color: color, size: 20),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _inviteCode));
+                    Navigator.pop(ctx);
+                    _showSnack('Invite code copied', icon: Icons.copy_rounded);
+                  },
+                ),
+              ]),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _showRestrictedAddSheet(String email, String serverMsg) {
+    final color = _communityColor;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 20),
+          // Icon + title row
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.lock_person_rounded, color: Color(0xFFFF9800), size: 32),
+          ),
+          const SizedBox(height: 14),
+          Text('Direct Add Restricted', style: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.bold,
+            color: AppThemeColors.primaryText(ctx),
+          )),
+          const SizedBox(height: 8),
+          Text(email, style: TextStyle(fontSize: 13, color: AppThemeColors.mutedText(ctx))),
+          const SizedBox(height: 16),
+          // Info card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.notifications_active_rounded, color: Color(0xFFFF9800), size: 16),
+                const SizedBox(width: 8),
+                Text('Invite Sent Automatically', style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFFFF9800))),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                'This user has turned off direct community adds in their privacy settings. '
+                'An in-app invite notification has been sent — they can join using the community code.',
+                style: TextStyle(fontSize: 12.5, color: AppThemeColors.secondaryText(ctx), height: 1.5),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          // Invite code row
+          if (_inviteCode.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: color.withValues(alpha: 0.25)),
+              ),
+              child: Row(children: [
+                Icon(Icons.key_rounded, color: color, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Community Code', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                    color: AppThemeColors.mutedText(ctx), letterSpacing: 1.1)),
+                  const SizedBox(height: 2),
+                  Text(_inviteCode, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                    letterSpacing: 6, color: color)),
+                ])),
+                IconButton(
+                  icon: Icon(Icons.copy_rounded, color: color, size: 20),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _inviteCode));
+                    Navigator.pop(ctx);
+                    _showSnack('Invite code copied', icon: Icons.copy_rounded);
+                  },
+                ),
+              ]),
+            ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Got it', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 
   Future<void> _showAddMemberSheet(Color color) async {
@@ -1372,8 +2254,12 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                       Navigator.pop(ctx);
                       if (r.statusCode == 200) {
                         _load();
-                        _showSnack(body['message'] ?? (allowDirect ? 'Member added!' : 'Invite sent!'),
-                          icon: allowDirect ? Icons.person_add_rounded : Icons.mail_rounded);
+                        if (body['notified'] == true) {
+                          _showRestrictedAddSheet(email, body['message']?.toString() ?? '');
+                        } else {
+                          _showSnack(body['message'] ?? (allowDirect ? 'Member added!' : 'Invite sent!'),
+                            icon: allowDirect ? Icons.person_add_rounded : Icons.mail_rounded);
+                        }
                       } else {
                         _showSnack(body['error'] ?? 'Failed', isError: true);
                       }
@@ -1397,34 +2283,55 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
 
   // ─── MEMBERS TAB ────────────────────────────────────────────────────────────
   Widget _buildMembersTab(Color color) {
+    final oid = RegExp(r'^[0-9a-f]{24}$');
+    String sanitize(dynamic v, String fb) {
+      final s = (v ?? '').toString();
+      return s.isEmpty || oid.hasMatch(s) ? fb : s;
+    }
+
     return Column(children: [
-      // Invite header
+      // Header row
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.07),
+            color: _memberSelectMode ? Colors.red.withValues(alpha: 0.06) : color.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            border: Border.all(color: _memberSelectMode ? Colors.red.withValues(alpha: 0.3) : color.withValues(alpha: 0.2)),
           ),
           child: Row(children: [
-            Icon(Icons.people_rounded, color: color, size: 18),
+            Icon(_memberSelectMode ? Icons.check_box_rounded : Icons.people_rounded,
+              color: _memberSelectMode ? Colors.red : color, size: 18),
             const SizedBox(width: 8),
-            Text('${_members.length} ${_members.length == 1 ? AppLocalizations.of(context).t('member_singular') : AppLocalizations.of(context).t('member_plural')}',
-              style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 13)),
+            Text(
+              _memberSelectMode
+                ? '${_selectedMemberIds.length} selected'
+                : '${_members.length} ${_members.length == 1 ? AppLocalizations.of(context).t('member_singular') : AppLocalizations.of(context).t('member_plural')}',
+              style: TextStyle(fontWeight: FontWeight.w700,
+                color: _memberSelectMode ? Colors.red : color, fontSize: 13)),
             const Spacer(),
-            if (_isAdmin)
+            if (_isAdmin && !_memberSelectMode) ...[
               GestureDetector(
                 onTap: () => _showAddMemberSheet(color),
                 child: Row(children: [
                   Icon(Icons.person_add_rounded, color: color, size: 15),
                   const SizedBox(width: 4),
                   Text(AppLocalizations.of(context).t('add_btn'), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 10),
                 ]),
               ),
-            if (_inviteCode.isNotEmpty)
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => setState(() { _memberSelectMode = true; _selectedMemberIds.clear(); }),
+                child: Row(children: [
+                  Icon(Icons.remove_circle_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 15),
+                  const SizedBox(width: 4),
+                  Text('Remove', style: TextStyle(color: Colors.red.shade600, fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+              const SizedBox(width: 10),
+            ],
+            if (!_memberSelectMode && _inviteCode.isNotEmpty)
               GestureDetector(
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: _inviteCode));
@@ -1436,94 +2343,241 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   Text(AppLocalizations.of(context).t('invite_label'), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
                 ]),
               ),
+            if (_memberSelectMode) ...[
+              TextButton(
+                onPressed: () => setState(() { _memberSelectMode = false; _selectedMemberIds.clear(); }),
+                child: Text('Cancel', style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12)),
+              ),
+              if (_selectedMemberIds.isNotEmpty)
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  onPressed: () async {
+                    final count = _selectedMemberIds.length;
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (d) => AlertDialog(
+                        backgroundColor: AppThemeColors.cardBg(d),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        title: Text('Remove $count member${count == 1 ? "" : "s"}?',
+                          style: TextStyle(color: AppThemeColors.primaryText(d), fontWeight: FontWeight.bold)),
+                        content: Text('This action cannot be undone. Removed members can rejoin via invite code.',
+                          style: TextStyle(color: AppThemeColors.secondaryText(d))),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                          ElevatedButton(onPressed: () => Navigator.pop(d, true),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                            child: const Text('Remove')),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true || !mounted) return;
+                    try {
+                      final r = await ApiClient.delete(
+                        '/api/communities/${widget.communityId}/members',
+                        body: {'userIds': _selectedMemberIds.toList()},
+                      );
+                      if (r.statusCode == 200 && mounted) {
+                        setState(() { _memberSelectMode = false; _selectedMemberIds.clear(); });
+                        _load();
+                        _showSnack('$count member${count == 1 ? "" : "s"} removed', icon: Icons.check_rounded);
+                      } else if (mounted) {
+                        _showSnack(jsonDecode(r.body)['error'] ?? 'Failed', isError: true);
+                      }
+                    } catch (e) { if (mounted) _showSnack(e.toString(), isError: true); }
+                  },
+                  child: Text('Remove ${_selectedMemberIds.length}', style: const TextStyle(color: Colors.white)),
+                ),
+            ],
           ]),
         ),
       ),
-      Expanded(
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          itemCount: _members.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (_, i) {
-            final m = _members[i];
-            final user = m['user'] is Map ? m['user'] : <String, dynamic>{};
-            final _oid = RegExp(r'^[0-9a-f]{24}$');
-            String _sanitize(dynamic v, String fb) {
-              final s = (v ?? '').toString();
-              return s.isEmpty || _oid.hasMatch(s) ? fb : s;
-            }
-            final rawName = _sanitize(user['name'], '');
-            final rawEmail = _sanitize(user['email'], '');
-            final mName = rawName.isNotEmpty ? rawName : (rawEmail.isNotEmpty ? rawEmail : (user.isEmpty ? AppLocalizations.of(context).t('deleted_account_label') : AppLocalizations.of(context).t('member_singular')));
-            final mEmail = rawEmail;
-            final role = (m['role'] ?? 'member').toString();
-            final isMe = (user['_id'] ?? '').toString() == _uid;
 
-            return Container(
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: role == 'admin'
-                    ? color.withValues(alpha: 0.25)
-                    : AppThemeColors.border(context).withValues(alpha: 0.5)),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 42, height: 42,
-                    child: Image.network(
-                      '${ApiConfig.baseUrl}/api/users/${(user['_id'] ?? '').toString()}/profile-image',
-                      width: 42, height: 42, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 42, height: 42,
-                        decoration: BoxDecoration(
-                          color: (role == 'admin' ? color : AppThemeColors.surfaceBg(context)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(child: Text(
-                          mName.isNotEmpty ? mName[0].toUpperCase() : 'M',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
-                            color: role == 'admin' ? Colors.white : AppThemeColors.secondaryText(context)),
-                        )),
-                      ),
+      Expanded(
+        child: Builder(builder: (ctx) {
+          final pendingInvites = List<Map<String, dynamic>>.from((_community['pendingInvites'] as List?) ?? []);
+          final totalCount = _members.length + (pendingInvites.isNotEmpty ? pendingInvites.length + 1 : 0);
+          return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          itemCount: totalCount,
+          separatorBuilder: (_, i) {
+            if (pendingInvites.isNotEmpty && i == _members.length - 1) return const SizedBox(height: 4);
+            return const SizedBox(height: 8);
+          },
+          itemBuilder: (_, i) {
+            // Pending invites section header
+            if (pendingInvites.isNotEmpty && i == _members.length) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 2),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF9800).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.mail_outline_rounded, color: Color(0xFFFF9800), size: 13),
+                      SizedBox(width: 5),
+                      Text('Invited — awaiting response',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                    ]),
+                  ),
+                ]),
+              );
+            }
+            // Pending invite rows
+            if (pendingInvites.isNotEmpty && i > _members.length) {
+              final inv = pendingInvites[i - _members.length - 1];
+              final invEmail = (inv['email'] ?? '').toString();
+              return Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF9800).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.25)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  leading: Container(width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF9800).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(child: Text(invEmail.isNotEmpty ? invEmail[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Color(0xFFFF9800), fontWeight: FontWeight.bold, fontSize: 16)))),
+                  title: Text(invEmail, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                    color: AppThemeColors.primaryText(context)), overflow: TextOverflow.ellipsis),
+                  subtitle: const Text('Invite sent · not yet joined', style: TextStyle(fontSize: 11, color: Color(0xFFFF9800))),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: const Color(0xFFFF9800).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                    child: const Text('Invited', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
                   ),
                 ),
-                title: Row(children: [
-                  Flexible(child: Text(mName, style: TextStyle(fontWeight: FontWeight.w700,
-                      color: AppThemeColors.primaryText(context)))),
-                  if (isMe) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: AppThemeColors.surfaceBg(context), borderRadius: BorderRadius.circular(20)),
-                      child: Text(AppLocalizations.of(context).t('you_chip_label'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                          color: AppThemeColors.secondaryText(context))),
-                    ),
-                  ],
-                ]),
-                subtitle: Text(mEmail, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: role == 'admin' ? color.withValues(alpha: 0.10) : AppThemeColors.surfaceBg(context),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: role == 'admin' ? color.withValues(alpha: 0.3) : AppThemeColors.border(context)),
-                  ),
-                  child: Text(
-                    role == 'admin' ? AppLocalizations.of(context).t('role_admin_badge') : AppLocalizations.of(context).t('role_member_badge'),
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                      color: role == 'admin' ? color : AppThemeColors.secondaryText(context)),
-                  ),
+              );
+            }
+            // Regular member rows
+            final m = _members[i];
+            final user = m['user'] is Map ? m['user'] as Map : <String, dynamic>{};
+            final rawName = sanitize(user['name'], '');
+            final rawEmail = sanitize(user['email'], '');
+            final mName = rawName.isNotEmpty ? rawName : (rawEmail.isNotEmpty ? rawEmail
+              : (user.isEmpty ? AppLocalizations.of(context).t('deleted_account_label') : AppLocalizations.of(context).t('member_singular')));
+            final mEmail = rawEmail;
+            final role = (m['role'] ?? 'member').toString();
+            final memberId = (user['_id'] ?? '').toString();
+            final isMe = memberId == _uid;
+            final isSelected = _selectedMemberIds.contains(memberId);
+            // Admins can't be removed via bulk select (protect accidentally removing all admins)
+            final canSelect = _memberSelectMode && _isAdmin && !isMe && role != 'admin';
+
+            return GestureDetector(
+              onTap: canSelect ? () => setState(() {
+                if (isSelected) _selectedMemberIds.remove(memberId);
+                else _selectedMemberIds.add(memberId);
+              }) : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: isSelected
+                    ? Colors.red.withValues(alpha: 0.06)
+                    : AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: isSelected
+                    ? Colors.red.withValues(alpha: 0.4)
+                    : role == 'admin'
+                      ? color.withValues(alpha: 0.25)
+                      : AppThemeColors.border(context).withValues(alpha: 0.5)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: _memberSelectMode
+                    ? Container(width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.red : AppThemeColors.surfaceBg(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isSelected ? Colors.red : AppThemeColors.border(context)),
+                        ),
+                        child: Icon(
+                          isSelected ? Icons.check_rounded : (canSelect ? Icons.check_box_outline_blank_rounded : Icons.block_rounded),
+                          color: isSelected ? Colors.white : (canSelect ? AppThemeColors.mutedText(context) : Colors.orange),
+                          size: 20,
+                        ))
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 42, height: 42,
+                          child: Image.network(
+                            '${ApiConfig.baseUrl}/api/users/$memberId/profile-image',
+                            width: 42, height: 42, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 42, height: 42,
+                              decoration: BoxDecoration(
+                                color: role == 'admin' ? color : AppThemeColors.surfaceBg(context),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(child: Text(
+                                mName.isNotEmpty ? mName[0].toUpperCase() : 'M',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
+                                  color: role == 'admin' ? Colors.white : AppThemeColors.secondaryText(context)),
+                              )),
+                            ),
+                          ),
+                        ),
+                      ),
+                  title: Row(children: [
+                    Flexible(child: Text(mName, style: TextStyle(fontWeight: FontWeight.w700,
+                        color: AppThemeColors.primaryText(context)))),
+                    if (isMe) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(color: AppThemeColors.surfaceBg(context), borderRadius: BorderRadius.circular(20)),
+                        child: Text(AppLocalizations.of(context).t('you_chip_label'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                            color: AppThemeColors.secondaryText(context))),
+                      ),
+                    ],
+                  ]),
+                  subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                    Text(mEmail, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                    if (m['invitedBy'] != null) ...[
+                      const SizedBox(height: 2),
+                      Row(mainAxisSize: MainAxisSize.min, children: const [
+                        Icon(Icons.mail_outline_rounded, size: 10, color: Color(0xFF00897B)),
+                        SizedBox(width: 3),
+                        Text('Joined via invite', style: TextStyle(fontSize: 10, color: Color(0xFF00897B), fontWeight: FontWeight.w600)),
+                      ]),
+                    ],
+                  ]),
+                  trailing: _memberSelectMode
+                    ? null
+                    : Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: role == 'admin' ? color.withValues(alpha: 0.10) : AppThemeColors.surfaceBg(context),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: role == 'admin' ? color.withValues(alpha: 0.3) : AppThemeColors.border(context)),
+                        ),
+                        child: Text(
+                          role == 'admin' ? AppLocalizations.of(context).t('role_admin_badge') : AppLocalizations.of(context).t('role_member_badge'),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                            color: role == 'admin' ? color : AppThemeColors.secondaryText(context)),
+                        ),
+                      ),
                 ),
               ),
             );
           },
-        ),
-      ),
-    ]);
+        );
+      }),
+    ),
+  ]);
   }
 
   // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -1609,53 +2663,32 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
       onRefresh: _loadPosts,
       color: color,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // Compose box
-          Container(
-            decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(context),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppThemeColors.border(context)),
-            ),
-            padding: const EdgeInsets.all(14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _profileAvatar(userId, size: 38, color: color),
+          // New post button
+          GestureDetector(
+            onTap: () => _showNewPostSheet(color),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppThemeColors.border(context)),
+              ),
+              child: Row(children: [
+                _profileAvatar(userId, size: 36, color: color),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _postCtrl,
-                    maxLines: 3, minLines: 1,
-                    maxLength: 1000,
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context).t('feed_write_placeholder'),
-                      hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(context))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(context))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: color)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      counterText: '',
-                    ),
-                    style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 13),
-                  ),
+                Expanded(child: Text('Share an update, reminder or poll…',
+                  style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+                  child: const Text('Post', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ]),
-              const SizedBox(height: 10),
-              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: color,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                  onPressed: _posting ? null : () => _submitPost(color),
-                  child: _posting
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(AppLocalizations.of(context).t('publish_post_btn'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-              ]),
-            ]),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           if (_feedLoading)
             const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
           else if (_posts.isEmpty)
@@ -1675,7 +2708,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               ]),
             ))
           else ...[
-            ..._posts.map((p) => _buildPostCard(p, color)),
+            ..._posts.map((p) => _buildPostCard(p, color, userId)),
             if (_hasMorePosts)
               Padding(
                 padding: const EdgeInsets.only(top: 4, bottom: 8),
@@ -1694,7 +2727,9 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     );
   }
 
-  Widget _buildPostCard(Map<String, dynamic> p, Color color) {
+  Widget _buildPostCard(Map<String, dynamic> p, Color color, String userId) {
+    final postType = (p['type'] ?? 'text').toString();
+    final isPinned = p['isPinned'] == true;
     final author = p['author'] as Map<String, dynamic>? ?? {};
     final authorId = (author['_id'] ?? '').toString();
     final authorName = (author['name'] ?? author['email'] ?? 'Unknown').toString();
@@ -1703,63 +2738,241 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     final createdAt = p['createdAt'] != null ? DateTime.tryParse(p['createdAt'].toString()) : null;
     final diff = createdAt != null ? DateTime.now().difference(createdAt) : null;
     final ago = diff == null ? '' : diff.inMinutes < 1 ? 'just now' : diff.inMinutes < 60 ? '${diff.inMinutes}m ago' : diff.inHours < 24 ? '${diff.inHours}h ago' : '${diff.inDays}d ago';
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    final userId = session.user?['_id']?.toString() ?? '';
     final isOwn = authorId == userId;
     final likedByMe = p['likedByMe'] == true;
     final likesCount = (p['likesCount'] ?? 0) as int;
     final commentCount = (p['comments'] as List? ?? []).length;
 
+    // Type-specific accent
+    Color typeColor = color;
+    IconData typeIcon = Icons.notes_rounded;
+    if (postType == 'announcement') { typeColor = const Color(0xFFFF9800); typeIcon = Icons.campaign_rounded; }
+    else if (postType == 'reminder')  { typeColor = const Color(0xFF8B5CF6); typeIcon = Icons.alarm_rounded; }
+    else if (postType == 'poll')      { typeColor = const Color(0xFF10B981); typeIcon = Icons.poll_rounded; }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppThemeColors.border(context)),
+        border: Border.all(color: isPinned ? typeColor.withValues(alpha: 0.4) : AppThemeColors.border(context)),
+        boxShadow: isPinned ? [BoxShadow(color: typeColor.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))] : null,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _profileAvatar(authorId, size: 36, color: color),
-          const SizedBox(width: 10),
-          Expanded(child: Text(authorName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppThemeColors.primaryText(context)))),
-          Text(ago, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
-          if (isOwn) ...[
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => _deletePost(postId),
-              child: Icon(Icons.delete_outline_rounded, size: 17, color: AppThemeColors.mutedText(context)),
+
+        // Pinned / type banner for non-text posts
+        if (isPinned || postType != 'text')
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: typeColor.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             ),
-          ],
-        ]),
-        const SizedBox(height: 10),
-        Text(text, style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), height: 1.45)),
-        const SizedBox(height: 12),
-        Row(children: [
-          GestureDetector(
-            onTap: () => _toggleLike(p),
             child: Row(children: [
-              Icon(likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                color: likedByMe ? Colors.red : AppThemeColors.mutedText(context), size: 18),
-              if (likesCount > 0) ...[
+              if (isPinned) ...[
+                const Icon(Icons.push_pin_rounded, size: 13, color: Color(0xFFFF9800)),
                 const SizedBox(width: 4),
-                Text('$likesCount', style: TextStyle(fontSize: 12, color: likedByMe ? Colors.red : AppThemeColors.mutedText(context))),
+                Text('Pinned', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFFF9800))),
+                const SizedBox(width: 10),
               ],
+              if (postType != 'text') ...[
+                Icon(typeIcon, size: 13, color: typeColor),
+                const SizedBox(width: 4),
+                Text(postType == 'announcement' ? 'Announcement' : postType == 'reminder' ? 'Reminder' : 'Poll',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: typeColor)),
+              ],
+              const Spacer(),
+              if (_isAdmin && postType != 'poll')
+                GestureDetector(
+                  onTap: () => _pinPost(postId, !isPinned),
+                  child: Icon(isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                    size: 16, color: isPinned ? const Color(0xFFFF9800) : AppThemeColors.mutedText(context)),
+                ),
             ]),
           ),
-          const SizedBox(width: 20),
-          GestureDetector(
-            onTap: () => _showComments(p, color),
-            child: Row(children: [
-              Icon(Icons.chat_bubble_outline_rounded, color: AppThemeColors.mutedText(context), size: 16),
-              if (commentCount > 0) ...[
-                const SizedBox(width: 4),
-                Text('$commentCount', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Header: avatar + author + time + menu
+            Row(children: [
+              _profileAvatar(authorId, size: 34, color: typeColor),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(authorName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppThemeColors.primaryText(context))),
+                Text(ago, style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(context))),
+              ])),
+              if (isOwn && postType != 'poll') ...[
+                GestureDetector(
+                  onTap: () => _showEditPostSheet(p),
+                  child: Padding(padding: const EdgeInsets.only(right: 10),
+                    child: Icon(Icons.edit_outlined, size: 16, color: AppThemeColors.mutedText(context))),
+                ),
               ],
+              if (isOwn || _isAdmin)
+                GestureDetector(
+                  onTap: () => _deletePost(postId),
+                  child: Icon(Icons.delete_outline_rounded, size: 16, color: AppThemeColors.mutedText(context)),
+                ),
             ]),
-          ),
-        ]),
+            const SizedBox(height: 10),
+
+            // Post text
+            Text(text, style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context), height: 1.45)),
+
+            // Reminder extras
+            if (postType == 'reminder') ...[
+              const SizedBox(height: 10),
+              _buildReminderExtras(p, typeColor),
+            ],
+
+            // Poll
+            if (postType == 'poll') ...[
+              const SizedBox(height: 12),
+              _buildPollWidget(p, postId, typeColor, userId),
+            ],
+
+            const SizedBox(height: 12),
+            // Like / comment row
+            Row(children: [
+              GestureDetector(
+                onTap: () => _toggleLike(p),
+                child: Row(children: [
+                  Icon(likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: likedByMe ? Colors.red : AppThemeColors.mutedText(context), size: 18),
+                  if (likesCount > 0) ...[
+                    const SizedBox(width: 4),
+                    Text('$likesCount', style: TextStyle(fontSize: 12, color: likedByMe ? Colors.red : AppThemeColors.mutedText(context))),
+                  ],
+                ]),
+              ),
+              const SizedBox(width: 20),
+              GestureDetector(
+                onTap: () => _showComments(p, color),
+                child: Row(children: [
+                  Icon(Icons.chat_bubble_outline_rounded, color: AppThemeColors.mutedText(context), size: 16),
+                  if (commentCount > 0) ...[
+                    const SizedBox(width: 4),
+                    Text('$commentCount', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                  ],
+                ]),
+              ),
+            ]),
+          ]),
+        ),
       ]),
+    );
+  }
+
+  Widget _buildReminderExtras(Map<String, dynamic> p, Color typeColor) {
+    final dueDate = p['dueDate'] != null ? DateTime.tryParse(p['dueDate'].toString()) : null;
+    final amount = (p['amount'] as num?)?.toDouble();
+    final now = DateTime.now();
+    final overdue = dueDate != null && dueDate.isBefore(now);
+    final daysLeft = dueDate != null ? dueDate.difference(now).inDays : null;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: (overdue ? Colors.red : typeColor).withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: (overdue ? Colors.red : typeColor).withValues(alpha: 0.25)),
+      ),
+      child: Row(children: [
+        if (amount != null) ...[
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+              letterSpacing: 1, color: AppThemeColors.mutedText(context))),
+            Text('₹${amount.toStringAsFixed(0)}',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: typeColor)),
+          ]),
+          const SizedBox(width: 16),
+          Container(width: 1, height: 36, color: typeColor.withValues(alpha: 0.2)),
+          const SizedBox(width: 16),
+        ],
+        if (dueDate != null)
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+              letterSpacing: 1, color: AppThemeColors.mutedText(context))),
+            Text('${dueDate.day}/${dueDate.month}/${dueDate.year}',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                color: overdue ? Colors.red : AppThemeColors.primaryText(context))),
+            if (daysLeft != null)
+              Text(overdue ? 'Overdue by ${(-daysLeft)} days' : daysLeft == 0 ? 'Due today!' : '$daysLeft days left',
+                style: TextStyle(fontSize: 11, color: overdue ? Colors.red : typeColor, fontWeight: FontWeight.w600)),
+          ])),
+      ]),
+    );
+  }
+
+  Widget _buildPollWidget(Map<String, dynamic> p, String postId, Color typeColor, String userId) {
+    final poll = p['poll'] as Map<String, dynamic>? ?? {};
+    final options = (poll['options'] as List? ?? []).map((o) => Map<String, dynamic>.from(o as Map)).toList();
+    final totalVotes = (poll['totalVotes'] as num?)?.toInt() ?? 0;
+
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    final myVote = options.firstWhere(
+      (o) => o['votedByMe'] == true,
+      orElse: () => <String, dynamic>{},
+    );
+    final hasVoted = myVote.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...options.map((opt) {
+          final optId = (opt['_id'] ?? '').toString();
+          final voteCount = (opt['voteCount'] as num?)?.toInt() ?? 0;
+          final votedThis = opt['votedByMe'] == true;
+          final pct = totalVotes > 0 ? voteCount / totalVotes : 0.0;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: () => _votePoll(postId, optId, votedThis),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: votedThis ? typeColor.withValues(alpha: 0.12) : AppThemeColors.surfaceBg(context),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: votedThis ? typeColor : AppThemeColors.border(context), width: votedThis ? 1.5 : 1),
+                ),
+                child: Stack(children: [
+                  // Progress fill
+                  if (hasVoted)
+                    Positioned.fill(
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: pct,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: typeColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Row(children: [
+                    Expanded(child: Text((opt['text'] ?? '').toString(),
+                      style: TextStyle(fontSize: 13, fontWeight: votedThis ? FontWeight.w700 : FontWeight.normal,
+                        color: AppThemeColors.primaryText(context)))),
+                    if (hasVoted) Text('$voteCount ${voteCount == 1 ? "vote" : "votes"}',
+                      style: TextStyle(fontSize: 11, color: typeColor, fontWeight: FontWeight.w600)),
+                    if (votedThis) ...[
+                      const SizedBox(width: 6),
+                      Icon(Icons.check_circle_rounded, size: 15, color: typeColor),
+                    ],
+                  ]),
+                ]),
+              ),
+            ),
+          );
+        }),
+        Text('$totalVotes ${totalVotes == 1 ? "vote" : "votes"} total',
+          style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+      ],
     );
   }
 

@@ -19,6 +19,7 @@ module.exports = (router, { auth, otpSendLimiter, otpVerifyLimiter, manualPaymen
 
   // Pay-to-user flow (send OTP → verify OTP → transfer)
   router.post('/wallet/auth/send-otp', auth, otpSendLimiter, walletController.sendWalletAuthOtp);
+  router.post('/wallet/auth/send-subscription-otp', auth, otpSendLimiter, walletController.sendSubscriptionAuthOtp);
   router.post('/wallet/pay/send-otp', auth, otpSendLimiter, walletController.sendPayOtp);
   router.post('/wallet/pay/verify-otp', auth, otpVerifyLimiter, walletAuthMiddleware, walletController.payToUserWithOtp);
 
