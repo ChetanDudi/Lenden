@@ -13,6 +13,7 @@ import '../transaction/group_transactions/group_transaction_page.dart';
 import '../support/notes_page.dart';
 import '../connections/friends_page.dart';
 import '../connections/counterparties_page.dart';
+import '../community/community_page.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -29,6 +30,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
   List<Map<String, dynamic>> _closeFriends = [];
   List<Map<String, dynamic>> _closeCounterparties = [];
   List<Map<String, dynamic>> _bookmarkedNotes = [];
+  List<Map<String, dynamic>> _starredCommunities = [];
 
   @override
   void initState() {
@@ -47,6 +49,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
           _closeFriends = List<Map<String, dynamic>>.from(data['closeFriends'] ?? []);
           _closeCounterparties = List<Map<String, dynamic>>.from(data['closeCounterparties'] ?? []);
           _bookmarkedNotes = List<Map<String, dynamic>>.from(data['bookmarkedNotes'] ?? []);
+          _starredCommunities = List<Map<String, dynamic>>.from(data['starredCommunities'] ?? []);
           _loading = false;
         });
       } else {
@@ -181,6 +184,21 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                 onTap: () => Navigator.push(context,
                                     MaterialPageRoute(builder: (_) =>
                                         NotesPage(initialShowBookmarkedOnly: true))),
+                              ),
+                            ]),
+                            _sectionCard('Communities', [
+                              _navRow(
+                                icon: Icons.star_rounded,
+                                iconColor: Colors.amber,
+                                title: 'Starred Communities',
+                                subtitle: _starredCommunities.isEmpty
+                                    ? 'No starred communities yet'
+                                    : '${_starredCommunities.length} starred',
+                                badge: _starredCommunities.length,
+                                onTap: () => Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) =>
+                                        const CommunityPage(initialShowStarredOnly: true)))
+                                    .then((_) => _fetchFavourites()),
                               ),
                             ]),
                           ],

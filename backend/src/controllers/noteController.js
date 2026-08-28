@@ -115,7 +115,7 @@ exports.shareNote = async (req, res) => {
     if (!found) return res.status(404).json({ error: 'Recipient not found on LenDen' });
     const { recipient, targetRole } = found;
     if (recipient._id.toString() === userId.toString()) {
-      return res.status(400).json({ error: 'Cannot share a note with yourself' });
+      return res.status(400).json({ error: 'You already have this note — no need to share it with yourself.' });
     }
 
     const sharedNote = await Note.create({
@@ -155,7 +155,7 @@ exports.shareContentAsNote = async (req, res) => {
     if (!found) return res.status(404).json({ error: 'Recipient not found on LenDen' });
     const { recipient, targetRole } = found;
     if (recipient._id.toString() === userId.toString()) {
-      return res.status(400).json({ error: 'Cannot share with yourself' });
+      return res.status(400).json({ error: 'You already have this note — no need to share it with yourself.' });
     }
 
     const sharedNote = await Note.create({

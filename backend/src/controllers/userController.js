@@ -1126,11 +1126,13 @@ exports.getFavourites = async (req, res) => {
       .populate('closeFriends', 'name username email profileImage avgRating')
       .populate('closeCounterparties', 'name username email profileImage avgRating')
       .populate('bookmarkedNotes', 'title content createdAt updatedAt')
+      .populate('starredCommunities', 'name color description members')
       .lean();
     res.json({
       closeFriends: user.closeFriends || [],
       closeCounterparties: user.closeCounterparties || [],
       bookmarkedNotes: user.bookmarkedNotes || [],
+      starredCommunities: user.starredCommunities || [],
     });
   } catch (err) {
     res.status(500).json({ message: 'Internal server error' });

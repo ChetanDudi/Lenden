@@ -21,6 +21,7 @@ Future<String?> showShareAsNoteSheet(
   required String content,
   String? noteId,
   bool adminOnly = false,
+  String? currentUserEmail,
 }) {
   return showModalBottomSheet<String>(
     context: context,
@@ -31,6 +32,7 @@ Future<String?> showShareAsNoteSheet(
       content: content,
       noteId: noteId,
       adminOnly: adminOnly,
+      currentUserEmail: currentUserEmail,
     ),
   );
 }
@@ -40,11 +42,13 @@ class _ShareAsNoteSheet extends StatefulWidget {
   final String content;
   final String? noteId;
   final bool adminOnly;
+  final String? currentUserEmail;
   const _ShareAsNoteSheet({
     required this.title,
     required this.content,
     this.noteId,
     this.adminOnly = false,
+    this.currentUserEmail,
   });
   @override
   State<_ShareAsNoteSheet> createState() => _ShareAsNoteSheetState();
@@ -55,6 +59,7 @@ class _ShareAsNoteSheetState extends State<_ShareAsNoteSheet> {
   Timer? _debounce;
   List<Map<String, dynamic>> _users = [];
   bool _loading = true;
+  bool _isSelfSearch = false;
   String? _sharingEmail; // shows spinner on this user's Send button
 
   @override
@@ -77,7 +82,13 @@ class _ShareAsNoteSheetState extends State<_ShareAsNoteSheet> {
 
   Future<void> _load(String q) async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    final selfEmail = widget.currentUserEmail?.toLowerCase().trim() ?? '';
+    final isSelf = selfEmail.isNotEmpty && q.toLowerCase().trim() == selfEmail;
+    if (isSelf) {
+      setState(() { _loading = false; _isSelfSearch = true; _users = []; });
+      return;
+    }
+    setState(() { _loading = true; _isSelfSearch = false; });
     try {
       final encoded = Uri.encodeComponent(q);
       final res = await ApiClient.get('/api/notes/recipients?q=$encoded');
@@ -236,25 +247,33 @@ class _ShareAsNoteSheetState extends State<_ShareAsNoteSheet> {
                   ? const Center(child: CircularProgressIndicator())
                   : _users.isEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.person_search_rounded,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isSelfSearch ? Icons.info_outline_rounded : Icons.person_search_rounded,
                                   size: 48,
-                                  color: AppThemeColors.secondaryText(context)),
-                              const SizedBox(height: 12),
-                              Text(
-                                _searchCtrl.text.isEmpty
-                                    ? (widget.adminOnly
-                                        ? 'No other admins found'
-                                        : 'No contacts yet — search by name or email')
-                                    : 'No users found for "${_searchCtrl.text}"',
-                                style: TextStyle(
-                                    color: AppThemeColors.secondaryText(context),
-                                    fontSize: 14),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                                  color: _isSelfSearch ? Colors.amber : AppThemeColors.secondaryText(context),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _isSelfSearch
+                                      ? "That's you! You already have this note — no need to share it with yourself."
+                                      : (_searchCtrl.text.isEmpty
+                                          ? (widget.adminOnly
+                                              ? 'No other admins found'
+                                              : 'No contacts yet — search by name or email')
+                                          : 'No users found for "${_searchCtrl.text}"'),
+                                  style: TextStyle(
+                                      color: _isSelfSearch ? Colors.amber.shade700 : AppThemeColors.secondaryText(context),
+                                      fontSize: 14,
+                                      fontWeight: _isSelfSearch ? FontWeight.w500 : FontWeight.normal),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : ListView.separated(

@@ -122,12 +122,38 @@ exports.getLimitInfo = async (req, res) => {
 
 exports.getMyCommunities = async (req, res) => {
   try {
-    const communities = await Community.find({ 'members.user': req.user._id })
-      .populate('members.user', 'name email username')
-      .populate('groups', 'title color')
-      .sort({ updatedAt: -1 })
-      .select('-communityImage');
-    res.json({ communities });
+    const [communities, userDoc] = await Promise.all([
+      Community.find({ 'members.user': req.user._id })
+        .populate('members.user', 'name email username')
+        .populate('groups', 'title color')
+        .sort({ updatedAt: -1 })
+        .select('-communityImage')
+        .lean(),
+      User.findById(req.user._id).select('starredCommunities').lean(),
+    ]);
+    const starredSet = new Set((userDoc?.starredCommunities || []).map(id => id.toString()));
+    res.json({
+      communities: communities.map(c => ({ ...c, isStarred: starredSet.has(c._id.toString()) })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.toggleStarCommunity = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const cid = req.params.id;
+    const idx = (user.starredCommunities || []).findIndex(id => id.toString() === cid);
+    if (idx === -1) {
+      user.starredCommunities.push(cid);
+      await user.save();
+      res.json({ starred: true });
+    } else {
+      user.starredCommunities.splice(idx, 1);
+      await user.save();
+      res.json({ starred: false });
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

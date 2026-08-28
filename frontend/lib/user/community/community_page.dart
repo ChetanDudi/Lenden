@@ -14,7 +14,8 @@ import 'create_community_page.dart';
 import 'community_detail_page.dart';
 
 class CommunityPage extends StatefulWidget {
-  const CommunityPage({Key? key}) : super(key: key);
+  final bool initialShowStarredOnly;
+  const CommunityPage({Key? key, this.initialShowStarredOnly = false}) : super(key: key);
 
   @override
   State<CommunityPage> createState() => _CommunityPageState();
@@ -23,6 +24,7 @@ class CommunityPage extends StatefulWidget {
 class _CommunityPageState extends State<CommunityPage> with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _communities = [];
   List<Map<String, dynamic>> _myInvites = [];
+  Set<String> _starredIds = {};
   bool _loading = true;
   String? _error;
   final _joinCodeCtrl = TextEditingController();
@@ -37,13 +39,17 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
   bool _posting = false;
 
   // Filter state for communities tab
-  String _communityFilter = 'all'; // all | mine | joined
+  String _communityFilter = 'all'; // all | mine | joined | starred
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() { if (_tabController.index == 0 && _feedPosts.isEmpty) _loadFeed(); });
+    if (widget.initialShowStarredOnly) {
+      _communityFilter = 'starred';
+      _tabController.index = 1; // jump to My Communities tab
+    }
     _load();
     _loadMyInvites();
     _loadFeed();
@@ -364,13 +370,33 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     }
   }
 
+  Future<void> _toggleStar(String communityId) async {
+    final wasStarred = _starredIds.contains(communityId);
+    setState(() { wasStarred ? _starredIds.remove(communityId) : _starredIds.add(communityId); });
+    try {
+      final res = await ApiClient.post('/api/communities/$communityId/star', body: {});
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() { data['starred'] == true ? _starredIds.add(communityId) : _starredIds.remove(communityId); });
+      } else {
+        setState(() { wasStarred ? _starredIds.add(communityId) : _starredIds.remove(communityId); });
+      }
+    } catch (_) {
+      if (mounted) setState(() { wasStarred ? _starredIds.add(communityId) : _starredIds.remove(communityId); });
+    }
+  }
+
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
       final res = await ApiClient.get('/api/communities');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        if (mounted) setState(() => _communities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
+        final communities = List<Map<String, dynamic>>.from(data['communities'] ?? []);
+        if (mounted) setState(() {
+          _communities = communities;
+          _starredIds = communities.where((c) => c['isStarred'] == true).map((c) => (c['_id'] ?? '').toString()).toSet();
+        });
       } else {
         if (mounted) setState(() => _error = 'Failed to load communities');
       }
@@ -1023,6 +1049,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     final filtered = _communities.where((c) {
       if (_communityFilter == 'mine') return creatorId(c) == myId;
       if (_communityFilter == 'joined') return creatorId(c) != myId;
+      if (_communityFilter == 'starred') return _starredIds.contains((c['_id'] ?? '').toString());
       return true;
     }).toList();
 
@@ -1038,6 +1065,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               child: Row(children: [
                 for (final f in [
                   ('all', t('filter_all')),
+                  ('starred', '⭐ Starred'),
                   ('mine', t('filter_created_by_me')),
                   ('joined', t('filter_joined')),
                 ]) ...[
@@ -1124,6 +1152,25 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 ),
               ),
             ),
+            // Star button
+            Positioned(
+              top: 10, right: 10,
+              child: GestureDetector(
+                onTap: () => _toggleStar(id),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _starredIds.contains(id) ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: _starredIds.contains(id) ? Colors.amber : Colors.white70,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
             // Content
             Padding(
               padding: const EdgeInsets.all(16),
@@ -1174,6 +1221,26 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
 
   Widget _buildFilteredEmpty() {
     final t = AppLocalizations.of(context).t;
+    if (_communityFilter == 'starred') {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 72, height: 72,
+              decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(22)),
+              child: const Icon(Icons.star_border_rounded, size: 36, color: Colors.amber)),
+            const SizedBox(height: 18),
+            Text('No Starred Communities',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 8),
+            Text('Tap the ⭐ on any community card to star it and find it here quickly.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.6)),
+          ]),
+        ),
+      );
+    }
     if (_communityFilter == 'mine') {
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
