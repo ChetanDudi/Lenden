@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/search_tab_bar.dart';
 import '../../widgets/share_as_note_sheet.dart';
+import 'dart:async';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../session.dart';
 import 'note_form_page.dart';
 
 class AdminNotesPage extends StatefulWidget {
@@ -410,6 +413,194 @@ class _AdminNotesPageState extends State<AdminNotesPage> with TickerProviderStat
     );
   }
 
+  String _myEmail() =>
+      Provider.of<SessionProvider>(context, listen: false).user?['email']?.toString() ?? '';
+
+  void _shareAllSystem() {
+    final toCopy = _displayedNotes;
+    if (toCopy.isEmpty) { showSnack(context, AppLocalizations.of(context).t('no_notes_to_share'), isError: true); return; }
+    final buffer = StringBuffer();
+    for (int i = 0; i < toCopy.length; i++) {
+      buffer.write('--- Note ${i + 1}: ${toCopy[i]['title'] ?? ''} ---\n${toCopy[i]['content'] ?? ''}');
+      if (i < toCopy.length - 1) buffer.write('\n\n');
+    }
+    Share.share(buffer.toString());
+  }
+
+  Future<void> _shareAllAsSingle() async {
+    final toCopy = _displayedNotes;
+    if (toCopy.isEmpty) { showSnack(context, AppLocalizations.of(context).t('no_notes_to_share'), isError: true); return; }
+    final buffer = StringBuffer();
+    for (int i = 0; i < toCopy.length; i++) {
+      buffer.write('--- Note ${i + 1}: ${toCopy[i]['title'] ?? ''} ---\n${toCopy[i]['content'] ?? ''}');
+      if (i < toCopy.length - 1) buffer.write('\n\n');
+    }
+    await showShareAsNoteSheet(
+      context,
+      title: 'All Notes (${toCopy.length})',
+      content: buffer.toString(),
+      adminOnly: true,
+      currentUserEmail: _myEmail(),
+    );
+  }
+
+  Future<void> _showShareAllIndividualSheet(List<Map<String, dynamic>> notesToShare) async {
+    if (notesToShare.isEmpty) { showSnack(context, AppLocalizations.of(context).t('no_notes_to_share'), isError: true); return; }
+    final searchCtrl = TextEditingController();
+    Timer? debounce;
+    List<Map<String, dynamic>> users = [];
+    bool sheetLoading = false;
+    bool _initialLoaded = false;
+    String? sendingEmail;
+
+    Future<void> loadUsers(String q, StateSetter setSheet) async {
+      debounce?.cancel();
+      debounce = Timer(const Duration(milliseconds: 350), () async {
+        setSheet(() => sheetLoading = true);
+        try {
+          final res = await ApiClient.get('/api/notes/recipients?q=${Uri.encodeComponent(q.trim())}');
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            setSheet(() => users = List<Map<String, dynamic>>.from(data['users'] ?? []));
+          }
+        } catch (_) {} finally {
+          setSheet(() => sheetLoading = false);
+        }
+      });
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        builder: (_, scrollCtrl) => StatefulBuilder(
+          builder: (ctx2, setSheet) {
+            if (!_initialLoaded) { _initialLoaded = true; Future.microtask(() => loadUsers('', setSheet)); }
+            return Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx2),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx2), borderRadius: BorderRadius.circular(2)))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.tricolorGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Share All as Individual Notes',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(ctx2))),
+                      Text('${notesToShare.length} notes will be sent separately',
+                        style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx2))),
+                    ])),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+                  child: TextField(
+                    controller: searchCtrl,
+                    onChanged: (q) => loadUsers(q, setSheet),
+                    decoration: InputDecoration(
+                      hintText: 'Search admins by name or email...',
+                      hintStyle: TextStyle(color: AppThemeColors.secondaryText(ctx2), fontSize: 13),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      filled: true,
+                      fillColor: AppThemeColors.surfaceBg(ctx2),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: sheetLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : users.isEmpty
+                      ? Center(child: Text(
+                          searchCtrl.text.isEmpty ? 'No admins found — search by name or email' : 'No admins found',
+                          style: TextStyle(color: AppThemeColors.secondaryText(ctx2), fontSize: 14),
+                          textAlign: TextAlign.center))
+                      : ListView.separated(
+                          controller: scrollCtrl,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          itemCount: users.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.divider(ctx2)),
+                          itemBuilder: (_, i) {
+                            final u = users[i];
+                            final email = (u['email'] ?? '').toString();
+                            final name = (u['name'] ?? email).toString();
+                            final username = (u['username'] ?? '').toString();
+                            final isSending = sendingEmail == email;
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
+                                child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                  style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold)),
+                              ),
+                              title: Text(name, style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
+                              subtitle: Text(username.isNotEmpty ? '@$username  ·  $email' : email,
+                                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx2)),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                              trailing: isSending
+                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                                : ElevatedButton(
+                                    onPressed: sendingEmail != null ? null : () async {
+                                      setSheet(() => sendingEmail = email);
+                                      int sent = 0;
+                                      for (final note in notesToShare) {
+                                        try {
+                                          final res = await ApiClient.post('/api/notes/share-content', body: {
+                                            'title': (note['title'] ?? '').toString(),
+                                            'content': (note['content'] ?? '').toString(),
+                                            'targetEmail': email,
+                                          });
+                                          if (res.statusCode == 201) sent++;
+                                        } catch (_) {}
+                                      }
+                                      setSheet(() => sendingEmail = null);
+                                      if (mounted) {
+                                        Navigator.pop(ctx);
+                                        showSnack(context, 'Sent $sent of ${notesToShare.length} notes to $name.');
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.tricolorGreen,
+                                      disabledBackgroundColor: AppColors.tricolorGreen.withValues(alpha: 0.4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      elevation: 0,
+                                      minimumSize: const Size(60, 34),
+                                    ),
+                                    child: const Text('Send', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  ),
+                            );
+                          }),
+                ),
+              ]),
+            );
+          },
+        ),
+      ),
+    );
+    debounce?.cancel();
+    searchCtrl.dispose();
+  }
+
   List<PopupMenuEntry> _buildNoteMenu(Map<String, dynamic> note) {
     final t = AppLocalizations.of(context).t;
     final noteId = note['_id']?.toString() ?? '';
@@ -424,7 +615,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> with TickerProviderStat
       }),
       _noteMenuItem(Icons.share_rounded, t('share'), Colors.indigo,
           () => Share.share('$noteTitle\n\n$noteContent')),
-      _noteMenuItem(Icons.note_add_rounded, 'Share as Note', AppColors.tricolorGreen,
+      _noteMenuItem(Icons.note_add_rounded, AppLocalizations.of(context).t('share_as_note'), AppColors.tricolorGreen,
           () => Future.delayed(
             Duration.zero,
             () => showShareAsNoteSheet(
@@ -433,6 +624,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> with TickerProviderStat
               content: noteContent,
               noteId: noteId,
               adminOnly: true,
+              currentUserEmail: _myEmail(),
             ),
           )),
       _noteMenuItem(Icons.copy_all_rounded, t('duplicate'), Colors.orange,
@@ -490,15 +682,81 @@ class _AdminNotesPageState extends State<AdminNotesPage> with TickerProviderStat
                                   color: AppThemeColors.primaryText(context), letterSpacing: 1.2)),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.copy_all_rounded, color: AppThemeColors.primaryText(context)),
-                        onPressed: _copyAllNotes,
-                        tooltip: t('copy_all_notes'),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
-                        onPressed: _deleteAllNotes,
-                        tooltip: 'Delete all notes',
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: AppThemeColors.primaryText(context)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        color: AppThemeColors.cardBg(context),
+                        onSelected: (v) async {
+                          switch (v) {
+                            case 'copy_all':
+                              _copyAllNotes();
+                              break;
+                            case 'share_all':
+                              _shareAllSystem();
+                              break;
+                            case 'share_single':
+                              _shareAllAsSingle();
+                              break;
+                            case 'share_individual':
+                              _showShareAllIndividualSheet(List<Map<String, dynamic>>.from(_displayedNotes));
+                              break;
+                            case 'delete_all':
+                              _deleteAllNotes();
+                              break;
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem<String>(
+                            value: 'copy_all',
+                            child: Row(children: [
+                              Container(padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.copy_all_rounded, color: Colors.teal, size: 17)),
+                              const SizedBox(width: 12),
+                              Text(t('copy_all_notes'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
+                            ]),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'share_all',
+                            child: Row(children: [
+                              Container(padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(color: Colors.indigo.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.share_rounded, color: Colors.indigo, size: 17)),
+                              const SizedBox(width: 12),
+                              Text(t('share_all_notes'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
+                            ]),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'share_single',
+                            child: Row(children: [
+                              Container(padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(color: AppColors.tricolorGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 17)),
+                              const SizedBox(width: 12),
+                              Flexible(child: Text(t('share_all_as_single_note'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)))),
+                            ]),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'share_individual',
+                            child: Row(children: [
+                              Container(padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.note_alt_rounded, color: Colors.orange, size: 17)),
+                              const SizedBox(width: 12),
+                              Flexible(child: Text(t('share_all_as_individual_notes'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)))),
+                            ]),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'delete_all',
+                            child: Row(children: [
+                              Container(padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 17)),
+                              const SizedBox(width: 12),
+                              Text(t('delete_all'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
+                            ]),
+                          ),
+                        ],
                       ),
                     ],
                   ),

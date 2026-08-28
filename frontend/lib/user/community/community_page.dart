@@ -1065,7 +1065,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               child: Row(children: [
                 for (final f in [
                   ('all', t('filter_all')),
-                  ('starred', '⭐ Starred'),
+                  ('starred', '⭐ ${t('filter_starred')}'),
                   ('mine', t('filter_created_by_me')),
                   ('joined', t('filter_joined')),
                 ]) ...[
@@ -1231,10 +1231,10 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(22)),
               child: const Icon(Icons.star_border_rounded, size: 36, color: Colors.amber)),
             const SizedBox(height: 18),
-            Text('No Starred Communities',
+            Text(t('no_starred_communities_title'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
             const SizedBox(height: 8),
-            Text('Tap the ⭐ on any community card to star it and find it here quickly.',
+            Text(t('no_starred_communities_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.6)),
           ]),

@@ -520,7 +520,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
 
   void _shareAllSystem() {
     final toCopy = _displayedNotes;
-    if (toCopy.isEmpty) { showSnack(context, 'No notes to share.', isError: true); return; }
+    if (toCopy.isEmpty) { showSnack(context, AppLocalizations.of(context).t('no_notes_to_share'), isError: true); return; }
     final buffer = StringBuffer();
     for (int i = 0; i < toCopy.length; i++) {
       buffer.write('--- Note ${i + 1}: ${toCopy[i]['title'] ?? ''} ---\n${toCopy[i]['content'] ?? ''}');
@@ -531,7 +531,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
 
   Future<void> _shareAllAsSingle() async {
     final toCopy = _displayedNotes;
-    if (toCopy.isEmpty) { showSnack(context, 'No notes to share.', isError: true); return; }
+    if (toCopy.isEmpty) { showSnack(context, AppLocalizations.of(context).t('no_notes_to_share'), isError: true); return; }
     final buffer = StringBuffer();
     for (int i = 0; i < toCopy.length; i++) {
       buffer.write('--- Note ${i + 1}: ${toCopy[i]['title'] ?? ''} ---\n${toCopy[i]['content'] ?? ''}');
@@ -718,7 +718,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
       }),
       _noteMenuItem(Icons.share_rounded, t('share'), Colors.indigo,
           () => Share.share('$noteTitle\n\n$noteContent')),
-      _noteMenuItem(Icons.note_add_rounded, 'Share as Note', AppColors.tricolorGreen,
+      _noteMenuItem(Icons.note_add_rounded, t('share_as_note'), AppColors.tricolorGreen,
           () => Future.delayed(
             Duration.zero,
             () => showShareAsNoteSheet(
@@ -813,13 +813,13 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
                               break;
                             case 'share_all':
                               _shareAllSystem();
-                              break;
+                            break;
                             case 'share_single':
                               _shareAllAsSingle();
-                              break;
+                            break;
                             case 'share_individual':
                               _showShareAllIndividualSheet(List<Map<String,dynamic>>.from(_displayedNotes));
-                              break;
+                            break;
                           }
                         },
                         itemBuilder: (_) => [
@@ -853,7 +853,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
                                 decoration: BoxDecoration(color: Colors.indigo.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                                 child: const Icon(Icons.share_rounded, color: Colors.indigo, size: 17)),
                               const SizedBox(width: 12),
-                              Text('Share All Notes', style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
+                              Text(t('share_all_notes'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                             ]),
                           ),
                           PopupMenuItem<String>(
@@ -863,7 +863,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
                                 decoration: BoxDecoration(color: AppColors.tricolorGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                                 child: const Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen, size: 17)),
                               const SizedBox(width: 12),
-                              Flexible(child: Text('Share All as Single Note', style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)))),
+                              Flexible(child: Text(t('share_all_as_single_note'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)))),
                             ]),
                           ),
                           PopupMenuItem<String>(
@@ -873,7 +873,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
                                 decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                                 child: const Icon(Icons.note_alt_rounded, color: Colors.orange, size: 17)),
                               const SizedBox(width: 12),
-                              Flexible(child: Text('Share All as Individual Notes', style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)))),
+                              Flexible(child: Text(t('share_all_as_individual_notes'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)))),
                             ]),
                           ),
                           PopupMenuItem<String>(
@@ -883,7 +883,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
                                 decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                                 child: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 17)),
                               const SizedBox(width: 12),
-                              Text('Delete All', style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
+                              Text(t('delete_all'), style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                             ]),
                           ),
                         ],

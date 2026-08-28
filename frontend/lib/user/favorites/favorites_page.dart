@@ -186,14 +186,14 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                         NotesPage(initialShowBookmarkedOnly: true))),
                               ),
                             ]),
-                            _sectionCard('Communities', [
+                            _sectionCard(t('communities_title'), [
                               _navRow(
                                 icon: Icons.star_rounded,
                                 iconColor: Colors.amber,
-                                title: 'Starred Communities',
+                                title: t('starred_communities'),
                                 subtitle: _starredCommunities.isEmpty
-                                    ? 'No starred communities yet'
-                                    : '${_starredCommunities.length} starred',
+                                    ? t('no_starred_communities')
+                                    : '${_starredCommunities.length} ${t('starred_communities_subtitle')}',
                                 badge: _starredCommunities.length,
                                 onTap: () => Navigator.push(context,
                                     MaterialPageRoute(builder: (_) =>

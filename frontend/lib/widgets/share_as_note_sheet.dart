@@ -6,6 +6,7 @@ import '../utils/api_client.dart';
 import '../utils/theme_helper.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../l10n/app_localizations.dart';
 
 /// Opens a bottom sheet letting the current user pick a LenDen user (or admin,
 /// when [adminOnly] is true) to receive [title]+[content] as a note.
@@ -260,7 +261,7 @@ class _ShareAsNoteSheetState extends State<_ShareAsNoteSheet> {
                                 const SizedBox(height: 12),
                                 Text(
                                   _isSelfSearch
-                                      ? "That's you! You already have this note — no need to share it with yourself."
+                                      ? (AppLocalizations.of(context).t('self_share_note_message'))
                                       : (_searchCtrl.text.isEmpty
                                           ? (widget.adminOnly
                                               ? 'No other admins found'

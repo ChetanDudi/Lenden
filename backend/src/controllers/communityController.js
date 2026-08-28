@@ -142,17 +142,15 @@ exports.getMyCommunities = async (req, res) => {
 
 exports.toggleStarCommunity = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
     const cid = req.params.id;
-    const idx = (user.starredCommunities || []).findIndex(id => id.toString() === cid);
-    if (idx === -1) {
-      user.starredCommunities.push(cid);
-      await user.save();
-      res.json({ starred: true });
-    } else {
-      user.starredCommunities.splice(idx, 1);
-      await user.save();
+    const user = await User.findById(req.user._id).select('starredCommunities').lean();
+    const isStarred = (user?.starredCommunities || []).some(id => id.toString() === cid);
+    if (isStarred) {
+      await User.updateOne({ _id: req.user._id }, { $pull: { starredCommunities: cid } });
       res.json({ starred: false });
+    } else {
+      await User.updateOne({ _id: req.user._id }, { $addToSet: { starredCommunities: cid } });
+      res.json({ starred: true });
     }
   } catch (e) {
     res.status(500).json({ error: e.message });
