@@ -8,6 +8,11 @@ import 'notification_settings_page.dart';
 import 'privacy_settings_page.dart';
 import 'account_settings_page.dart';
 import '../user/support/help_support_page.dart';
+import '../user/support/contact_page.dart';
+import '../user/support/feedback.dart';
+import '../user/support/my_disputes_page.dart';
+import '../user/digitise/subscriptions_page.dart';
+import '../user/digitise/referral_page.dart';
 import '../utils/responsive.dart';
 import 'about_page.dart';
 import 'terms_of_service_page.dart';
@@ -25,6 +30,7 @@ import '../widgets/currency_display.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/theme_helper.dart';
 import '../widgets/search_tab_bar.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -352,10 +358,52 @@ class _SettingsPageState extends State<SettingsPage> {
           builder: (_) => const ExportStatementPage(),
         ),
         _SettingsEntry(
+          'My Subscription',
+          ['subscription', 'plan', 'premium', 'upgrade', 'features'],
+          Icons.workspace_premium_outlined,
+          builder: (_) => const SubscriptionsPage(),
+        ),
+        _SettingsEntry(
+          'Referral & Rewards',
+          ['referral', 'invite', 'rewards', 'coins', 'refer', 'earn'],
+          Icons.redeem_outlined,
+          builder: (_) => const ReferralPage(),
+        ),
+        _SettingsEntry(
           'Help & Support',
           ['help', 'support', 'contact', 'faq', 'assistance'],
           Icons.help_outline,
           builder: (_) => HelpSupportPage(),
+        ),
+        _SettingsEntry(
+          'Contact Support',
+          ['contact', 'message', 'write to us', 'support team', 'reach out'],
+          Icons.support_agent_outlined,
+          builder: (_) => const ContactPage(),
+        ),
+        _SettingsEntry(
+          'Submit Feedback',
+          ['feedback', 'suggestion', 'review', 'report issue', 'bug'],
+          Icons.feedback_outlined,
+          builder: (_) => const FeedbackPage(),
+        ),
+        _SettingsEntry(
+          'My Disputes',
+          ['dispute', 'report', 'claim', 'issue', 'refund', 'problem'],
+          Icons.gavel_outlined,
+          builder: (_) => const MyDisputesPage(),
+        ),
+        _SettingsEntry(
+          'Rate the App',
+          ['rate', 'review', 'store', 'rating', 'play store', 'app store'],
+          Icons.star_rate_outlined,
+          action: (_) => Share.share('I love using LenDen for splitting expenses! Check it out.'),
+        ),
+        _SettingsEntry(
+          'Share App',
+          ['share', 'invite friends', 'spread', 'refer', 'tell a friend'],
+          Icons.share_outlined,
+          action: (_) => Share.share('Manage your expenses easily with LenDen!'),
         ),
         _SettingsEntry(
           'About LenDen',
@@ -858,6 +906,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (mounted) setState(() {});
                         }),
                       ),
+                      _buildTile(
+                        context,
+                        title: t('my_subscription'),
+                        icon: Icons.workspace_premium_outlined,
+                        subtitle: t('my_subscription_desc'),
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
+                      ),
                     ]),
 
                     _settingsSectionCard(t('preferences'), [
@@ -956,6 +1012,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (mounted) setState(() {});
                         }),
                       ),
+                      _buildTile(
+                        context,
+                        title: t('referral_and_rewards'),
+                        icon: Icons.redeem_outlined,
+                        subtitle: t('referral_and_rewards_desc'),
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ReferralPage())),
+                      ),
                     ]),
 
                     _settingsSectionCard(t('support_and_about'), [
@@ -965,6 +1029,39 @@ class _SettingsPageState extends State<SettingsPage> {
                         icon: Icons.help_outline,
                         onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => HelpSupportPage())),
+                      ),
+                      _buildTile(
+                        context,
+                        title: t('contact_support'),
+                        icon: Icons.support_agent_outlined,
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ContactPage())),
+                      ),
+                      _buildTile(
+                        context,
+                        title: t('submit_feedback'),
+                        icon: Icons.feedback_outlined,
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const FeedbackPage())),
+                      ),
+                      _buildTile(
+                        context,
+                        title: t('my_disputes'),
+                        icon: Icons.gavel_outlined,
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const MyDisputesPage())),
+                      ),
+                      _buildTile(
+                        context,
+                        title: t('rate_the_app'),
+                        icon: Icons.star_rate_outlined,
+                        onTap: () => Share.share(t('rate_app_share_text')),
+                      ),
+                      _buildTile(
+                        context,
+                        title: t('share_app'),
+                        icon: Icons.share_outlined,
+                        onTap: () => Share.share(t('share_app_text')),
                       ),
                       _buildTile(
                         context,

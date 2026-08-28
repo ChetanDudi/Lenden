@@ -77,6 +77,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   bool _deviceManagement = true;
   bool _allowDirectGroupAdd = true;
   bool _allowDirectCommunityAdd = true;
+  bool _leaderboardVisible = true;
   String _sessionTimeout = '30'; // minutes
 
   List<Map<String, dynamic>> _devices = [];
@@ -112,6 +113,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           _deviceManagement = settings['deviceManagement'] ?? true;
           _allowDirectGroupAdd = settings['allowDirectGroupAdd'] ?? true;
           _allowDirectCommunityAdd = settings['allowDirectCommunityAdd'] ?? true;
+          _leaderboardVisible = settings['leaderboardVisible'] ?? true;
           _sessionTimeout = settings['sessionTimeout']?.toString() ?? '30';
         });
       }
@@ -149,6 +151,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           'deviceManagement': _deviceManagement,
           'allowDirectGroupAdd': _allowDirectGroupAdd,
           'allowDirectCommunityAdd': _allowDirectCommunityAdd,
+          'leaderboardVisible': _leaderboardVisible,
           'sessionTimeout': int.parse(_sessionTimeout),
         },
       );
@@ -708,6 +711,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                         Icons.hub_outlined,
                         _allowDirectCommunityAdd,
                         (value) => setState(() => _allowDirectCommunityAdd = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
+                        t('leaderboard_visible_title'),
+                        t('leaderboard_visible_desc'),
+                        Icons.leaderboard_rounded,
+                        _leaderboardVisible,
+                        (value) => setState(() => _leaderboardVisible = value),
                       ),
                       _buildSwitchTile(
                         context,

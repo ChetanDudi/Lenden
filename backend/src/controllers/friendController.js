@@ -37,6 +37,7 @@ exports.searchUsers = async (req, res) => {
 
     const users = await User.find({
       _id: { $nin: excludeIds },
+      'privacySettings.profileVisibility': { $ne: false },
       $or: [{ email: regex }, { username: regex }, { name: regex }],
     })
       .select('name username email blockedUsers')
@@ -204,7 +205,10 @@ exports.getMutualFriends = async (req, res) => {
       myFriendIds.has(id.toString())
     );
 
-    const mutualFriends = await User.find({ _id: { $in: mutualIds } })
+    const mutualFriends = await User.find({
+      _id: { $in: mutualIds },
+      'privacySettings.profileVisibility': { $ne: false },
+    })
       .select('name username email')
       .limit(20);
 

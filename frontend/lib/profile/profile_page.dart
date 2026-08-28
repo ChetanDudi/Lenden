@@ -179,6 +179,46 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     final avatarProvider = _cachedAvatarImage!;
     final isViewingOwnProfile = widget.email == null || widget.email!.isEmpty;
+
+    // Private profile guard — backend returns only {_id, name, profileIsPrivate: true}
+    if (!isViewingOwnProfile && _profile != null && _profile!['profileIsPrivate'] == true) {
+      return Scaffold(
+        backgroundColor: AppThemeColors.scaffoldBg(context),
+        appBar: transparentAppBar(context, title: t('profile')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 48,
+                  backgroundColor: AppThemeColors.border(context),
+                  child: Icon(Icons.lock_rounded, size: 40, color: AppThemeColors.mutedText(context)),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _profile!['name']?.toString() ?? t('user_name_fallback'),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  t('private_profile'),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.cyan),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  t('user_profile_private_msg'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(

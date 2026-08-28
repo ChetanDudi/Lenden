@@ -209,11 +209,11 @@ exports.getDailyLeaderboard = async (req, res) => {
     const topKeys = topWithTies.map((r) => r.key?.toString()).filter(Boolean);
     let users = [];
     if (type === 'group') {
-      users = await User.find({ _id: { $in: topKeys } }).select(
+      users = await User.find({ _id: { $in: topKeys }, 'privacySettings.leaderboardVisible': { $ne: false } }).select(
         '_id name email gender profileImage'
       );
     } else {
-      users = await User.find({ email: { $in: topKeys } }).select(
+      users = await User.find({ email: { $in: topKeys }, 'privacySettings.leaderboardVisible': { $ne: false } }).select(
         '_id name email gender profileImage'
       );
     }

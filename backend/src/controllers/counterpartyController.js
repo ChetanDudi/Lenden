@@ -52,23 +52,31 @@ exports.getUserCounterparties = async (req, res) => {
     }
 
     const profiles = await User.find(profileFilter)
-      .select('name email gender phone birthday profileImage avgRating memberSince')
+      .select('name email gender phone birthday profileImage avgRating memberSince privacySettings')
       .lean();
 
-    let counterpartiesList = profiles.map((p) => ({
-      _id: p._id.toString(),
-      email: p.email,
-      name: p.name,
-      gender: p.gender || null,
-      phone: p.phone || null,
-      birthday: p.birthday || null,
-      avgRating: p.avgRating || 0,
-      memberSince: p.memberSince || null,
-      profileImage: p.profileImage
-        ? `${req.protocol}://${req.get('host')}/api/users/${p._id}/profile-image`
-        : null,
-      count: counts[p.email] || 0,
-    }));
+    const requesterEmail = req.user?.email?.toLowerCase();
+    let counterpartiesList = profiles.map((p) => {
+      const privacy = p.privacySettings || {};
+      const isOwn = p.email?.toLowerCase() === requesterEmail;
+      const isPrivate = !isOwn && privacy.profileVisibility === false;
+      const hidePhone = !isOwn && (isPrivate || privacy.contactSharing === false);
+      return {
+        _id: p._id.toString(),
+        email: p.email,
+        name: p.name,
+        gender: isPrivate ? null : (p.gender || null),
+        phone: hidePhone ? null : (p.phone || null),
+        birthday: isPrivate ? null : (p.birthday || null),
+        avgRating: isPrivate ? null : (p.avgRating || 0),
+        memberSince: isPrivate ? null : (p.memberSince || null),
+        profileImage: (!isPrivate && p.profileImage)
+          ? `${req.protocol}://${req.get('host')}/api/users/${p._id}/profile-image`
+          : null,
+        profileIsPrivate: isPrivate || undefined,
+        count: counts[p.email] || 0,
+      };
+    });
 
     // Sort
     switch (sortBy) {

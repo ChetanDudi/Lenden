@@ -393,6 +393,7 @@ const getPrivacySettings = async (req, res) => {
       sessionTimeout: user.privacySettings?.sessionTimeout ?? 30,
       allowDirectGroupAdd: user.privacySettings?.allowDirectGroupAdd ?? true,
       allowDirectCommunityAdd: user.privacySettings?.allowDirectCommunityAdd ?? true,
+      leaderboardVisible: user.privacySettings?.leaderboardVisible ?? true,
     };
 
     res.json(settings);
@@ -418,6 +419,7 @@ const updatePrivacySettings = async (req, res) => {
       sessionTimeout,
       allowDirectGroupAdd,
       allowDirectCommunityAdd,
+      leaderboardVisible,
     } = req.body;
 
     const updatePayload = {
@@ -434,6 +436,7 @@ const updatePrivacySettings = async (req, res) => {
         ...(typeof sessionTimeout === 'number' && { sessionTimeout }),
         ...(typeof allowDirectGroupAdd === 'boolean' && { allowDirectGroupAdd }),
         ...(typeof allowDirectCommunityAdd === 'boolean' && { allowDirectCommunityAdd }),
+        ...(typeof leaderboardVisible === 'boolean' && { leaderboardVisible }),
       },
     };
 
