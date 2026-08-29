@@ -534,19 +534,62 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                         Text('${tr('time')}: $timeStr',
                             style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                         Spacer(),
-                        GestureDetector(
-                          onTap: () => _toggleSecureFavourite(Map<String, dynamic>.from(t)),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                            child: Icon(
-                              _isSecureFavourited(t) ? Icons.favorite : Icons.favorite_border,
-                              color: _isSecureFavourited(t) ? Colors.redAccent : Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.chevron_right, color: Colors.teal, size: 20),
+                        Builder(builder: (ctx) {
+                          final isFav = _isSecureFavourited(t);
+                          final tCopy = Map<String, dynamic>.from(t);
+                          return PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            iconSize: 20,
+                            icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                            onSelected: (value) {
+                              if (value == 'view_details') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SecureTransactionDetailPage(
+                                      transaction: tCopy,
+                                      isLending: isLending,
+                                      initialCurrency: selectedCurrency,
+                                      currencyData: currencyData,
+                                    ),
+                                  ),
+                                ).then((_) { if (mounted) fetchTransactions(); });
+                              } else if (value == 'toggle_fav') {
+                                _toggleSecureFavourite(tCopy);
+                              } else if (value == 'share_pdf') {
+                                _shareSecureTransactionPdf(tCopy, isLending);
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(
+                                value: 'view_details',
+                                child: Row(children: [
+                                  Icon(Icons.open_in_new_rounded, size: 16, color: Colors.teal),
+                                  SizedBox(width: 8),
+                                  Text('View Details', style: TextStyle(fontWeight: FontWeight.w600)),
+                                ]),
+                              ),
+                              PopupMenuItem(
+                                value: 'toggle_fav',
+                                child: Row(children: [
+                                  Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                                      size: 16, color: Colors.redAccent),
+                                  const SizedBox(width: 8),
+                                  Text(isFav ? 'Remove Favourite' : 'Add Favourite',
+                                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                                ]),
+                              ),
+                              const PopupMenuItem(
+                                value: 'share_pdf',
+                                child: Row(children: [
+                                  Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Share as PDF', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                                ]),
+                              ),
+                            ],
+                          );
+                        }),
                       ],
                     ),
                     SizedBox(height: 10),
@@ -2179,6 +2222,235 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
         description: const Text('Could not export the file'),
       ).show(context);
     }
+  }
+
+  // ── Single Transaction PDF Receipt ────────────────────────────────────────
+  Future<void> _shareSecureTransactionPdf(Map<String, dynamic> t, bool isLending) async {
+    const darkBg    = PdfColor.fromInt(0xFF0D1B2A);
+    const cyan      = PdfColor.fromInt(0xFF00BCD4);
+    const textDark  = PdfColor.fromInt(0xFF1A1A1A);
+    const green     = PdfColor.fromInt(0xFF2E7D32);
+    const red       = PdfColor.fromInt(0xFFC62828);
+    const purple    = PdfColor.fromInt(0xFF9C27B0);
+    const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
+    const white70   = PdfColor(1, 1, 1, 0.7);
+
+    String pdfSym(String code) {
+      const safe = <String, String>{
+        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
+        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
+        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
+      };
+      return safe[code.toUpperCase()] ?? code.toUpperCase();
+    }
+
+    final user = Provider.of<SessionProvider>(context, listen: false).user;
+    final myEmail  = (user?['email'] ?? '').toString();
+    final userEmail = (t['userEmail'] ?? '').toString();
+    final isCreator = myEmail.isNotEmpty && myEmail == userEmail;
+    final cpEmail   = (isCreator ? t['counterpartyEmail'] : t['userEmail'])?.toString() ?? '';
+
+    final amount   = (t['amount'] as num?)?.toDouble() ?? 0;
+    final currency = (t['currency'] ?? 'INR').toString();
+    final sym      = pdfSym(currency);
+    final desc     = (t['description'] ?? '').toString();
+    final category = (t['category'] ?? '').toString();
+    final rawId    = (t['_id'] ?? '').toString();
+    final shortId  = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.toUpperCase();
+    final dateStr  = (t['date'] ?? '').toString();
+    final timeStr  = (t['time'] ?? '').toString();
+
+    final youCleared   = (isCreator ? t['userCleared'] : t['counterpartyCleared']) == true;
+    final otherCleared = (isCreator ? t['counterpartyCleared'] : t['userCleared']) == true;
+    final fullyCleared = youCleared && otherCleared;
+    final isPartial    = t['isPartiallyPaid'] == true;
+    final partials     = (t['partialPayments'] as List? ?? []);
+    final notes        = (t['notes'] as List? ?? []);
+
+    final rawExp = (t['expectedReturnDate'] ?? '').toString();
+    String expDisplay = '';
+    if (rawExp.isNotEmpty && rawExp != 'null') {
+      try { expDisplay = DateFormat('d MMM yyyy').format(DateTime.parse(rawExp).toLocal()); }
+      catch (_) { expDisplay = rawExp.length >= 10 ? rawExp.substring(0, 10) : ''; }
+    }
+
+    final now      = DateTime.now();
+    final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
+
+    String statusLabel() {
+      if (fullyCleared) return 'Fully Cleared';
+      if (isPartial)    return 'Partially Paid';
+      if (youCleared)   return 'You cleared — awaiting other party';
+      if (otherCleared) return 'Other party cleared — awaiting you';
+      return 'Pending';
+    }
+    PdfColor statusColor() {
+      if (fullyCleared) return green;
+      if (isPartial)    return purple;
+      return const PdfColor.fromInt(0xFFFFA726);
+    }
+
+    pw.Widget rowItem(String label, String value, {PdfColor? vc}) => pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 10, color: const PdfColor(0.4, 0.4, 0.4))),
+        pw.Flexible(child: pw.Text(value,
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: vc ?? textDark),
+            textAlign: pw.TextAlign.right)),
+      ]),
+    );
+
+    final doc = pw.Document();
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        // Header
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: darkBg, borderRadius: pw.BorderRadius.all(pw.Radius.circular(12))),
+          padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('LenDen', style: pw.TextStyle(color: PdfColors.white, fontSize: 26, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text('Secure Transaction Receipt', style: pw.TextStyle(color: cyan, fontSize: 13)),
+            pw.SizedBox(height: 12),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Text('Ref: #$shortId', style: pw.TextStyle(color: white70, fontSize: 10)),
+              pw.Text('Generated: $genLabel', style: pw.TextStyle(color: white70, fontSize: 10)),
+            ]),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Amount block
+        pw.Container(
+          decoration: pw.BoxDecoration(
+            color: isLending ? const PdfColor.fromInt(0xFFE8F5E9) : const PdfColor.fromInt(0xFFFFEBEE),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+            border: pw.Border.all(color: isLending ? green : red, width: 1.5),
+          ),
+          padding: const pw.EdgeInsets.all(16),
+          child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text(isLending ? 'You Lent' : 'You Borrowed',
+                  style: pw.TextStyle(fontSize: 11, color: isLending ? green : red)),
+              pw.SizedBox(height: 4),
+              pw.Text('$sym ${amount.toStringAsFixed(2)}',
+                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: isLending ? green : red)),
+            ]),
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: pw.BoxDecoration(
+                color: statusColor(),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
+              ),
+              child: pw.Text(fullyCleared ? 'Cleared' : isPartial ? 'Partial' : 'Pending',
+                  style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold)),
+            ),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Details
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: lightGrey, borderRadius: pw.BorderRadius.all(pw.Radius.circular(10))),
+          padding: const pw.EdgeInsets.all(16),
+          child: pw.Column(children: [
+            rowItem('Counterparty', cpEmail.isNotEmpty ? cpEmail : 'Unknown'),
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Currency', currency),
+            if (desc.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Description', desc),
+            ],
+            if (category.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Category', category),
+            ],
+            if (dateStr.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Date', '${dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr}${timeStr.isNotEmpty ? '  $timeStr' : ''}'),
+            ],
+            if (expDisplay.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Expected Return', expDisplay),
+            ],
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Status', statusLabel(), vc: statusColor()),
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('You cleared', youCleared ? 'Yes' : 'No', vc: youCleared ? green : red),
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Other party cleared', otherCleared ? 'Yes' : 'No', vc: otherCleared ? green : red),
+          ]),
+        ),
+
+        // Partial payments
+        if (partials.isNotEmpty) ...[
+          pw.SizedBox(height: 16),
+          pw.Text('Partial Payments', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: purple)),
+          pw.SizedBox(height: 8),
+          pw.Container(
+            decoration: const pw.BoxDecoration(color: lightGrey, borderRadius: pw.BorderRadius.all(pw.Radius.circular(10))),
+            padding: const pw.EdgeInsets.all(12),
+            child: pw.Column(children: partials.map<pw.Widget>((p) {
+              final pAmt = (p is Map ? (p['amount'] as num?) : null)?.toDouble() ?? 0;
+              final pRaw = p is Map ? (p['date'] ?? p['createdAt'] ?? '').toString() : '';
+              String pDate = '';
+              if (pRaw.isNotEmpty) {
+                try { pDate = DateFormat('d MMM yyyy').format(DateTime.parse(pRaw).toLocal()); }
+                catch (_) { pDate = pRaw.length >= 10 ? pRaw.substring(0, 10) : pRaw; }
+              }
+              return pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                  pw.Text(pDate, style: pw.TextStyle(fontSize: 9, color: const PdfColor(0.5, 0.5, 0.5))),
+                  pw.Text('$sym ${pAmt.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: purple)),
+                ]),
+              );
+            }).toList()),
+          ),
+        ],
+
+        // Notes
+        if (notes.isNotEmpty) ...[
+          pw.SizedBox(height: 16),
+          pw.Text('Notes', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: cyan)),
+          pw.SizedBox(height: 8),
+          ...notes.map<pw.Widget>((n) {
+            final content = n is Map ? (n['content'] ?? n['text'] ?? '').toString() : n.toString();
+            final nRaw    = n is Map ? (n['createdAt'] ?? n['date'] ?? '').toString() : '';
+            String nDate  = '';
+            if (nRaw.isNotEmpty) {
+              try { nDate = DateFormat('d MMM yyyy').format(DateTime.parse(nRaw).toLocal()); }
+              catch (_) {}
+            }
+            return pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 8),
+              padding: const pw.EdgeInsets.all(12),
+              decoration: const pw.BoxDecoration(color: lightGrey, borderRadius: pw.BorderRadius.all(pw.Radius.circular(8))),
+              child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.Text(content, style: pw.TextStyle(fontSize: 10)),
+                if (nDate.isNotEmpty) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Text(nDate, style: pw.TextStyle(fontSize: 8, color: const PdfColor(0.5, 0.5, 0.5))),
+                ],
+              ]),
+            );
+          }),
+        ],
+
+        pw.SizedBox(height: 24),
+        pw.Divider(),
+        pw.SizedBox(height: 8),
+        pw.Center(child: pw.Text('LenDen — Expense Splitting Made Simple',
+            style: pw.TextStyle(color: const PdfColor(0.6, 0.6, 0.6), fontSize: 9))),
+      ],
+    ));
+
+    final bytes    = await doc.save();
+    final filename = 'lenden_secure_$shortId.pdf';
+    await shareBytesFile(bytes: bytes, filename: filename, mimeType: 'application/pdf',
+        subject: 'Secure Transaction Receipt – #$shortId');
   }
 
   // ── PDF Export ────────────────────────────────────────────────────────────

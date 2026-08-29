@@ -197,7 +197,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   }
 
   Future<void> _deleteNotification(String id) async {
-    await ApiClient.delete('/api/notifications/$id');
+    await ApiClient.delete('/api/notifications/$id/dismiss');
     if (!mounted) return;
     setState(() {
       _notifications.removeWhere((n) => n['_id']?.toString() == id);

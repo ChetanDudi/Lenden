@@ -7,6 +7,7 @@ module.exports = (router, { auth, otpVerifyLimiter, budgetCheck, handleUsage, up
   router.post('/group-transactions/with-coins', auth, groupTransactionController.createGroupWithCoins);
 
   // Membership
+  router.post('/group-transactions/:groupId/send-invite', auth, groupTransactionController.sendGroupInvite);
   router.post('/group-transactions/:groupId/add-member', auth, groupTransactionController.addMember);
   router.post('/group-transactions/:groupId/remove-member', auth, groupTransactionController.removeMember);
   router.post('/group-transactions/:groupId/leave', auth, groupTransactionController.leaveGroup);

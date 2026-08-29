@@ -53,6 +53,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   int _friendsVisibleCount = 10;
   String _blockedQuery = '';
   int _blockedVisibleCount = 10;
+  String _reqSubTab = 'received'; // 'received' | 'sent'
   List<Map<String, dynamic>> _friendBalances = [];
   bool _loadingBalances = true;
 
@@ -1185,6 +1186,47 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     );
   }
 
+  Widget _subTabChip({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool selected,
+    required int count,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: selected ? color : AppThemeColors.divider(context)),
+          boxShadow: selected ? [BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))] : [],
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: selected ? Colors.white : color),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : AppThemeColors.secondaryText(context))),
+          if (count > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white.withValues(alpha: 0.3) : color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                  color: selected ? Colors.white : color)),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+
   Widget _ratingChip(num avg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1954,84 +1996,171 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               ],
                             ),
 
-                            // â”€â”€ Tab 2: Requests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                            // â”€â”€ Tab 2: Requests (Received / Sent sub-tabs) â”€â”€
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
-                                if (_incoming.isNotEmpty) ...[
-                                  _sectionHeader(t('incoming_label'), _incoming.length, badgeColor: Colors.orange),
-                                  const SizedBox(height: 10),
-                                  ..._incoming.asMap().entries.map((e) {
-                                    final r = e.value;
-                                    final from = r['from'] is Map ? r['from'] as Map<String, dynamic> : <String, dynamic>{};
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: _buildRequestCard(
-                                        from,
-                                        t('wants_to_connect'),
-                                        Row(mainAxisSize: MainAxisSize.min, children: [
-                                          GestureDetector(
-                                            onTap: () => _declineRequest(r['_id']),
-                                            child: Container(
-                                              width: 36, height: 36,
-                                              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), shape: BoxShape.circle),
-                                              child: const Icon(Icons.close, color: Colors.red, size: 18),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          GestureDetector(
-                                            onTap: () => _acceptRequest(r['_id']),
-                                            child: Container(
-                                              width: 36, height: 36,
-                                              decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
-                                              child: const Icon(Icons.check, color: Colors.white, size: 18),
-                                            ),
-                                          ),
-                                        ]),
-                                        e.key,
-                                      ),
-                                    );
-                                  }),
-                                  const SizedBox(height: 16),
-                                ],
-                                if (_outgoing.isNotEmpty) ...[
-                                  _sectionHeader(t('sent_label'), _outgoing.length, badgeColor: Colors.blue),
-                                  const SizedBox(height: 10),
-                                  ..._outgoing.asMap().entries.map((e) {
-                                    final r = e.value;
-                                    final to = r['to'] is Map ? r['to'] as Map<String, dynamic> : <String, dynamic>{};
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: _buildRequestCard(
-                                        to, t('request_sent_label'),
-                                        GestureDetector(
-                                          onTap: () => _cancelRequest(r['_id']),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey.withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(20),
-                                              border: Border.all(color: AppThemeColors.divider(context)),
-                                            ),
-                                            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12, fontWeight: FontWeight.w600)),
-                                          ),
-                                        ),
-                                        e.key,
-                                      ),
-                                    );
-                                  }),
-                                ],
-                                if (_incoming.isEmpty && _outgoing.isEmpty)
-                                  Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(top: 48),
-                                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.mail_outline, size: 64, color: AppThemeColors.divider(context)),
-                                        const SizedBox(height: 8),
-                                        Text(t('no_pending_requests'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                                      ]),
-                                    ),
+                                // Sub-tab toggle
+                                Row(children: [
+                                  _subTabChip(
+                                    label: t('received_label'),
+                                    icon: Icons.call_received_rounded,
+                                    color: Colors.orange,
+                                    selected: _reqSubTab == 'received',
+                                    count: _incoming.length,
+                                    onTap: () => setState(() => _reqSubTab = 'received'),
                                   ),
+                                  const SizedBox(width: 10),
+                                  _subTabChip(
+                                    label: t('sent_label'),
+                                    icon: Icons.call_made_rounded,
+                                    color: Colors.blue,
+                                    selected: _reqSubTab == 'sent',
+                                    count: _outgoing.length,
+                                    onTap: () => setState(() => _reqSubTab = 'sent'),
+                                  ),
+                                ]),
+                                const SizedBox(height: 14),
+
+                                // Received sub-tab
+                                if (_reqSubTab == 'received') ...[
+                                  if (_incoming.isEmpty)
+                                    Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 48),
+                                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                          Icon(Icons.call_received_rounded, size: 64, color: AppThemeColors.divider(context)),
+                                          const SizedBox(height: 8),
+                                          Text(t('no_incoming_requests'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                                        ]),
+                                      ),
+                                    )
+                                  else
+                                    ..._incoming.asMap().entries.map((e) {
+                                      final r = e.value;
+                                      final from = r['from'] is Map ? r['from'] as Map<String, dynamic> : <String, dynamic>{};
+                                      final fromId = (from['_id'] ?? '').toString();
+                                      final requestId = (r['_id'] ?? '').toString();
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 10),
+                                        child: _buildRequestCard(
+                                          from,
+                                          t('wants_to_connect'),
+                                          Row(mainAxisSize: MainAxisSize.min, children: [
+                                            // Block sender
+                                            Tooltip(
+                                              message: t('block_label'),
+                                              child: GestureDetector(
+                                                onTap: () async {
+                                                  final ok = await _confirmAction(
+                                                    title: t('confirm_block_user_title'),
+                                                    message: t('confirm_block_user_message'),
+                                                    icon: Icons.block,
+                                                    color: Colors.orange,
+                                                  );
+                                                  if (!ok) return;
+                                                  await _declineRequest(requestId);
+                                                  await _blockUser(fromId);
+                                                },
+                                                child: Container(
+                                                  width: 36, height: 36,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.orange.withValues(alpha: 0.1),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                                                  ),
+                                                  child: const Icon(Icons.block, color: Colors.orange, size: 16),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            // Decline
+                                            Tooltip(
+                                              message: t('decline_label'),
+                                              child: GestureDetector(
+                                                onTap: () => _declineRequest(requestId),
+                                                child: Container(
+                                                  width: 36, height: 36,
+                                                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
+                                                  child: const Icon(Icons.close, color: Colors.red, size: 18),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            // Accept
+                                            Tooltip(
+                                              message: t('accept'),
+                                              child: GestureDetector(
+                                                onTap: () => _acceptRequest(requestId),
+                                                child: Container(
+                                                  width: 36, height: 36,
+                                                  decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
+                                                  child: const Icon(Icons.check, color: Colors.white, size: 18),
+                                                ),
+                                              ),
+                                            ),
+                                          ]),
+                                          e.key,
+                                        ),
+                                      );
+                                    }),
+                                ],
+
+                                // Sent sub-tab
+                                if (_reqSubTab == 'sent') ...[
+                                  if (_outgoing.isEmpty)
+                                    Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 48),
+                                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                          Icon(Icons.call_made_rounded, size: 64, color: AppThemeColors.divider(context)),
+                                          const SizedBox(height: 8),
+                                          Text(t('no_sent_requests'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                                        ]),
+                                      ),
+                                    )
+                                  else
+                                    ..._outgoing.asMap().entries.map((e) {
+                                      final r = e.value;
+                                      final to = r['to'] is Map ? r['to'] as Map<String, dynamic> : <String, dynamic>{};
+                                      final requestId = (r['_id'] ?? '').toString();
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 10),
+                                        child: _buildRequestCard(
+                                          to,
+                                          t('request_sent_label'),
+                                          Row(mainAxisSize: MainAxisSize.min, children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                                              ),
+                                              child: Text(t('pending_label'), style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.w600)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Tooltip(
+                                              message: t('cancel'),
+                                              child: GestureDetector(
+                                                onTap: () => _cancelRequest(requestId),
+                                                child: Container(
+                                                  width: 36, height: 36,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red.withValues(alpha: 0.1),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                                  ),
+                                                  child: const Icon(Icons.close, color: Colors.red, size: 18),
+                                                ),
+                                              ),
+                                            ),
+                                          ]),
+                                          e.key,
+                                        ),
+                                      );
+                                    }),
+                                ],
                               ],
                             ),
 

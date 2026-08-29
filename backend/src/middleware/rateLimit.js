@@ -50,6 +50,15 @@ exports.passwordResetLimiter = rateLimit({
   message: { error: 'Too many password reset attempts. Please try again later.' },
 });
 
+// User search: each keystroke can trigger a query; 30 req/min prevents scraping all users.
+exports.searchUsersLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many search requests. Please slow down.' },
+});
+
 // Manual payment-ID verification: not a brute-forceable secret (Razorpay payment
 // IDs are long random strings), but still throttle scripted submission attempts.
 exports.manualPaymentVerifyLimiter = rateLimit({

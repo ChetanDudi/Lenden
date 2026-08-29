@@ -650,14 +650,17 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                                                 ],
                                               ),
                                             )
-                                          : ListView.builder(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      16, 0, 16, 24),
-                                              itemCount: filtered.length,
-                                              itemBuilder: (_, idx) =>
-                                                  _buildRatingCard(
-                                                      filtered[idx]),
+                                          : RefreshIndicator(
+                                              onRefresh: _fetchRatings,
+                                              child: ListView.builder(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        16, 0, 16, 24),
+                                                itemCount: filtered.length,
+                                                itemBuilder: (_, idx) =>
+                                                    _buildRatingCard(
+                                                        filtered[idx]),
+                                              ),
                                             ),
                                     ),
                                   ],

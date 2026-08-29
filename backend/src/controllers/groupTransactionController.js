@@ -413,6 +413,50 @@ exports.createGroup = async (req, res) => {
   }
 };
 
+exports.sendGroupInvite = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { emails } = req.body;
+    if (!Array.isArray(emails) || emails.length === 0) {
+      return res.status(400).json({ error: 'emails array required' });
+    }
+
+    const group = await GroupTransaction.findById(groupId).select('title members');
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const isMember = group.members.some(
+      m => !m.leftAt && m.user.toString() === req.user._id.toString(),
+    );
+    if (!isMember) return res.status(403).json({ error: 'Not a member of this group' });
+
+    const inviter = await User.findById(req.user._id).select('name email');
+    const inviterName = inviter?.name || inviter?.email || 'Someone';
+
+    const normalizedEmails = emails.map(e => e.toString().toLowerCase().trim());
+    const targets = await User.find({ email: { $in: normalizedEmails } }).select('_id email');
+
+    for (const target of targets) {
+      await Notification.create({
+        sender: req.user._id, senderModel: 'User',
+        recipientType: 'specific-users', recipients: [target._id], recipientModel: 'User',
+        title: 'Group Invite',
+        message: `${inviterName} invited you to join "${group.title}". Ask them for the join code or use the app to request an invite.`,
+        category: 'group',
+        deliveryStatus: 'sent', sentAt: new Date(),
+      });
+      sendToUser(User, target._id, {
+        title: 'Group Invite',
+        body: `${inviterName} invited you to join "${group.title}".`,
+        data: { type: 'group_join_invite', groupId: groupId.toString(), groupTitle: group.title },
+      });
+    }
+
+    res.json({ sent: targets.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
 exports.addMember = async (req, res) => {
   try {
     const { groupId } = req.params;

@@ -23,7 +23,6 @@ import 'admin/support/admin_feedbacks_page.dart';
 import 'user/connections/counterparties_page.dart';
 import 'utils/auth_navigation.dart';
 import 'utils/api_client.dart';
-import 'utils/responsive.dart';
 import 'utils/app_lock_service.dart';
 import 'widgets/app_lock_screen.dart';
 import 'utils/theme_provider.dart';
@@ -37,6 +36,7 @@ import 'services/firebase_service.dart';
 import 'screens/maintenance_screen.dart';
 import 'widgets/no_internet_banner.dart';
 import 'home/home_page.dart';
+import 'widgets/stylish_dialog.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -249,79 +249,7 @@ class _AppInitializerState extends State<AppInitializer>
   Future<void> _showDailyLoginRewardDialog(int coins) {
     final navContext = appNavigatorKey.currentContext;
     if (navContext == null) return Future.value();
-    return showDialog<void>(
-      context: navContext,
-      builder: (context) {
-        final t = AppLocalizations.of(context).t;
-        final bodyKey = coins > 1 ? 'daily_bonus_body_plural' : 'daily_bonus_body';
-        final body = t(bodyKey).replaceFirst('{coins}', '$coins');
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: EdgeInsets.all(context.sw(24)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: context.sw(72),
-                  height: context.sw(72),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.card_giftcard_rounded,
-                    color: Colors.white,
-                    size: context.sp(36),
-                  ),
-                ),
-                SizedBox(height: context.sh(16)),
-                Text(
-                  t('daily_bonus_title'),
-                  style: TextStyle(
-                    fontSize: context.sp(22),
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: context.sh(10)),
-                Text(
-                  body,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: context.sp(15), color: Colors.grey[800]),
-                ),
-                SizedBox(height: context.sh(20)),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      padding: EdgeInsets.symmetric(vertical: context.sh(13)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      t('nice_label'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: context.sp(15),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    return showDailyRewardSheet(navContext, coins);
   }
 
   @override

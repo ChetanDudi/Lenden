@@ -1682,117 +1682,250 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     return '#${_selectedColor!.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
-  Future<void> _offerShareGroupInvite(Map<String, dynamic> group) async {
+  Future<void> _offerShareGroupInvite(
+    Map<String, dynamic> group, {
+    List<Map<String, dynamic>> skippedUsers = const [],
+  }) async {
     final groupName = (group['title'] ?? 'the group').toString();
+    final groupId = (group['_id'] ?? '').toString();
     final groupColor = _parseGroupColor(group['color']);
     final appLink = await fetchAppInviteLink();
     if (!mounted) return;
+
+    final selected = <String>{...skippedUsers.map((u) => u['email']?.toString() ?? '')};
+
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(ctx),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
-            )),
-            const SizedBox(height: 22),
-            // Group icon with animated gradient
-            Container(
-              width: 78, height: 78,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [groupColor, AppColors.blue],
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [BoxShadow(color: groupColor.withValues(alpha: 0.40), blurRadius: 18, offset: const Offset(0, 7))],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          bool sending = false;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(ctx),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
+                  )),
+                  const SizedBox(height: 22),
+                  Container(
+                    width: 78, height: 78,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [groupColor, AppColors.blue],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [BoxShadow(color: groupColor.withValues(alpha: 0.40), blurRadius: 18, offset: const Offset(0, 7))],
+                    ),
+                    child: const Icon(Icons.group_rounded, color: Colors.white, size: 38),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Group Created!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                  const SizedBox(height: 6),
+                  Text(
+                    '"$groupName" is ready. Share the invite so friends can join!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx), height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text('via referral invite link', style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w500)),
+                  ),
+
+                  // ── Skipped users invite section ────────────────────────────
+                  if (skippedUsers.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B00).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFF6B00).withValues(alpha: 0.30)),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.info_outline_rounded, color: Color(0xFFFF6B00), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${skippedUsers.length} user${skippedUsers.length > 1 ? 's' : ''} couldn\'t be added directly',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF6B00), fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Their privacy settings restrict direct group adds. Send them an in-app invite to join themselves.',
+                            style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx), height: 1.4),
+                          ),
+                          const SizedBox(height: 12),
+                          ...skippedUsers.map((u) {
+                            final email = u['email']?.toString() ?? '';
+                            final isSelected = selected.contains(email);
+                            return GestureDetector(
+                              onTap: () => setModalState(() {
+                                if (isSelected) selected.remove(email);
+                                else selected.add(email);
+                              }),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFFF6B00).withValues(alpha: 0.12)
+                                      : AppThemeColors.surfaceBg(ctx),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected ? const Color(0xFFFF6B00) : AppThemeColors.divider(ctx),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                      color: isSelected ? const Color(0xFFFF6B00) : AppThemeColors.mutedText(ctx),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        email,
+                                        style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(ctx)),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFF6B00),
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: const Color(0xFFFF6B00).withValues(alpha: 0.4),
+                                minimumSize: const Size.fromHeight(44),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              onPressed: (selected.isEmpty || sending || groupId.isEmpty) ? null : () async {
+                                setModalState(() => sending = true);
+                                try {
+                                  await ApiClient.post(
+                                    '/api/group-transactions/$groupId/send-invite',
+                                    body: {'emails': selected.toList()},
+                                  );
+                                  setModalState(() {
+                                    sending = false;
+                                    selected.clear();
+                                  });
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                      content: Text('Invites sent! They\'ll receive an in-app notification.'),
+                                      backgroundColor: Color(0xFFFF6B00),
+                                    ));
+                                  }
+                                } catch (_) {
+                                  setModalState(() => sending = false);
+                                }
+                              },
+                              icon: sending
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Icon(Icons.send_rounded, size: 16),
+                              label: Text(
+                                sending ? 'Sending…' : 'Send Invite${selected.length != 1 ? 's' : ''} (${selected.length})',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  // ─────────────────────────────────────────────────────────────
+
+                  const SizedBox(height: 26),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.30), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
+                      label: const Text('Share Invite Link', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        String msg = '👥 Join "$groupName" on LenDen!\n📱 Download the app and ask the group admin for the join code.';
+                        if (appLink.isNotEmpty) msg += '\n------------------\n$appLink';
+                        await Share.share(msg, subject: 'Join $groupName on LenDen');
+                        ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: const BorderSide(color: AppColors.tricolorGreen),
+                        foregroundColor: AppColors.tricolorGreen,
+                      ),
+                      icon: const Icon(Icons.note_add_rounded, size: 18),
+                      label: const Text('Share as Note', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        final content = StringBuffer();
+                        content.writeln('Group: $groupName');
+                        content.writeln('Download LenDen and ask the group admin for the join code.');
+                        if (appLink.isNotEmpty) content.writeln('App: $appLink');
+                        showShareAsNoteSheet(context, title: 'Join $groupName on LenDen', content: content.toString().trim());
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Skip for now', style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14)),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.group_rounded, color: Colors.white, size: 38),
             ),
-            const SizedBox(height: 16),
-            Text('Group Created!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
-            const SizedBox(height: 6),
-            Text(
-              '"$groupName" is ready. Share the invite so friends can join!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx), height: 1.4),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.cyan.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text('via referral invite link', style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w500)),
-            ),
-            const SizedBox(height: 26),
-            // Share Invite button (gradient)
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.30), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                icon: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
-                label: const Text('Share Invite Link', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  String msg = '👥 Join "$groupName" on LenDen!\n📱 Download the app and ask the group admin for the join code.';
-                  if (appLink.isNotEmpty) msg += '\n------------------\n$appLink';
-                  await Share.share(msg, subject: 'Join $groupName on LenDen');
-                  ApiClient.post('/api/referral/share', body: {'channel': 'group_invite'}).ignore();
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Share as Note
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  side: const BorderSide(color: AppColors.tricolorGreen),
-                  foregroundColor: AppColors.tricolorGreen,
-                ),
-                icon: const Icon(Icons.note_add_rounded, size: 18),
-                label: const Text('Share as Note', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  final content = StringBuffer();
-                  content.writeln('Group: $groupName');
-                  content.writeln('Download LenDen and ask the group admin for the join code.');
-                  if (appLink.isNotEmpty) content.writeln('App: $appLink');
-                  showShareAsNoteSheet(context, title: 'Join $groupName on LenDen', content: content.toString().trim());
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Skip for now', style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14)),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -1831,13 +1964,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Text(t('view_label'), style: const TextStyle(color: Colors.blue)),
               ),
             ).show(context);
-          } else if (skipped.isNotEmpty) {
-            final emails = skipped.map((u) => u['email']).join(', ');
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('${skipped.length} user(s) couldn\'t be added directly ($emails) — they\'ve been notified and can join the group.'),
-              duration: const Duration(seconds: 4),
-            ));
-          } else {
+          } else if (skipped.isEmpty) {
             ElegantNotification.success(
               title: Text(t('success')),
               description: Text(t('group_created_success_msg')),
@@ -1845,7 +1972,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           }
           final groupId = data['group']?['_id']?.toString() ?? '';
           if (groupId.isNotEmpty) await _uploadGroupImageAfterCreate(groupId);
-          await _offerShareGroupInvite(Map<String, dynamic>.from(data['group'] ?? {}));
+          await _offerShareGroupInvite(Map<String, dynamic>.from(data['group'] ?? {}), skippedUsers: skipped);
           if (mounted) Navigator.pop(context, data['group']);
         }
       } else if (res.statusCode == 403) {
@@ -1946,13 +2073,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Text(t('view_label'), style: const TextStyle(color: Colors.blue)),
               ),
             ).show(context);
-          } else if (skipped.isNotEmpty) {
-            final emails = skipped.map((u) => u['email']).join(', ');
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('${skipped.length} user(s) couldn\'t be added directly ($emails) — they\'ve been notified and can join the group.'),
-              duration: const Duration(seconds: 4),
-            ));
-          } else {
+          } else if (skipped.isEmpty) {
             ElegantNotification.success(
               title: Text(t('success')),
               description: Text(t('group_created_success_msg')),
@@ -1960,7 +2081,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           }
           final groupId = data['group']?['_id']?.toString() ?? '';
           if (groupId.isNotEmpty) await _uploadGroupImageAfterCreate(groupId);
-          await _offerShareGroupInvite(Map<String, dynamic>.from(data['group'] ?? {}));
+          await _offerShareGroupInvite(Map<String, dynamic>.from(data['group'] ?? {}), skippedUsers: skipped);
           if (mounted) Navigator.pop(context, data['group']);
         }
       } else {

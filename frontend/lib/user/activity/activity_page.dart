@@ -755,19 +755,18 @@ class _ActivityPageState extends State<ActivityPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        foregroundColor: AppThemeColors.primaryText(context),
         title: Text(
           t('activity_log_title'),
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white),
+            icon: Icon(Icons.filter_list, color: AppThemeColors.primaryText(context)),
             onPressed: _showFilterDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)),
             onPressed: () {
               fetchActivities(refresh: true);
               fetchStats();

@@ -264,7 +264,7 @@ exports.addGroupToCommunity = async (req, res) => {
       // but skip those who have restricted direct community adds.
       const activeGroupMembers = group.members.filter(m => !m.leftAt);
       const userIds = activeGroupMembers.map(m => m.user);
-      const users = await User.find({ _id: { $in: userIds } }).select('_id privacySettings');
+      const users = await User.find({ _id: { $in: userIds } }).select('_id privacySettings email');
       const privacyMap = new Map(users.map(u => [u._id.toString(), u]));
 
       for (const gm of activeGroupMembers) {
@@ -272,7 +272,7 @@ exports.addGroupToCommunity = async (req, res) => {
         if (existingMemberIds.has(uidStr)) continue;
         const user = privacyMap.get(uidStr);
         if (user?.privacySettings?.allowDirectCommunityAdd === false) {
-          skippedUsers.push(uidStr);
+          skippedUsers.push({ _id: gm.user, email: user.email || '' });
           continue;
         }
         community.members.push({ user: gm.user, role: 'member', invitedBy: req.user._id });
@@ -281,7 +281,35 @@ exports.addGroupToCommunity = async (req, res) => {
     }
 
     await community.save();
-    res.json({ success: true, skippedCount: skippedUsers.length });
+
+    if (skippedUsers.length > 0) {
+      try {
+        const { sendToUser } = require('../services/notificationService');
+        const inviter = await User.findById(req.user._id).select('name email');
+        const inviterName = inviter?.name || inviter?.email || 'Someone';
+        for (const u of skippedUsers) {
+          await Notification.create({
+            sender: req.user._id, senderModel: 'User',
+            recipientType: 'specific-users', recipients: [u._id], recipientModel: 'User',
+            title: 'Community Invite',
+            message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
+            category: 'community',
+            deliveryStatus: 'sent', sentAt: new Date(),
+          });
+          sendToUser(User, u._id, {
+            title: 'Community Invite',
+            body: `${inviterName} invited you to join "${community.name}".`,
+            data: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
+          });
+        }
+      } catch (_) {}
+    }
+
+    res.json({
+      success: true,
+      skippedCount: skippedUsers.length,
+      skippedUsers: skippedUsers.map(u => ({ email: u.email })),
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -572,6 +600,50 @@ exports.addMember = async (req, res) => {
       await community.save();
       return res.json({ invited: true, message: 'Invite sent successfully' });
     }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.sendCommunityInvite = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id).select('name members inviteCode');
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    const isAdmin = community.members.some(
+      m => m.user.toString() === req.user._id.toString() && m.role === 'admin',
+    );
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    const { emails } = req.body;
+    if (!Array.isArray(emails) || emails.length === 0) {
+      return res.status(400).json({ error: 'emails array required' });
+    }
+
+    const { sendToUser } = require('../services/notificationService');
+    const inviter = await User.findById(req.user._id).select('name email');
+    const inviterName = inviter?.name || inviter?.email || 'Someone';
+
+    const normalizedEmails = emails.map(e => e.toString().toLowerCase().trim());
+    const targets = await User.find({ email: { $in: normalizedEmails } }).select('_id email');
+
+    for (const target of targets) {
+      await Notification.create({
+        sender: req.user._id, senderModel: 'User',
+        recipientType: 'specific-users', recipients: [target._id], recipientModel: 'User',
+        title: 'Community Invite',
+        message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
+        category: 'community',
+        deliveryStatus: 'sent', sentAt: new Date(),
+      });
+      sendToUser(User, target._id, {
+        title: 'Community Invite',
+        body: `${inviterName} invited you to join "${community.name}".`,
+        data: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
+      });
+    }
+
+    res.json({ sent: targets.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

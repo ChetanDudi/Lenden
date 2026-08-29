@@ -11,6 +11,7 @@ module.exports = (router, { auth, upload }) => {
   router.patch('/communities/:id', auth, ctrl.updateCommunity);
   router.delete('/communities/:id', auth, ctrl.deleteCommunity);
   router.post('/communities/:id/star', auth, ctrl.toggleStarCommunity);
+  router.post('/communities/:id/send-invite', auth, ctrl.sendCommunityInvite);
   router.post('/communities/:id/members', auth, ctrl.addMember);
   router.delete('/communities/:id/members', auth, ctrl.removeMembersBulk);
   router.delete('/communities/:id/members/:userId', auth, ctrl.removeMember);

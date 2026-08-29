@@ -397,7 +397,7 @@ class _SettingsPageState extends State<SettingsPage> {
           'Rate the App',
           ['rate', 'review', 'store', 'rating', 'play store', 'app store'],
           Icons.star_rate_outlined,
-          action: (_) => Share.share('I love using LenDen for splitting expenses! Check it out.'),
+          action: (ctx) => Navigator.push(ctx, MaterialPageRoute(builder: (_) => const FeedbackPage())),
         ),
         _SettingsEntry(
           'Share App',
@@ -1055,7 +1055,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         context,
                         title: t('rate_the_app'),
                         icon: Icons.star_rate_outlined,
-                        onTap: () => Share.share(t('rate_app_share_text')),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackPage())),
                       ),
                       _buildTile(
                         context,

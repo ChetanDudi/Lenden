@@ -33,6 +33,7 @@ module.exports = (router, { auth, isAdmin, handleAdUpload }) => {
   router.get('/notifications/unread-count', auth, notificationController.getUnreadNotificationCount);
   router.post('/notifications/mark-as-read', auth, notificationController.markNotificationsAsRead);
   router.delete('/notifications/clear-read', auth, notificationController.clearReadNotifications);
+  router.delete('/notifications/:id/dismiss', auth, notificationController.dismissNotification);
   router.delete('/notifications/:id', auth, notificationController.deleteNotification);
 
   // Feedback (user)

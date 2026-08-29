@@ -43,7 +43,6 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   bool _feedLoading = false;
   bool _hasMorePosts = false;
   bool _loadingMorePosts = false;
-  bool _posting = false;
 
   @override
   void initState() {
@@ -97,7 +96,6 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   }
 
   Future<void> _submitPost(Map<String, dynamic> body) async {
-    setState(() => _posting = true);
     try {
       final res = await ApiClient.post('/api/communities/${widget.communityId}/posts', body: body);
       if (res.statusCode == 201 && mounted) {
@@ -112,9 +110,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
         final d = jsonDecode(res.body);
         _showSnack(d['error'] ?? 'Failed to post', isError: true);
       }
-    } catch (_) {} finally {
-      if (mounted) setState(() => _posting = false);
-    }
+    } catch (_) {}
   }
 
   Future<void> _votePoll(String postId, String optionId, bool wasVotedOnTarget) async {
@@ -927,10 +923,10 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                           if (r.statusCode == 200 && mounted) {
                             _load();
                             final d = jsonDecode(r.body);
-                            final skipped = (d['skippedCount'] ?? 0) as int;
+                            final skippedUsers = (d['skippedUsers'] as List?)?.cast<Map<String, dynamic>>() ?? [];
                             final addedMsg = selected.length == 1 ? 'Group added' : '${selected.length} groups added';
-                            if (skipped > 0) {
-                              _showSkippedMembersSheet(addedMsg, skipped);
+                            if (skippedUsers.isNotEmpty) {
+                              _showSkippedMembersSheet(addedMsg, skippedUsers);
                             } else {
                               _showSnack(addedMsg, icon: Icons.check_rounded);
                             }
@@ -1973,102 +1969,185 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     ]);
   }
 
-  void _showSkippedMembersSheet(String addedMsg, int skippedCount) {
+  void _showSkippedMembersSheet(String addedMsg, List<Map<String, dynamic>> skippedUsers) {
     final color = _communityColor;
+    final communityId = widget.communityId;
+    final selected = <String>{...skippedUsers.map((u) => u['email']?.toString() ?? '')};
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(ctx),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Center(child: Container(width: 40, height: 4,
-            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 20),
-          Row(children: [
-            Container(width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.cyan.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.check_rounded, color: AppColors.cyan, size: 24)),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(addedMsg, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
-                color: AppThemeColors.primaryText(ctx))),
-              Text('Groups linked to community', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
-            ])),
-          ]),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          bool sending = false;
+          return Container(
+            padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF9800).withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+              color: AppThemeColors.cardBg(ctx),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.person_off_rounded, color: Color(0xFFFF9800), size: 20),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('$skippedCount member${skippedCount == 1 ? "" : "s"} not added',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
-                const SizedBox(height: 4),
-                Text(
-                  'These members have privacy settings that restrict direct community additions. '
-                  'They can still join using the invite code.',
-                  style: TextStyle(fontSize: 12.5, color: AppThemeColors.secondaryText(ctx), height: 1.5),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Container(width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.check_rounded, color: AppColors.cyan, size: 24)),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(addedMsg, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(ctx))),
+                    Text('Groups linked to community', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                  ])),
+                ]),
+                const SizedBox(height: 16),
+                // Skipped users invite section
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B00).withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFF6B00).withValues(alpha: 0.30)),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      const Icon(Icons.info_outline_rounded, color: Color(0xFFFF6B00), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(
+                        '${skippedUsers.length} member${skippedUsers.length == 1 ? "" : "s"} couldn\'t be added directly',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF6B00), fontSize: 13),
+                      )),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Their privacy settings restrict direct adds. They\'ve been notified. You can also send them an in-app invite.',
+                      style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx), height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    ...skippedUsers.map((u) {
+                      final email = u['email']?.toString() ?? '';
+                      final isSelected = selected.contains(email);
+                      return GestureDetector(
+                        onTap: () => setSheet(() {
+                          if (isSelected) selected.remove(email); else selected.add(email);
+                        }),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFFF6B00).withValues(alpha: 0.12)
+                                : AppThemeColors.surfaceBg(ctx),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFFFF6B00) : AppThemeColors.divider(ctx),
+                            ),
+                          ),
+                          child: Row(children: [
+                            Icon(
+                              isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                              color: isSelected ? const Color(0xFFFF6B00) : AppThemeColors.mutedText(ctx),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(email,
+                              style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(ctx)),
+                              overflow: TextOverflow.ellipsis)),
+                          ]),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF6B00),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFFFF6B00).withValues(alpha: 0.4),
+                          minimumSize: const Size.fromHeight(44),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: (selected.isEmpty || sending) ? null : () async {
+                          setSheet(() => sending = true);
+                          try {
+                            await ApiClient.post(
+                              '/api/communities/$communityId/send-invite',
+                              body: {'emails': selected.toList()},
+                            );
+                            setSheet(() { sending = false; selected.clear(); });
+                            if (context.mounted) {
+                              _showSnack('Invites sent!', icon: Icons.send_rounded);
+                            }
+                          } catch (_) {
+                            setSheet(() => sending = false);
+                          }
+                        },
+                        icon: sending
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.send_rounded, size: 16),
+                        label: Text(
+                          sending ? 'Sending…' : 'Send Invite${selected.length != 1 ? "s" : ""} (${selected.length})',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ]),
                 ),
-              ])),
-            ]),
-          ),
-          if (_inviteCode.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: color.withValues(alpha: 0.25)),
-              ),
-              child: Row(children: [
-                Icon(Icons.key_rounded, color: color, size: 18),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Share this code with them', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                    color: AppThemeColors.mutedText(ctx), letterSpacing: 1.1)),
-                  const SizedBox(height: 2),
-                  Text(_inviteCode, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                    letterSpacing: 6, color: color)),
-                ])),
-                IconButton(
-                  icon: Icon(Icons.copy_rounded, color: color, size: 20),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _inviteCode));
-                    Navigator.pop(ctx);
-                    _showSnack('Invite code copied', icon: Icons.copy_rounded);
-                  },
+                if (_inviteCode.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: color.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.key_rounded, color: color, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Share this code with them', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                          color: AppThemeColors.mutedText(ctx), letterSpacing: 1.1)),
+                        const SizedBox(height: 2),
+                        Text(_inviteCode, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                          letterSpacing: 6, color: color)),
+                      ])),
+                      IconButton(
+                        icon: Icon(Icons.copy_rounded, color: color, size: 20),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: _inviteCode));
+                          Navigator.pop(ctx);
+                          _showSnack('Invite code copied', icon: Icons.copy_rounded);
+                        },
+                      ),
+                    ]),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color, elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Done', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
                 ),
               ]),
             ),
-          ],
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
-          ),
-        ]),
+          );
+        },
       ),
     );
   }

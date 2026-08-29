@@ -936,24 +936,27 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                     ],
                                   ),
                                 )
-                              : ListView.builder(
-                                  controller: _scrollController,
-                                  padding: const EdgeInsets.fromLTRB(
-                                      16, 0, 16, 24),
-                                  itemCount: _messages.length +
-                                      (_loadingMore ? 1 : 0),
-                                  itemBuilder: (_, i) {
-                                    if (i == _messages.length) {
-                                      return const Padding(
-                                        padding: EdgeInsets.all(16),
-                                        child: Center(
-                                            child:
-                                                CircularProgressIndicator()),
-                                      );
-                                    }
-                                    return _buildMessageCard(
-                                        _messages[i]);
-                                  },
+                              : RefreshIndicator(
+                                  onRefresh: () => _fetchMessages(reset: true),
+                                  child: ListView.builder(
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 0, 16, 24),
+                                    itemCount: _messages.length +
+                                        (_loadingMore ? 1 : 0),
+                                    itemBuilder: (_, i) {
+                                      if (i == _messages.length) {
+                                        return const Padding(
+                                          padding: EdgeInsets.all(16),
+                                          child: Center(
+                                              child:
+                                                  CircularProgressIndicator()),
+                                        );
+                                      }
+                                      return _buildMessageCard(
+                                          _messages[i]);
+                                    },
+                                  ),
                                 ),
                 ),
               ],

@@ -17,11 +17,14 @@ exports.getMyCoinHistory = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const limit = Math.min(Math.max(Number(req.query.limit) || 60, 1), 200);
-    const entries = await CoinLedger.find({ user: req.user._id })
-      .sort({ occurredAt: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const rawLimit = req.query.limit !== undefined ? Number(req.query.limit) : 60;
+    const limit = isNaN(rawLimit) ? 60 : Math.min(Math.max(Math.floor(rawLimit), 0), 200);
+    const entries = limit === 0
+      ? []
+      : await CoinLedger.find({ user: req.user._id })
+          .sort({ occurredAt: -1, createdAt: -1 })
+          .limit(limit)
+          .lean();
 
     const summary = entries.reduce(
       (acc, entry) => {

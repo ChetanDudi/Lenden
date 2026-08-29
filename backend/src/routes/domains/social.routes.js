@@ -1,4 +1,5 @@
-module.exports = (router, { auth, isAdmin, io }) => {
+module.exports = (router, { auth, isAdmin, io, walletAuthMiddleware }) => {
+  const { searchUsersLimiter } = require('../../middleware/rateLimit');
   const friendController = require('../../controllers/friendController');
   const userController = require('../../controllers/userController');
   const ratingController = require('../../controllers/ratingController');
@@ -24,7 +25,7 @@ module.exports = (router, { auth, isAdmin, io }) => {
 
   // Friends
   router.get('/friends', auth, friendController.getFriends);
-  router.get('/friends/search', auth, friendController.searchUsers);
+  router.get('/friends/search', auth, searchUsersLimiter, friendController.searchUsers);
   router.get('/friends/suggestions', auth, friendController.getFriendSuggestions);
   router.get('/friends/mutual', auth, friendController.getMutualFriends);
   router.post('/friends/mutual-counts', auth, friendController.getMutualFriendCounts);
@@ -50,14 +51,14 @@ module.exports = (router, { auth, isAdmin, io }) => {
   router.post('/referral/apply-code', auth, referralController.applyReferralCode);
   router.post('/referral/share', auth, referralController.logReferralShare);
   router.get('/coins/history', auth, coinLedgerController.getMyCoinHistory);
-  router.post('/coins/buy-with-wallet', auth, coinLedgerController.buyCoinsWithWallet);
+  router.post('/coins/buy-with-wallet', auth, walletAuthMiddleware, coinLedgerController.buyCoinsWithWallet);
 
   // Activity feed
   router.get('/activities', auth, activityController.getUserActivities);
   router.get('/activities/stats', auth, activityController.getActivityStats);
+  router.delete('/activities/cleanup', auth, activityController.cleanupOldActivities);
   router.delete('/activities/:activityId', auth, activityController.deleteActivity);
   router.patch('/activities/:activityId/bookmark', auth, activityController.bookmarkActivity);
-  router.delete('/activities/cleanup', auth, activityController.cleanupOldActivities);
 
   // 1-to-1 chat
   router.get('/chat/messages/:transactionId', auth, chatController.getMessages);

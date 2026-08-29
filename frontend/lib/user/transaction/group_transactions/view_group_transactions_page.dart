@@ -1554,6 +1554,15 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
           onTap: () => _shareGroupAsNote(group),
         ),
       ]),
+      const SizedBox(height: 10),
+      Row(children: [
+        actionBtn(
+          icon: Icons.picture_as_pdf_rounded,
+          label: 'Share as PDF',
+          gradientColors: const [Color(0xFFEF5350), Color(0xFFB71C1C)],
+          onTap: () => _shareGroupPdf(group),
+        ),
+      ]),
     ]);
   }
 
@@ -1569,6 +1578,160 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     }
     if (userGroups.length > 5) buf.writeln('...and ${userGroups.length - 5} more');
     showShareAsNoteSheet(context, title: 'My Groups on LenDen', content: buf.toString().trim());
+  }
+
+  // ── Single Group PDF Receipt ──────────────────────────────────────────────
+  Future<void> _shareGroupPdf(Map<String, dynamic> group) async {
+    const darkBg    = PdfColor.fromInt(0xFF0D1B2A);
+    const cyan      = PdfColor.fromInt(0xFF00BCD4);
+    const textDark  = PdfColor.fromInt(0xFF1A1A1A);
+    const green     = PdfColor.fromInt(0xFF2E7D32);
+    const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
+    const white70   = PdfColor(1, 1, 1, 0.7);
+
+    String pdfSym(String code) {
+      const safe = <String, String>{
+        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
+        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
+        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
+      };
+      return safe[code.toUpperCase()] ?? code.toUpperCase();
+    }
+
+    final title    = (group['title'] ?? 'Group').toString();
+    final members  = (group['members'] as List? ?? []);
+    final expenses = (group['expenses'] as List? ?? []);
+    final creator  = group['creator'];
+    final rawId    = (group['_id'] ?? '').toString();
+    final shortId  = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.toUpperCase();
+    final now      = DateTime.now();
+    final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
+
+    final totalAmt = expenses.fold<double>(0, (s, e) =>
+        s + ((e is Map ? (e['amount'] as num?) : null)?.toDouble() ?? 0));
+
+    pw.Widget rowItem(String label, String value, {PdfColor? vc}) => pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 10, color: const PdfColor(0.4, 0.4, 0.4))),
+        pw.Flexible(child: pw.Text(value,
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: vc ?? textDark),
+            textAlign: pw.TextAlign.right)),
+      ]),
+    );
+
+    final doc = pw.Document();
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        // Header
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: darkBg, borderRadius: pw.BorderRadius.all(pw.Radius.circular(12))),
+          padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('LenDen', style: pw.TextStyle(color: PdfColors.white, fontSize: 26, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text('Group Summary', style: pw.TextStyle(color: cyan, fontSize: 13)),
+            pw.SizedBox(height: 8),
+            pw.Text(title, style: pw.TextStyle(color: PdfColors.white, fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 8),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Text('Ref: #$shortId', style: pw.TextStyle(color: white70, fontSize: 10)),
+              pw.Text('Generated: $genLabel', style: pw.TextStyle(color: white70, fontSize: 10)),
+            ]),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Overview
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: lightGrey, borderRadius: pw.BorderRadius.all(pw.Radius.circular(10))),
+          padding: const pw.EdgeInsets.all(16),
+          child: pw.Column(children: [
+            rowItem('Creator', _sanitizeUser(creator)),
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Members', '${members.length}'),
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Total Expenses', '${expenses.length}'),
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Total Amount', _formatDisplayAmountFromInr(totalAmt), vc: green),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Members table
+        if (members.isNotEmpty) ...[
+          pw.Text('Members', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: cyan)),
+          pw.SizedBox(height: 8),
+          pw.Table(
+            border: pw.TableBorder.all(color: const PdfColor(0.85, 0.85, 0.85), width: 0.5),
+            columnWidths: const {0: pw.FlexColumnWidth(2), 1: pw.FlexColumnWidth(3), 2: pw.FlexColumnWidth(1)},
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE0E0E0)),
+                children: ['Name', 'Email', 'Role'].map((h) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(6),
+                  child: pw.Text(h, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                )).toList(),
+              ),
+              ...members.map<pw.TableRow>((m) {
+                final mUser  = m is Map ? m['user'] : null;
+                final mName  = _sanitizeUser(mUser);
+                final mEmail = mUser is Map ? (mUser['email'] ?? '').toString() : '';
+                final mRole  = m is Map ? (m['role'] ?? 'member').toString() : 'member';
+                return pw.TableRow(children: [mName, mEmail, mRole].map((v) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(6),
+                  child: pw.Text(v, style: pw.TextStyle(fontSize: 9)),
+                )).toList());
+              }),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+        ],
+
+        // Expenses table
+        if (expenses.isNotEmpty) ...[
+          pw.Text('Expenses', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: cyan)),
+          pw.SizedBox(height: 8),
+          pw.Table(
+            border: pw.TableBorder.all(color: const PdfColor(0.85, 0.85, 0.85), width: 0.5),
+            columnWidths: const {0: pw.FlexColumnWidth(3), 1: pw.FlexColumnWidth(2), 2: pw.FlexColumnWidth(2)},
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE0E0E0)),
+                children: ['Description', 'Amount', 'Paid By'].map((h) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(6),
+                  child: pw.Text(h, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                )).toList(),
+              ),
+              ...expenses.map<pw.TableRow>((e) {
+                final eDesc   = e is Map ? (e['description'] ?? e['title'] ?? '').toString() : '';
+                final eAmt    = (e is Map ? (e['amount'] as num?) : null)?.toDouble() ?? 0;
+                final eCurr   = e is Map ? (e['currency'] ?? 'INR').toString() : 'INR';
+                final ePaidBy = _sanitizeUser(e is Map ? e['paidBy'] : null);
+                final eAmtStr = '${pdfSym(eCurr)} ${eAmt.toStringAsFixed(2)}';
+                return pw.TableRow(children: [eDesc, eAmtStr, ePaidBy].map((v) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(6),
+                  child: pw.Text(v, style: pw.TextStyle(fontSize: 9)),
+                )).toList());
+              }),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+        ],
+
+        pw.Divider(),
+        pw.SizedBox(height: 8),
+        pw.Center(child: pw.Text('LenDen — Expense Splitting Made Simple',
+            style: pw.TextStyle(color: const PdfColor(0.6, 0.6, 0.6), fontSize: 9))),
+      ],
+    ));
+
+    final bytes    = await doc.save();
+    final filename = 'lenden_group_$shortId.pdf';
+    await shareBytesFile(bytes: bytes, filename: filename, mimeType: 'application/pdf',
+        subject: '$title – Group Summary');
   }
 
   // ── CSV Export ────────────────────────────────────────────────────────────

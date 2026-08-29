@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../widgets/app_colors.dart';
@@ -82,6 +85,7 @@ class _QuickTransactionDetailPageState
           '/api/users/profile-by-email?email=${Uri.encodeComponent(email)}');
       if (profileRes.statusCode == 200) {
         final profile = jsonDecode(profileRes.body) as Map<String, dynamic>;
+        if (profile['profileIsPrivate'] == true) return;
         final userId = profile['_id']?.toString();
         if (userId != null && userId.isNotEmpty) {
           final favRes = await ApiClient.get('/api/user/favourites');
@@ -433,6 +437,139 @@ class _QuickTransactionDetailPageState
     );
   }
 
+  Future<void> _shareTransactionAsPdf() async {
+    const darkBg    = PdfColor.fromInt(0xFF0D1B2A);
+    const cyan      = PdfColor.fromInt(0xFF00BCD4);
+    const textDark  = PdfColor.fromInt(0xFF1A1A1A);
+    const green     = PdfColor.fromInt(0xFF2E7D32);
+    const red       = PdfColor.fromInt(0xFFC62828);
+    const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
+    const white70   = PdfColor(1, 1, 1, 0.7);
+
+    String pdfSym(String code) {
+      const safe = <String, String>{
+        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
+        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
+        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
+      };
+      return safe[code.toUpperCase()] ?? code.toUpperCase();
+    }
+
+    final isLender = _myRole == 'lender';
+    final sym      = pdfSym(_currency);
+    final rawId    = _id;
+    final shortId  = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.toUpperCase();
+    final rawDate  = _tx['createdAt']?.toString() ?? _tx['date']?.toString() ?? '';
+    String dateDisplay = '';
+    if (rawDate.isNotEmpty) {
+      try { dateDisplay = DateFormat('d MMM yyyy').format(DateTime.parse(rawDate).toLocal()); }
+      catch (_) { dateDisplay = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate; }
+    }
+    final category = (_tx['category'] ?? '').toString();
+    final genLabel = DateFormat('d MMM yyyy, h:mm a').format(DateTime.now());
+
+    pw.Widget rowItem(String label, String value, {PdfColor? vc}) => pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 10, color: const PdfColor(0.4, 0.4, 0.4))),
+        pw.Text(value, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: vc ?? textDark)),
+      ]),
+    );
+
+    final doc = pw.Document();
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: darkBg, borderRadius: pw.BorderRadius.all(pw.Radius.circular(12))),
+          padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('LenDen', style: pw.TextStyle(color: PdfColors.white, fontSize: 26, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text('Quick Transaction Receipt', style: pw.TextStyle(color: cyan, fontSize: 13)),
+            pw.SizedBox(height: 12),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Text('Ref: #$shortId', style: pw.TextStyle(color: white70, fontSize: 10)),
+              pw.Text('Generated: $genLabel', style: pw.TextStyle(color: white70, fontSize: 10)),
+            ]),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+        pw.Container(
+          decoration: pw.BoxDecoration(
+            color: isLender ? const PdfColor.fromInt(0xFFE8F5E9) : const PdfColor.fromInt(0xFFFFEBEE),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+            border: pw.Border.all(color: isLender ? green : red, width: 1.5),
+          ),
+          padding: const pw.EdgeInsets.all(16),
+          child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text(isLender ? 'You Lent' : 'You Borrowed',
+                  style: pw.TextStyle(fontSize: 11, color: isLender ? green : red)),
+              pw.SizedBox(height: 4),
+              pw.Text('$sym ${_amount.toStringAsFixed(2)}',
+                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: isLender ? green : red)),
+            ]),
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: pw.BoxDecoration(
+                color: _cleared ? green : const PdfColor.fromInt(0xFFFFA726),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
+              ),
+              child: pw.Text(_cleared ? 'Cleared' : 'Pending',
+                  style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold)),
+            ),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: lightGrey, borderRadius: pw.BorderRadius.all(pw.Radius.circular(10))),
+          padding: const pw.EdgeInsets.all(16),
+          child: pw.Column(children: [
+            rowItem('With', _counterpartyName.isNotEmpty ? _counterpartyName : _counterpartyEmail),
+            if (_counterpartyEmail.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Email', _counterpartyEmail),
+            ],
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Currency', _currency),
+            if (_description.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Description', _description),
+            ],
+            if (category.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Category', category),
+            ],
+            if (dateDisplay.isNotEmpty) ...[
+              pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+              rowItem('Date', dateDisplay),
+            ],
+            pw.Divider(color: const PdfColor(0.85, 0.85, 0.85)),
+            rowItem('Settlement',
+              _settlementStatus == 'none'     ? 'Not requested'
+              : _settlementStatus == 'pending'  ? 'Requested'
+              : _settlementStatus == 'accepted' ? 'Accepted'
+              : _settlementStatus == 'rejected' ? 'Rejected'
+              : _settlementStatus,
+              vc: _settlementStatus == 'accepted' ? green : _settlementStatus == 'rejected' ? red : textDark,
+            ),
+          ]),
+        ),
+        pw.SizedBox(height: 24),
+        pw.Divider(),
+        pw.SizedBox(height: 8),
+        pw.Center(child: pw.Text('LenDen — Expense Splitting Made Simple',
+            style: pw.TextStyle(color: const PdfColor(0.6, 0.6, 0.6), fontSize: 9))),
+      ],
+    ));
+
+    final bytes = await doc.save();
+    await shareBytesFile(bytes: bytes, filename: 'lenden_qt_$shortId.pdf',
+        mimeType: 'application/pdf', subject: 'Quick Transaction Receipt – #$shortId');
+  }
+
   // Direct "Pay Now" — /pay atomically transfers the wallet money and marks
   // the transaction settled server-side in one call.
   void _payNow() {
@@ -657,6 +794,9 @@ class _QuickTransactionDetailPageState
               case 'share_as_note':
                 _shareTransactionAsNote();
                 break;
+              case 'share_as_pdf':
+                _shareTransactionAsPdf();
+                break;
             }
           },
           itemBuilder: (_) => [
@@ -690,6 +830,14 @@ class _QuickTransactionDetailPageState
               child: ListTile(
                 leading: Icon(Icons.note_add_rounded, color: AppColors.tricolorGreen),
                 title: const Text('Share as Note'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'share_as_pdf',
+              child: ListTile(
+                leading: Icon(Icons.picture_as_pdf_rounded, color: Colors.red),
+                title: Text('Share as PDF', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
                 contentPadding: EdgeInsets.zero,
               ),
             ),

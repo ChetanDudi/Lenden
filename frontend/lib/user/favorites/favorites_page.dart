@@ -83,13 +83,13 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
                         t('favourites'),
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppThemeColors.primaryText(context),
                           fontSize: context.sp(20),
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
@@ -97,7 +97,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)),
                         onPressed: _fetchFavourites,
                       ),
                     ],
