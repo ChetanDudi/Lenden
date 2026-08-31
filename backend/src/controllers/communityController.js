@@ -591,6 +591,23 @@ exports.addMember = async (req, res) => {
     if (community.settings.allowDirectAdd) {
       community.members.push({ user: targetUser._id, role: 'member', invitedBy: req.user._id });
       await community.save();
+      try {
+        const { sendToUser } = require('../services/notificationService');
+        const adder = await User.findById(req.user._id).select('name email');
+        const adderName = adder?.name || adder?.email || 'Someone';
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User',
+          recipientType: 'specific-users', recipients: [targetUser._id], recipientModel: 'User',
+          title: 'Added to Community',
+          message: `${adderName} added you to the community "${community.name}".`,
+          category: 'community', deliveryStatus: 'sent', sentAt: new Date(),
+        });
+        sendToUser(User, targetUser._id, {
+          title: 'Added to Community 👥',
+          body: `${adderName} added you to "${community.name}".`,
+          data: { type: 'community_member_added', communityId: community._id.toString(), communityName: community.name },
+        }, { settingKey: 'groupNotifications' });
+      } catch (_) {}
       return res.json({ added: true, message: 'Member added successfully' });
     } else {
       if (community.pendingInvites.some(i => i.email === normalizedEmail)) {
@@ -598,6 +615,23 @@ exports.addMember = async (req, res) => {
       }
       community.pendingInvites.push({ email: normalizedEmail, invitedBy: req.user._id });
       await community.save();
+      try {
+        const { sendToUser } = require('../services/notificationService');
+        const inviter = await User.findById(req.user._id).select('name email');
+        const inviterName = inviter?.name || inviter?.email || 'Someone';
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User',
+          recipientType: 'specific-users', recipients: [targetUser._id], recipientModel: 'User',
+          title: 'Community Invite',
+          message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
+          category: 'community', deliveryStatus: 'sent', sentAt: new Date(),
+        });
+        sendToUser(User, targetUser._id, {
+          title: 'Community Invite 📬',
+          body: `${inviterName} invited you to join "${community.name}".`,
+          data: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
+        }, { settingKey: 'groupNotifications' });
+      } catch (_) {}
       return res.json({ invited: true, message: 'Invite sent successfully' });
     }
   } catch (e) {

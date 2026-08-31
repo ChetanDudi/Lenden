@@ -123,9 +123,11 @@ exports.createGroupWithCoins = async (req, res) => {
       return res.status(400).json({ error: 'memberEmails must be an array.' });
     }
 
-    // Filter out creator's email and de-duplicate
+    // Filter out creator's email, normalize to lowercase, de-duplicate
     const filteredMemberEmails = [...new Set(
-      memberEmails.filter(email => email && email.toLowerCase() !== creator.email.toLowerCase())
+      memberEmails
+        .map(e => (e || '').toString().toLowerCase().trim())
+        .filter(email => email && email !== creator.email.toLowerCase())
     )];
 
     // Find users by email
@@ -238,7 +240,7 @@ exports.createGroupWithCoins = async (req, res) => {
           title: 'Group Invite',
           body: `${creatorName} invited you to join "${title}". Tap to view.`,
           data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: title },
-        });
+        }, { settingKey: 'groupNotifications' });
       }
       const creatorInfo = { creatorId: creator._id, creatorEmail: creator.email };
       await logGroupActivityForAllMembers('group_created_with_coins', group, {}, null, creatorInfo);
@@ -287,9 +289,11 @@ exports.createGroup = async (req, res) => {
       return res.status(400).json({ error: 'memberEmails must be an array.' });
     }
 
-    // Filter out creator's email and de-duplicate
+    // Filter out creator's email, normalize to lowercase, de-duplicate
     const filteredMemberEmails = [...new Set(
-      memberEmails.filter(email => email && email.toLowerCase() !== creator.email.toLowerCase())
+      memberEmails
+        .map(e => (e || '').toString().toLowerCase().trim())
+        .filter(email => email && email !== creator.email.toLowerCase())
     )];
 
     // Find users by email
@@ -384,10 +388,10 @@ exports.createGroup = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${creator.email} added you to the group "${title}".`,
           })));
-          eligible.forEach(u => sendToUser(User, u._id, { title: 'Added to Group', body: `${creator.email} added you to the group "${title}".`, data: { type: 'group_created' } }));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Added to Group', body: `${creator.email} added you to the group "${title}".`, data: { type: 'group_created' } }, { settingKey: 'groupNotifications' }));
         }
       }
-      // Notify skipped users — they have direct-add restricted but are invited to join
+      // Notify skipped users  they have direct-add restricted but are invited to join
       const creatorUser = await User.findById(creator._id).select('name email');
       const creatorName = creatorUser?.name || creatorUser?.email || 'Someone';
       for (const skipped of skippedUsers) {
@@ -402,7 +406,7 @@ exports.createGroup = async (req, res) => {
           title: 'Group Invite',
           body: `${creatorName} invited you to join "${title}". Tap to view.`,
           data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: title },
-        });
+        }, { settingKey: 'groupNotifications' });
       }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
@@ -448,7 +452,7 @@ exports.sendGroupInvite = async (req, res) => {
         title: 'Group Invite',
         body: `${inviterName} invited you to join "${group.title}".`,
         data: { type: 'group_join_invite', groupId: groupId.toString(), groupTitle: group.title },
-      });
+      }, { settingKey: 'groupNotifications' });
     }
 
     res.json({ sent: targets.length });
@@ -460,11 +464,11 @@ exports.sendGroupInvite = async (req, res) => {
 exports.addMember = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { email } = req.body;
+    const email = (req.body.email || '').toLowerCase().trim();
     const group = await GroupTransaction.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
     if (group.creator.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Only creator can add members' });
-    
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -497,12 +501,12 @@ exports.addMember = async (req, res) => {
           category: 'group', deliveryStatus: 'sent', sentAt: new Date(),
         });
         sendToUser(User, user._id, {
-          title: 'Group Invite 👥',
+          title: 'Group Invite',
           body: `${inviterName} invited you to join "${group.title}". Tap to view.`,
           data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: group.title },
-        });
+        }, { settingKey: 'groupNotifications' });
       } catch (_) {}
-      return res.json({ notified: true, message: 'User has restricted direct group additions. An invite notification has been sent — they can join using the group code.' });
+      return res.json({ notified: true, message: 'User has restricted direct group additions. An invite notification has been sent  they can join using the group code.' });
     }
     
     // Check if user was previously removed and handle re-adding
@@ -560,7 +564,7 @@ exports.addMember = async (req, res) => {
           message: `${req.user.email} added you to the group "${group.title}".`,
         });
       }
-      sendToUser(User, user._id, { title: 'Added to Group 👥', body: `${req.user.email} added you to the group "${group.title}".`, data: { type: 'group_member_added' } });
+      sendToUser(User, user._id, { title: 'Added to Group', body: `${req.user.email} added you to the group "${group.title}".`, data: { type: 'group_member_added' } }, { settingKey: 'groupNotifications' });
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -572,11 +576,11 @@ exports.addMember = async (req, res) => {
 exports.removeMember = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { email } = req.body;
+    const email = (req.body.email || '').toLowerCase().trim();
     const group = await GroupTransaction.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
     if (group.creator.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Only creator can remove members' });
-    
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not found' });
     
@@ -642,7 +646,7 @@ exports.removeMember = async (req, res) => {
           message: `You were removed from the group "${group.title}" by ${req.user.email}.`,
         });
       }
-      sendToUser(User, user._id, { title: 'Removed from Group', body: `You were removed from the group "${group.title}".`, data: { type: 'group_member_removed' } });
+      sendToUser(User, user._id, { title: 'Removed from Group', body: `You were removed from the group "${group.title}".`, data: { type: 'group_member_removed' } }, { settingKey: 'groupNotifications' });
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -790,7 +794,7 @@ exports.addExpense = async (req, res) => {
       return res.status(400).json({ error: `Invalid members selected: ${invalidMembers.join(', ')}` });
     }
 
-    // Resolve addedBy — must be an active group member (defaults to requesting user)
+    // Resolve addedBy  must be an active group member (defaults to requesting user)
     if (addedByInput && !activeMemberEmails.includes(addedByInput)) {
       return res.status(400).json({ error: `addedBy member "${addedByInput}" is not an active group member` });
     }
@@ -936,9 +940,9 @@ exports.addExpense = async (req, res) => {
           await Notification.create(eligible.map(u => ({
             sender: userId, senderModel: 'User', recipientType: 'specific-users',
             recipients: [u._id], recipientModel: 'User', category: 'group',
-            message: `${userEmail} added an expense "${description}" of ₹${amount} to group "${group.title}".`,
+            message: `${userEmail} added an expense "${description}" of Rs.${amount} to group "${group.title}".`,
           })));
-          eligible.forEach(u => sendToUser(User, u._id, { title: 'New Group Expense 💸', body: `${userEmail} added an expense "${description}" of ₹${amount} to group "${group.title}".`, data: { type: 'group_expense_added' } }));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'New Group Expense', body: `${userEmail} added an expense "${description}" of Rs.${amount} to group "${group.title}".`, data: { type: 'group_expense_added' } }, { settingKey: 'groupNotifications' }));
         }
       }
     } catch (e) {
@@ -1031,7 +1035,7 @@ exports.otpVerifySettle = async (req, res) => {
         });
       }
     }).catch(() => {});
-    sendToUser(User, userId, { title: 'Balance Settled ✅', body: 'Your group balance has been settled by the group admin.', data: { type: 'group_balance_settled' } });
+    sendToUser(User, userId, { title: 'Balance Settled', body: 'Your group balance has been settled by the group admin.', data: { type: 'group_balance_settled' } }, { settingKey: 'groupNotifications' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1065,8 +1069,8 @@ exports.getUserGroups = async (req, res) => {
     }
 
     let groups = await GroupTransaction.find(baseQuery)
-      .populate('members.user', 'email name')
-      .populate('creator', 'email')
+      .populate('members.user', 'email name profileImage')
+      .populate('creator', 'email name profileImage')
       .sort({ createdAt: -1 });
 
     const createdGroupsCount = groups.filter(
@@ -1111,7 +1115,14 @@ exports.getUserGroups = async (req, res) => {
           description: obj.description || '',
           groupImageUrl: `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image?v=${obj.groupImage ? new Date(obj.updatedAt).getTime() : '0'}`,
           creator: obj.creator
-            ? { _id: obj.creator._id, email: obj.creator.email }
+            ? {
+                _id: obj.creator._id,
+                email: obj.creator.email,
+                name: obj.creator.name || '',
+                profileImage: obj.creator.profileImage
+                  ? `${req.protocol}://${req.get('host')}/api/users/${obj.creator._id}/profile-image`
+                  : null,
+              }
             : null,
           members: (obj.members || [])
             .map((m) => {
@@ -1120,8 +1131,12 @@ exports.getUserGroups = async (req, res) => {
                   _id: m.user._id,
                   email: m.user.email,
                   name: m.user.name || '',
+                  role: m.role || 'member',
                   joinedAt: m.joinedAt,
                   leftAt: m.leftAt,
+                  profileImage: m.user.profileImage
+                    ? `${req.protocol}://${req.get('host')}/api/users/${m.user._id}/profile-image`
+                    : null,
                 };
               }
               return null;
@@ -1246,7 +1261,7 @@ exports.getGroupById = async (req, res) => {
 exports.toggleGroupFavourite = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { email } = req.body;
+    const email = (req.body.email || '').toLowerCase().trim();
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -1442,7 +1457,7 @@ exports.deleteGroup = async (req, res) => {
               recipients: [u._id], recipientModel: 'User', category: 'group',
               message: `The group "${group.title}" was deleted by ${req.user.email}.`,
             })));
-            eligible.forEach(u => sendToUser(User, u._id, { title: 'Group Deleted', body: `The group "${group.title}" was deleted by ${req.user.email}.`, data: { type: 'group_deleted' } }));
+            eligible.forEach(u => sendToUser(User, u._id, { title: 'Group Deleted', body: `The group "${group.title}" was deleted by ${req.user.email}.`, data: { type: 'group_deleted' } }, { settingKey: 'groupNotifications' }));
           }
         }).catch(() => {});
     }
@@ -1528,7 +1543,7 @@ exports.leaveGroup = async (req, res) => {
           });
         }
       }).catch(() => {});
-      sendToUser(User, group.creator, { title: 'Member Left Group', body: `${req.user.email} left the group "${group.title}".`, data: { type: 'group_member_left' } });
+      sendToUser(User, group.creator, { title: 'Member Left Group', body: `${req.user.email} left the group "${group.title}".`, data: { type: 'group_member_left' } }, { settingKey: 'groupNotifications' });
     } catch (e) {
       console.error('Failed to send member left email:', e);
     }
@@ -1604,7 +1619,7 @@ exports.deleteExpense = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${req.user.email} deleted the expense "${deletedExpense.description}" from group "${group.title}".`,
           })));
-          eligible.forEach(u => sendToUser(User, u._id, { title: 'Expense Deleted', body: `${req.user.email} deleted the expense "${deletedExpense.description}" from group "${group.title}".`, data: { type: 'group_expense_deleted' } }));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Expense Deleted', body: `${req.user.email} deleted the expense "${deletedExpense.description}" from group "${group.title}".`, data: { type: 'group_expense_deleted' } }, { settingKey: 'groupNotifications' }));
         }
       }
     } catch (e) {
@@ -1824,7 +1839,7 @@ exports.editExpense = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${userEmail} edited the expense "${description}" in group "${group.title}".`,
           })));
-          eligible.forEach(u => sendToUser(User, u._id, { title: 'Expense Edited ✏️', body: `${userEmail} edited the expense "${description}" in group "${group.title}".`, data: { type: 'group_expense_edited' } }));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Expense Edited', body: `${userEmail} edited the expense "${description}" in group "${group.title}".`, data: { type: 'group_expense_edited' } }, { settingKey: 'groupNotifications' }));
         }
       }
     } catch (e) {
@@ -1843,7 +1858,7 @@ exports.editExpense = async (req, res) => {
 exports.settleMemberExpenses = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { email } = req.body;
+    const email = (req.body.email || '').toLowerCase().trim();
     const group = await GroupTransaction.findById(groupId);
     
     if (!group) {
@@ -1945,7 +1960,7 @@ exports.settleMemberExpenses = async (req, res) => {
           message: `${req.user.email} marked your expenses as settled in group "${group.title}".`,
         });
       }
-      sendToUser(User, user._id, { title: 'Expenses Settled ✅', body: `${req.user.email} marked your expenses as settled in group "${group.title}".`, data: { type: 'group_expenses_settled' } });
+      sendToUser(User, user._id, { title: 'Expenses Settled', body: `${req.user.email} marked your expenses as settled in group "${group.title}".`, data: { type: 'group_expenses_settled' } }, { settingKey: 'groupNotifications' });
     } catch (e) {
       console.error('Failed to log group activity:', e);
     }
@@ -1961,12 +1976,12 @@ exports.settleMemberExpenses = async (req, res) => {
 };
 
 // Record a peer-to-peer payment between two group members.
-// Tracks only this specific payer→receiver pair so other debts are unaffected.
+// Tracks only this specific payer'receiver pair so other debts are unaffected.
 // Pays a fellow group member via an atomic LenDen Wallet transfer, then
 // records it in memberPayments[] so the balance-netting calculation picks it
 // up. The recipient is resolved from the group's own membership list (not an
 // arbitrary client-supplied email) so money can only go to a real active
-// member/creator of this group — and the wallet movement now happens here
+// member/creator of this group  and the wallet movement now happens here
 // rather than being a bookkeeping-only log of a payment that may or may not
 // have actually occurred.
 exports.recordMemberPayment = async (req, res) => {
@@ -2010,7 +2025,7 @@ exports.recordMemberPayment = async (req, res) => {
     const parsedAmount = parseFloat(amount);
     let newBalance;
     await session.withTransaction(async () => {
-      // Atomic check-and-debit — fails (returns null) if balance is insufficient.
+      // Atomic check-and-debit  fails (returns null) if balance is insufficient.
       const payer = await User.findOneAndUpdate(
         { _id: req.user._id, walletBalance: { $gte: parsedAmount } },
         { $inc: { walletBalance: -parsedAmount } },
@@ -2026,8 +2041,8 @@ exports.recordMemberPayment = async (req, res) => {
       await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: parsedAmount } }, { session });
 
       await WalletTransaction.create([
-        { user: payer._id, type: 'debit', amount: parsedAmount, toEmail: payee.email, note: `Group expense settlement — ${group.title}`, sourceType: 'group' },
-        { user: payee._id, type: 'credit', amount: parsedAmount, fromEmail: payer.email, note: `Group expense settlement — ${group.title}`, sourceType: 'group' },
+        { user: payer._id, type: 'debit', amount: parsedAmount, toEmail: payee.email, note: `Group expense settlement  ${group.title}`, sourceType: 'group' },
+        { user: payee._id, type: 'credit', amount: parsedAmount, fromEmail: payer.email, note: `Group expense settlement  ${group.title}`, sourceType: 'group' },
       ], { session });
 
       group.memberPayments.push({
@@ -2067,17 +2082,17 @@ exports.recordMemberPayment = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Group settlement: ₹${parsedAmount} sent to ${cleanToEmail} for group "${group.title}".`,
+          message: `Group settlement: Rs.${parsedAmount} sent to ${cleanToEmail} for group "${group.title}".`,
         }));
       }
       if (payeeUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [payee._id], recipientModel: 'User', category: 'transaction',
-          message: `Group settlement: You received ₹${parsedAmount} from ${req.user.email} for group "${group.title}".`,
+          message: `Group settlement: You received Rs.${parsedAmount} from ${req.user.email} for group "${group.title}".`,
         }));
       }
-      sendToUser(User, payee._id, { title: 'Group Settlement Received 💰', body: `You received ₹${parsedAmount} from ${req.user.email} for group "${group.title}".`, data: { type: 'group_settlement_received' } });
+      sendToUser(User, payee._id, { title: 'Group Settlement Received', body: `You received Rs.${parsedAmount} from ${req.user.email} for group "${group.title}".`, data: { type: 'group_settlement_received' } }, { settingKey: 'groupNotifications' });
       return Promise.all(notifs);
     }).catch(() => {});
   } catch (err) {
@@ -2279,7 +2294,7 @@ exports.settleExpenseSplits = async (req, res) => {
           recipients: [u._id], recipientModel: 'User', category: 'group',
           message: `${req.user.email} settled your split for expense "${expense.description}" in group "${group.title}".`,
         })));
-        settledUsers.forEach(u => sendToUser(User, u._id, { title: 'Split Settled ✅', body: `${req.user.email} settled your split for expense "${expense.description}" in group "${group.title}".`, data: { type: 'group_split_settled' } }));
+        settledUsers.forEach(u => sendToUser(User, u._id, { title: 'Split Settled', body: `${req.user.email} settled your split for expense "${expense.description}" in group "${group.title}".`, data: { type: 'group_split_settled' } }, { settingKey: 'groupNotifications' }));
       }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
@@ -2369,7 +2384,7 @@ exports.sendLeaveRequest = async (req, res) => {
           });
         }
       }).catch(() => {});
-      sendToUser(User, group.creator._id, { title: 'Leave Request 🚪', body: `${user.email} requested to leave the group "${group.title}".`, data: { type: 'group_leave_request' } });
+      sendToUser(User, group.creator._id, { title: 'Leave Request', body: `${user.email} requested to leave the group "${group.title}".`, data: { type: 'group_leave_request' } }, { settingKey: 'groupNotifications' });
     } else {
       res.status(500).json({ error: 'Failed to send leave request email' });
     }
@@ -2607,7 +2622,7 @@ exports.generateGroupReceipt = async (req, res) => {
          .fontSize(9)
          .text('Amount:', leftMargin + 10, currentY + 10)
          .font('Helvetica')
-         .text(`₹${expense.amount.toFixed(2)}`, leftMargin + 100, currentY + 10);
+         .text(`Rs.${expense.amount.toFixed(2)}`, leftMargin + 100, currentY + 10);
       
       doc.font('Helvetica-Bold')
          .text('Added By:', leftMargin + 10, currentY + 25)
@@ -2683,7 +2698,7 @@ exports.generateGroupReceipt = async (req, res) => {
        .fontSize(14)
        .text('TOTAL EXPENSE:', leftMargin + 10, currentY + 10)
        .fontSize(16)
-       .text(`₹${totalAmount.toFixed(2)}`, leftMargin + 200, currentY + 8, { width: 215, align: 'right' });
+       .text(`Rs.${totalAmount.toFixed(2)}`, leftMargin + 200, currentY + 8, { width: 215, align: 'right' });
     
     currentY += 50;
 
@@ -2707,7 +2722,7 @@ exports.generateGroupReceipt = async (req, res) => {
   }
 };
 
-// ─── Join Code ────────────────────────────────────────────────────────────────
+//  Join Code 
 
 const crypto = require('crypto');
 
@@ -2803,13 +2818,13 @@ exports.joinByCode = async (req, res) => {
         });
       }
     }).catch(() => {});
-    sendToUser(User, group.creator, { title: 'New Member Joined 👋', body: `${userEmail} joined the group "${group.title}" via invite link.`, data: { type: 'group_member_joined' } });
+    sendToUser(User, group.creator, { title: 'New Member Joined', body: `${userEmail} joined the group "${group.title}" via invite link.`, data: { type: 'group_member_joined' } }, { settingKey: 'groupNotifications' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to join group' });
   }
 };
 
-// ─── Group Statistics ─────────────────────────────────────────────────────────
+//  Group Statistics 
 
 exports.getGroupStats = async (req, res) => {
   try {
@@ -2858,7 +2873,7 @@ exports.getGroupStats = async (req, res) => {
       }
     }
 
-    // Member balance summary — include every active member (balance defaults to 0)
+    // Member balance summary  include every active member (balance defaults to 0)
     const balanceMap = {};
     for (const b of group.balances) {
       balanceMap[b.user.toString()] = b.balance;
@@ -2926,7 +2941,7 @@ exports.addGroupToCommunityFromGroup = async (req, res) => {
     const group = await GroupTransaction.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
-    // Link group ↔ community
+    // Link group  community
     const alreadyIn = group.communityIds.map(id => id.toString()).includes(communityId);
     if (!alreadyIn) {
       group.communityIds.push(communityId);
@@ -2973,3 +2988,4 @@ exports.removeGroupFromCommunityFromGroup = async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 };
+

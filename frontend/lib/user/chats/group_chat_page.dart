@@ -201,17 +201,19 @@ class _GroupChatPageState extends State<GroupChatPage> {
   String? _extractMemberId(dynamic member) {
     if (member is! Map) return member?.toString();
 
-    final directId = member['_id']?.toString();
-    if (directId != null && directId.isNotEmpty) return directId;
-
+    // Group member subdocuments have { _id: memberDocId, user: { _id: userId } }.
+    // We need the user's _id for encryption/key-lookup, not the member doc's _id.
     final nestedUser = member['user'];
     if (nestedUser is Map) {
       final nestedId = nestedUser['_id']?.toString();
       if (nestedId != null && nestedId.isNotEmpty) return nestedId;
     }
+    // user may be stored as a raw ObjectId string (un-populated)
+    if (nestedUser is String && nestedUser.isNotEmpty) return nestedUser;
 
-    final nestedUserId = nestedUser?.toString();
-    if (nestedUserId != null && nestedUserId.isNotEmpty) return nestedUserId;
+    // Fallback: member is a plain user object with no wrapping
+    final directId = member['_id']?.toString();
+    if (directId != null && directId.isNotEmpty) return directId;
 
     return null;
   }
@@ -1131,9 +1133,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   String _memberDisplayName(dynamic member) {
     if (member is Map) {
-      final name = (member['name'] ?? '').toString().trim();
+      // Group member subdocuments: { user: { name, email } }
+      final userNode = member['user'];
+      final source = (userNode is Map) ? userNode : member;
+      final name = (source['name'] ?? '').toString().trim();
       if (name.isNotEmpty) return name;
-      final email = (member['email'] ?? '').toString().trim();
+      final email = (source['email'] ?? '').toString().trim();
       if (email.isNotEmpty) return email;
     }
     return 'Unknown';

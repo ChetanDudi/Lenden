@@ -308,7 +308,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Future<void> _addMemberEmail() async {
     final t = AppLocalizations.of(context).t;
-    final email = _memberEmailController.text.trim();
+    final email = _memberEmailController.text.trim().toLowerCase();
     if (email.isEmpty) return;
     setState(() => _memberAddError = null);
 
@@ -1693,6 +1693,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     if (!mounted) return;
 
     final selected = <String>{...skippedUsers.map((u) => u['email']?.toString() ?? '')};
+    bool sending = false;
 
     await showModalBottomSheet(
       context: context,
@@ -1700,7 +1701,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          bool sending = false;
 
           return Container(
             decoration: BoxDecoration(
@@ -1843,13 +1843,20 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                     selected.clear();
                                   });
                                   if (context.mounted) {
+                                    Navigator.pop(ctx);
                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                                       content: Text('Invites sent! They\'ll receive an in-app notification.'),
                                       backgroundColor: Color(0xFFFF6B00),
                                     ));
                                   }
-                                } catch (_) {
+                                } catch (e) {
                                   setModalState(() => sending = false);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text('Failed to send invites: ${e.toString()}'),
+                                      backgroundColor: Colors.red,
+                                    ));
+                                  }
                                 }
                               },
                               icon: sending

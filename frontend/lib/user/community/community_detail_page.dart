@@ -1973,13 +1973,13 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     final color = _communityColor;
     final communityId = widget.communityId;
     final selected = <String>{...skippedUsers.map((u) => u['email']?.toString() ?? '')};
+    bool sending = false;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
-          bool sending = false;
           return Container(
             padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
             decoration: BoxDecoration(
@@ -2084,10 +2084,14 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                             );
                             setSheet(() { sending = false; selected.clear(); });
                             if (context.mounted) {
+                              Navigator.pop(ctx);
                               _showSnack('Invites sent!', icon: Icons.send_rounded);
                             }
-                          } catch (_) {
+                          } catch (e) {
                             setSheet(() => sending = false);
+                            if (context.mounted) {
+                              _showSnack('Failed to send: ${e.toString()}', icon: Icons.error_outline);
+                            }
                           }
                         },
                         icon: sending
@@ -2157,13 +2161,14 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => Container(
         padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).padding.bottom + 32),
         decoration: BoxDecoration(
           color: AppThemeColors.cardBg(ctx),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Center(child: Container(width: 40, height: 4,
             decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 20),
@@ -2250,7 +2255,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               child: const Text('Got it', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
             ),
           ),
-        ]),
+        ])),
       ),
     );
   }

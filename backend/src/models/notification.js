@@ -76,8 +76,8 @@ const notificationSchema = new mongoose.Schema({
 
 // Primary user inbox query: recipients + deliveryStatus
 notificationSchema.index({ recipients: 1, deliveryStatus: 1, createdAt: -1 });
-// Unread-count query: recipients + deliveryStatus + readBy exclusion
-notificationSchema.index({ recipients: 1, deliveryStatus: 1, readBy: 1 });
+// readBy is a second array — cannot compound-index two arrays together (MongoDB restriction).
+// The inbox query filters by readBy in-memory after the recipients+deliveryStatus index reduces the set.
 // Admin sent-notifications list
 notificationSchema.index({ sender: 1, deliveryStatus: 1, createdAt: -1 });
 // Scheduled dispatch: find due scheduled notifications

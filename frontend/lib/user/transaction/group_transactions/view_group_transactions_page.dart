@@ -18,12 +18,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import '../../chats/group_chat_page.dart';
 import 'create_group_page.dart';
+import 'group_detail_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/share_as_note_sheet.dart';
+import '../../../utils/community_helpers.dart';
+import 'group_overview_page.dart';
 
 final _oidRe = RegExp(r'^[0-9a-f]{24}$');
 String _sanitizeUser(dynamic v, {String fallback = 'Deleted Account'}) {
@@ -88,150 +91,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _showJoinGroupDialog() async {
-    final t = AppLocalizations.of(context).t;
-    final codeController = TextEditingController();
-    bool joining = false;
-
-    await showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: AppColors.tricolorGradient,
-            ),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(ctx),
-                borderRadius: BorderRadius.circular(26),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0077B6), AppColors.cyan],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.cyan.withValues(alpha: 0.35),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.group_add_rounded, color: Colors.white, size: 32),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    t('join_group_by_code_title'),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppThemeColors.primaryText(ctx),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Enter the invite code shared by your group creator',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppThemeColors.secondaryText(ctx),
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.45), width: 1.5),
-                      color: AppColors.cyan.withValues(alpha: 0.05),
-                    ),
-                    child: TextField(
-                      controller: codeController,
-                      textCapitalization: TextCapitalization.characters,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 6,
-                        color: AppColors.cyan,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: t('enter_join_code_hint'),
-                        hintStyle: TextStyle(
-                          fontSize: 14,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.normal,
-                          color: AppThemeColors.mutedText(ctx),
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: joining
-                          ? null
-                          : () async {
-                              final code = codeController.text.trim();
-                              if (code.isEmpty) return;
-                              setDialog(() => joining = true);
-                              final res = await ApiClient.post('/api/group-transactions/join', body: {'joinCode': code});
-                              if (!mounted) return;
-                              Navigator.pop(ctx);
-                              if (res.statusCode == 200) {
-                                showSnack(context, t('join_group_success'));
-                                _fetchUserGroups();
-                              } else {
-                                final err = jsonDecode(res.body)['error'] ?? t('something_went_wrong');
-                                showSnack(context, err.toString(), isError: true);
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.cyan,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
-                      ),
-                      child: joining
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Text(t('join_group_button'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    codeController.dispose();
   }
 
   Future<void> _toggleFavourite(String groupId) async {
@@ -2357,7 +2216,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                               group['expenses'] ?? [];
                                           final members =
                                               group['members'] ?? [];
-                                          final creator = group['creator'];
                                           final isFavourite =
                                               (group['favourite'] as List? ??
                                                       [])
@@ -2366,465 +2224,256 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                           // Use server-computed pending balance
                                           final userPendingBalance =
                                               (group['userPendingBalance'] as num? ?? 0).toDouble();
-                                          final userTotalSplit = userPendingBalance;
 
-                                          return Card(
-                                            margin: EdgeInsets.only(bottom: 16),
-                                            elevation: 4,
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(16)),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  colors: AppColors.tricolorGradientColors,
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.bottomCenter,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                              child: Container(
-                                                margin: const EdgeInsets.all(2),
-                                                decoration: BoxDecoration(
-                                                  color: Theme.of(context)
-                                                      .cardColor,
-                                                  borderRadius:
-                                                      BorderRadius.circular(14),
-                                                ),
-                                                child: ExpansionTile(
-                                                  leading: CircleAvatar(
-                                                    backgroundColor:
-                                                        AppColors.cyan,
-                                                    backgroundImage: (group[
-                                                                    'groupImageUrl'] !=
-                                                                null &&
-                                                            group['groupImageUrl']
-                                                                .toString()
-                                                                .isNotEmpty)
-                                                        ? NetworkImage(group[
-                                                                'groupImageUrl']
-                                                            .toString())
-                                                        : null,
-                                                    child: (group['groupImageUrl'] !=
-                                                                null &&
-                                                            group['groupImageUrl']
-                                                                .toString()
-                                                                .isNotEmpty)
-                                                        ? null
-                                                        : Text(
-                                                            (group['title'] ?? 'G')[0]
-                                                                .toUpperCase(),
-                                                            style: TextStyle(
-                                                                color: Colors.white,
-                                                                fontWeight:
-                                                                    FontWeight.bold),
-                                                          ),
-                                                  ),
-                                                  title: Row(
-                                                    children: [
-                                                      Flexible(
-                                                        child: Text(
-                                                          group['title'] ??
-                                                              t('untitled_group_label'),
-                                                          style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight.bold,
-                                                              fontSize: 16),
-                                                          overflow: TextOverflow.ellipsis,
+                                          // Photo-card variables
+                                          final groupColor = group['color'] != null && group['color'].toString().isNotEmpty
+                                              ? Color(int.parse(group['color'].toString().replaceFirst('#', '0xff')))
+                                              : AppColors.cyan;
+                                          final imgUrl = (group['groupImageUrl']?.toString() ?? '').isNotEmpty
+                                              ? group['groupImageUrl'].toString()
+                                              : defaultGroupImageUrl(group['title']?.toString() ?? '');
+                                          final mList = members is List ? members : [];
+                                          final eList = expenses is List ? expenses : [];
+
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 18),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                                              children: [
+                                                // ── PHOTO CARD ──
+                                                GestureDetector(
+                                                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                                                    builder: (_) => GroupOverviewPage(
+                                                      group: group,
+                                                      userPendingBalance: userPendingBalance,
+                                                      formatAmount: _formatDisplayAmountFromInr,
+                                                      expenseAmountInInr: _expenseAmountInInr,
+                                                      splitAmountInInr: _splitAmountInInr,
+                                                      currentUserEmail: currentUserEmail?.toString() ?? '',
+                                                      unreadMessageCount: (group['unreadMessageCount'] as num? ?? 0).toInt(),
+                                                      onGenerateReceipt: () => _showGroupReceiptOptionsDialog(group),
+                                                      onAddExpense: () => _showAddExpenseDialog(group),
+                                                      onShareInvite: () => _shareGroupInvite(group),
+                                                      onShareAsNote: () => _shareGroupAsNote(group),
+                                                      onShareAsPdf: () => _shareGroupPdf(group),
+                                                    ),
+                                                  )),
+                                                  child: Container(
+                                                    height: 185,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(20),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: groupColor.withValues(alpha: 0.25),
+                                                          blurRadius: 16,
+                                                          offset: const Offset(0, 6),
                                                         ),
-                                                      ),
-                                                      const SizedBox(width: 14),
-                                                      IconButton(
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: BoxConstraints(minWidth: 32, minHeight: 32),
-                                                        icon: Icon(
-                                                          isFavourite
-                                                              ? Icons.star
-                                                              : Icons.star_border,
-                                                          color: isFavourite
-                                                              ? Colors.amber
-                                                              : AppThemeColors.secondaryText(context),
-                                                          size: 20,
-                                                        ),
-                                                        onPressed: () =>
-                                                            _toggleFavourite(
-                                                                group['_id']),
-                                                      ),
-                                                      const SizedBox(width: 14),
-                                                      IconButton(
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: BoxConstraints(minWidth: 32, minHeight: 32),
-                                                        icon: Icon(Icons.chat,
-                                                            color: Colors.blue, size: 20),
-                                                        onPressed: () {
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (context) =>
-                                                                  GroupChatPage(
-                                                                groupTransactionId:
-                                                                    group['_id'],
-                                                                groupTitle: group[
-                                                                        'title'] ??
-                                                                    t('group_chat_label'),
-                                                                members: group[
-                                                                        'members'] ??
-                                                                    [],
-                                                                groupImageUrl: group[
-                                                                        'groupImageUrl']
-                                                                    ?.toString(),
-                                                              ),
-                                                            ),
-                                                          );
-                                                        },
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  subtitle: Padding(
-                                                    padding: const EdgeInsets.only(top: 4),
-                                                    child: Wrap(
-                                                      spacing: 6,
-                                                      runSpacing: 4,
-                                                      children: [
-                                                        _subtitleChip(Icons.person_outline, t('creator_label'), creator?['email'] ?? t('unknown_label')),
-                                                        _subtitleChip(Icons.group_outlined, t('members_label'), '${members.length}'),
-                                                        _subtitleChip(Icons.receipt_outlined, t('expenses_label'), '${expenses.length}'),
-                                                        _subtitleChip(Icons.chat_bubble_outline, t('messages_label'), '${group['messageCount'] ?? 0}'),
                                                       ],
                                                     ),
-                                                  ),
-                                                  children: [
-                                                    Container(
-                                                      padding:
-                                                          EdgeInsets.all(16),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(20),
+                                                      child: Stack(
+                                                        fit: StackFit.expand,
                                                         children: [
-                                                          // Group Summary
-                                                          Container(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                    12),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: Color(
-                                                                      0xFF00B4D8)
-                                                                  .withValues(alpha: 
-                                                                      0.1),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                            ),
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                  t('your_summary_label'),
-                                                                  style:
-                                                                      TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        16,
-                                                                    color: Color(
-                                                                        0xFF00B4D8),
-                                                                  ),
+                                                          Image.network(
+                                                            imgUrl,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder: (_, __, ___) => Container(
+                                                              decoration: BoxDecoration(
+                                                                gradient: LinearGradient(
+                                                                  colors: [groupColor, Color.lerp(groupColor, Colors.black, 0.4)!],
+                                                                  begin: Alignment.topLeft,
+                                                                  end: Alignment.bottomRight,
                                                                 ),
-                                                                SizedBox(
-                                                                    height: 8),
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(child: Text(t('total_split_amount_label'))),
-                                                                    Flexible(
-                                                                      child: Text(
-                                                                        _formatDisplayAmountFromInr(userTotalSplit),
-                                                                        style: TextStyle(
-                                                                          fontWeight: FontWeight.bold,
-                                                                          color: Colors.green[700],
-                                                                        ),
-                                                                        overflow: TextOverflow.ellipsis,
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                SizedBox(height: 4),
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(child: Text(t('pending_balance_label'))),
-                                                                    Flexible(
-                                                                      child: Text(
-                                                                        _formatDisplayAmountFromInr(userPendingBalance),
-                                                                        style: TextStyle(
-                                                                          fontWeight: FontWeight.bold,
-                                                                          color: userPendingBalance > 0
-                                                                              ? Colors.red[700]
-                                                                              : Colors.green[700],
-                                                                        ),
-                                                                        overflow: TextOverflow.ellipsis,
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
+                                                              ),
                                                             ),
                                                           ),
-                                                          SizedBox(height: 16),
-
-                                                          // Action Buttons — 2 × 2 grid
-                                                          _buildGroupActionButtons(group, t),
-
-                                                          SizedBox(height: 16),
-
-                                                          // Expenses List
-                                                          if (expenses
-                                                              .isNotEmpty) ...[
-                                                            Row(
+                                                          Container(
+                                                            decoration: const BoxDecoration(
+                                                              gradient: LinearGradient(
+                                                                colors: [Color(0x33000000), Color(0xDD000000)],
+                                                                begin: Alignment.topCenter,
+                                                                end: Alignment.bottomCenter,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Padding(
+                                                            padding: const EdgeInsets.all(14),
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
-                                                                Text(
-                                                                  t('recent_expenses_label'),
-                                                                  style:
-                                                                      TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        16,
-                                                                  ),
-                                                                ),
-                                                                Spacer(),
-                                                                if (expenses
-                                                                        .length >
-                                                                    3)
-                                                                  TextButton(
-                                                                    onPressed: () => _showAllExpensesDialog(
-                                                                        expenses,
-                                                                        group['title'] ??
-                                                                            t('group_label'),
-                                                                        group[
-                                                                            '_id']),
-                                                                    child: Text(
-                                                                      t('view_all_count_label').replaceFirst('{count}', '${expenses.length}'),
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: Color(
-                                                                            0xFF00B4D8),
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
+                                                                // Top row: color dot + balance chip + fav + chat
+                                                                Row(
+                                                                  children: [
+                                                                    Container(
+                                                                      width: 11, height: 11,
+                                                                      decoration: BoxDecoration(
+                                                                        color: groupColor,
+                                                                        shape: BoxShape.circle,
+                                                                        border: Border.all(color: Colors.white, width: 1.5),
                                                                       ),
                                                                     ),
-                                                                  ),
-                                                              ],
-                                                            ),
-                                                            SizedBox(height: 8),
-                                                            ...expenses
-                                                                .take(3)
-                                                                .map<Widget>(
-                                                                    (expense) {
-                                                              return Container(
-                                                                margin: EdgeInsets
-                                                                    .only(
-                                                                        bottom:
-                                                                            8),
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(
-                                                                            12),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: AppThemeColors
-                                                                      .surfaceBg(context),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              8),
-                                                                  border: Border.all(
-                                                                      color: AppThemeColors
-                                                                          .border(context)),
-                                                                ),
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Row(
+                                                                    const SizedBox(width: 8),
+                                                                    if (userPendingBalance != 0.0)
+                                                                      Container(
+                                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                                        decoration: BoxDecoration(
+                                                                          color: (userPendingBalance > 0 ? Colors.red.shade700 : Colors.green.shade700).withValues(alpha: 0.88),
+                                                                          borderRadius: BorderRadius.circular(20),
+                                                                        ),
+                                                                        child: Text(
+                                                                          _formatDisplayAmountFromInr(userPendingBalance),
+                                                                          style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
+                                                                        ),
+                                                                      ),
+                                                                    const Spacer(),
+                                                                    GestureDetector(
+                                                                      onTap: () => _toggleFavourite(group['_id']),
+                                                                      child: Icon(
+                                                                        isFavourite ? Icons.star_rounded : Icons.star_border_rounded,
+                                                                        color: isFavourite ? Colors.amber : Colors.white,
+                                                                        size: 22,
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(width: 12),
+                                                                    Stack(
+                                                                      clipBehavior: Clip.none,
                                                                       children: [
-                                                                        Icon(Icons.receipt, color: AppColors.cyan, size: 20),
-                                                                        SizedBox(width: 8),
-                                                                        Expanded(
-                                                                          child: Text(
-                                                                            expense['description'] ?? t('no_description_label'),
-                                                                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                                                        GestureDetector(
+                                                                          onTap: () => Navigator.push(context, MaterialPageRoute(
+                                                                            builder: (context) => GroupChatPage(
+                                                                              groupTransactionId: group['_id'],
+                                                                              groupTitle: group['title'] ?? t('group_chat_label'),
+                                                                              members: group['members'] ?? [],
+                                                                              groupImageUrl: group['groupImageUrl']?.toString(),
+                                                                            ),
+                                                                          )),
+                                                                          child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 22),
+                                                                        ),
+                                                                        if ((group['unreadMessageCount'] as num? ?? 0) > 0)
+                                                                          Positioned(
+                                                                            right: -2, top: -2,
+                                                                            child: Container(
+                                                                              width: 9, height: 9,
+                                                                              decoration: BoxDecoration(
+                                                                                color: Colors.green.shade500,
+                                                                                shape: BoxShape.circle,
+                                                                                border: Border.all(color: Colors.white, width: 1.5),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                const Spacer(),
+                                                                // Bottom row: title + members | View Details + expand pill
+                                                                Row(
+                                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child: Column(
+                                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                                        children: [
+                                                                          Text(
+                                                                            group['title']?.toString() ?? t('untitled_group_label'),
+                                                                            style: const TextStyle(
+                                                                              color: Colors.white,
+                                                                              fontSize: 18,
+                                                                              fontWeight: FontWeight.bold,
+                                                                              shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
+                                                                            ),
                                                                             overflow: TextOverflow.ellipsis,
                                                                           ),
-                                                                        ),
-                                                                        SizedBox(width: 8),
-                                                                        Flexible(
-                                                                          flex: 0,
-                                                                          child: Text(
-                                                                            _formatDisplayAmountFromInr(
-                                                                              _expenseAmountInInr(Map<String, dynamic>.from(expense)),
+                                                                          const SizedBox(height: 5),
+                                                                          Row(
+                                                                            children: [
+                                                                              // Show unique member avatars (no creator duplication)
+                                                                              ...mList.take(4).toList().asMap().entries.map((e) {
+                                                                                final mu = e.value is Map ? (e.value['user'] ?? e.value) : e.value;
+                                                                                final mp = (mu is Map ? (mu['profileImage'] ?? mu['profilePicture'] ?? '') : '').toString();
+                                                                                final mi = (mu is Map ? (mu['name'] ?? mu['email'] ?? '?') : '?').toString();
+                                                                                return Transform.translate(
+                                                                                  offset: Offset(e.key * -5.0, 0),
+                                                                                  child: CircleAvatar(
+                                                                                    radius: 10,
+                                                                                    backgroundColor: AppColors.cyan,
+                                                                                    child: ClipOval(
+                                                                                      child: mp.isNotEmpty
+                                                                                          ? Image.network(
+                                                                                              mp,
+                                                                                              width: 20, height: 20,
+                                                                                              fit: BoxFit.cover,
+                                                                                              errorBuilder: (_, __, ___) => Center(
+                                                                                                child: Text(mi.isNotEmpty ? mi[0].toUpperCase() : '?',
+                                                                                                    style: const TextStyle(fontSize: 8, color: Colors.white)),
+                                                                                              ),
+                                                                                            )
+                                                                                          : Center(child: Text(mi.isNotEmpty ? mi[0].toUpperCase() : '?',
+                                                                                              style: const TextStyle(fontSize: 8, color: Colors.white))),
+                                                                                    ),
+                                                                                  ),
+                                                                                );
+                                                                              }),
+                                                                              const SizedBox(width: 4),
+                                                                              Text('${mList.length} member${mList.length == 1 ? '' : 's'}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                                                              const SizedBox(width: 8),
+                                                                              const Icon(Icons.receipt_outlined, color: Colors.white70, size: 12),
+                                                                              const SizedBox(width: 3),
+                                                                              Text('${eList.length} expense${eList.length == 1 ? '' : 's'}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                                                            ],
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(width: 8),
+                                                                    Column(
+                                                                      mainAxisSize: MainAxisSize.min,
+                                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                                      children: [
+                                                                        OutlinedButton(
+                                                                          onPressed: () => Navigator.push(context, MaterialPageRoute(
+                                                                            builder: (_) => GroupDetailPage(
+                                                                              groupId: group['_id']?.toString() ?? '',
+                                                                              initialGroup: group,
                                                                             ),
-                                                                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700]),
-                                                                            overflow: TextOverflow.ellipsis,
+                                                                          )),
+                                                                          style: OutlinedButton.styleFrom(
+                                                                            foregroundColor: Colors.white,
+                                                                            side: const BorderSide(color: Colors.white, width: 1.5),
+                                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                                                                            minimumSize: Size.zero,
+                                                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                                          ),
+                                                                          child: const Text('View Details →', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                                                                        ),
+                                                                        const SizedBox(height: 6),
+                                                                        Container(
+                                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                                                          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
+                                                                          child: Row(
+                                                                            mainAxisSize: MainAxisSize.min,
+                                                                            children: [
+                                                                              const Text('Overview', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                                                              const SizedBox(width: 2),
+                                                                              const Icon(Icons.keyboard_arrow_right_rounded, color: Colors.white, size: 16),
+                                                                            ],
                                                                           ),
                                                                         ),
                                                                       ],
                                                                     ),
-                                                                    SizedBox(height: 4),
-                                                                    Text(
-                                                                      t('added_by_colon_label').replaceFirst('{email}', _sanitizeUser(expense['addedBy'], fallback: t('unknown_label'))),
-                                                                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12),
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                      maxLines: 1,
-                                                                    ),
-                                                                    if (expense['createdAt'] != null || expense['date'] != null)
-                                                                      Row(
-                                                                        children: [
-                                                                          Icon(Icons.access_time, color: AppThemeColors.mutedText(context), size: 12),
-                                                                          SizedBox(width: 4),
-                                                                          Expanded(
-                                                                            child: Text(
-                                                                              _formatDateTime(expense['createdAt'] ?? expense['date']),
-                                                                              style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
-                                                                              overflow: TextOverflow.ellipsis,
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-
-                                                                    // Split Details
-                                                                    if (expense['split'] !=
-                                                                            null &&
-                                                                        expense['split']
-                                                                            .isNotEmpty) ...[
-                                                                      SizedBox(
-                                                                          height:
-                                                                              8),
-                                                                      Container(
-                                                                        padding:
-                                                                            EdgeInsets.all(8),
-                                                                        decoration:
-                                                                            BoxDecoration(
-                                                                          color:
-                                                                              AppColors.cyan.withValues(alpha: 0.05),
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(6),
-                                                                          border:
-                                                                              Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
-                                                                        ),
-                                                                        child:
-                                                                            Column(
-                                                                          crossAxisAlignment:
-                                                                              CrossAxisAlignment.start,
-                                                                          children: [
-                                                                            Row(
-                                                                              children: [
-                                                                                Icon(Icons.people_outline, color: AppColors.cyan, size: 14),
-                                                                                SizedBox(width: 4),
-                                                                                Text(
-                                                                                  t('split_details_label'),
-                                                                                  style: TextStyle(
-                                                                                    fontSize: 12,
-                                                                                    fontWeight: FontWeight.w600,
-                                                                                    color: AppColors.cyan,
-                                                                                  ),
-                                                                                ),
-                                                                              ],
-                                                                            ),
-                                                                            SizedBox(height: 4),
-                                                                            ...(expense['split'] as List).map<Widget>((splitItem) {
-                                                                              final member = members.firstWhere(
-                                                                                (m) => m['_id'] == splitItem['user'],
-                                                                                orElse: () => {
-                                                                                  'email': t('unknown_user_label')
-                                                                                },
-                                                                              );
-                                                                              final isCurrentUser = member['email'] == currentUserEmail;
-                                                                              final isSettled = splitItem['settled'] == true;
-
-                                                                              return Padding(
-                                                                                padding: EdgeInsets.only(bottom: 2),
-                                                                                child: Row(
-                                                                                  children: [
-                                                                                    Expanded(
-                                                                                      child: Text(
-                                                                                        '• ${member['email']}',
-                                                                                        style: TextStyle(
-                                                                                          fontSize: 11,
-                                                                                          color: AppThemeColors.secondaryText(context),
-                                                                                          fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
-                                                                                        ),
-                                                                                        overflow: TextOverflow.ellipsis,
-                                                                                      ),
-                                                                                    ),
-                                                                                    SizedBox(width: 4),
-                                                                                    Text(
-                                                                                      _formatDisplayAmountFromInr(_splitAmountInInr(Map<String, dynamic>.from(splitItem))),
-                                                                                      style: TextStyle(
-                                                                                        fontSize: 11,
-                                                                                        fontWeight: FontWeight.w600,
-                                                                                        color: isSettled ? Colors.grey[500] : (isCurrentUser ? AppColors.cyan : Colors.green[700]),
-                                                                                        decoration: isSettled ? TextDecoration.lineThrough : null,
-                                                                                      ),
-                                                                                    ),
-                                                                                    if (isCurrentUser)
-                                                                                      Text(t('you_suffix_label'), style: TextStyle(fontSize: 10, color: AppColors.cyan, fontStyle: FontStyle.italic)),
-                                                                                    if (isSettled)
-                                                                                      Text(' ✓', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-                                                                                  ],
-                                                                                ),
-                                                                              );
-                                                                            }).toList(),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    ],
                                                                   ],
                                                                 ),
-                                                              );
-                                                            }).toList(),
-                                                          ] else ...[
-                                                            Container(
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(16),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: AppThemeColors
-                                                                    .surfaceBg(context),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8),
-                                                              ),
-                                                              child: Center(
-                                                                child: Text(
-                                                                  t('no_expenses_in_group_yet_message'),
-                                                                  style:
-                                                                      TextStyle(
-                                                                    color: AppThemeColors
-                                                                        .secondaryText(context),
-                                                                    fontStyle:
-                                                                        FontStyle
-                                                                            .italic,
-                                                                  ),
-                                                                ),
-                                                              ),
+                                                              ],
                                                             ),
-                                                          ],
+                                                          ),
                                                         ],
                                                       ),
                                                     ),
-                                                  ],
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ),
                                           );
                                         },
@@ -2833,19 +2482,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                       ),
                       ),
                     ),
-      floatingActionButton: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'join_group',
-            onPressed: _showJoinGroupDialog,
-            backgroundColor: AppThemeColors.cardBg(context),
-            elevation: 2,
-            tooltip: 'Join Group',
-            child: Icon(Icons.link_rounded, color: AppColors.cyan),
-          ),
-          const SizedBox(width: 12),
-          Container(
+      floatingActionButton: Container(
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -2862,8 +2499,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
               child: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
-        ],
-      ),
     );
   }
 

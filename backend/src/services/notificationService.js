@@ -62,10 +62,15 @@ async function sendToToken(fcmToken, { title, body, data = {} }) {
   }
 }
 
-async function sendToUser(UserModel, userId, payload) {
+// settingKey: optional notificationSettings field to check (e.g. 'groupNotifications')
+async function sendToUser(UserModel, userId, payload, { settingKey } = {}) {
   try {
-    const user = await UserModel.findById(userId).select('fcmToken');
-    if (user?.fcmToken) await sendToToken(user.fcmToken, payload);
+    const user = await UserModel.findById(userId).select('fcmToken notificationSettings');
+    if (!user?.fcmToken) return;
+    const s = user.notificationSettings || {};
+    if (s.pushNotifications === false) return;
+    if (settingKey && s[settingKey] === false) return;
+    await sendToToken(user.fcmToken, payload);
   } catch (err) {
     console.error('[FCM] sendToUser error:', err.message);
   }

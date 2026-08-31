@@ -6,7 +6,9 @@ import '../../utils/api_client.dart';
 import 'chat_codec.dart';
 
 class ChatEncryptionService {
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
+  static const FlutterSecureStorage _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   static final X25519 _keyAgreement = X25519();
   static final AesGcm _aesGcm = AesGcm.with256bits();
   static final Hkdf _hkdf =
@@ -14,6 +16,11 @@ class ChatEncryptionService {
   static const String _keyNamespace = 'chat_identity';
   static const String _hkdfNonce = 'LenDen-E2EE';
   static const String _deviceIdStorageKey = 'chat_identity:device_id';
+
+  // In-memory cache for the current session — ensures _loadKeyPair works
+  // even when the underlying secure storage returns null after a write
+  // (can happen after reinstall until the Keystore settles).
+  static final Map<String, SimpleKeyPairData> _sessionKeyCache = {};
 
   static String _privateKeyStorageKey(String userId) =>
       '$_keyNamespace:${userId}:private';
@@ -54,6 +61,17 @@ class ChatEncryptionService {
 
     final resolvedPrivateKey = privateKey;
     final resolvedPublicKey = publicKey;
+
+    // Cache the key pair in memory so _loadKeyPair works within this session
+    // even when secure storage reads back null (e.g. after a fresh reinstall).
+    _sessionKeyCache[userId] = SimpleKeyPairData(
+      base64Decode(resolvedPrivateKey),
+      publicKey: SimplePublicKey(
+        base64Decode(resolvedPublicKey),
+        type: KeyPairType.x25519,
+      ),
+      type: KeyPairType.x25519,
+    );
 
     await _registerPublicKey(resolvedPublicKey);
 
@@ -189,6 +207,12 @@ class ChatEncryptionService {
   }
 
   static Future<SimpleKeyPairData> _loadKeyPair(String userId) async {
+    // Use the in-memory cached pair first — this is always populated by
+    // ensureIdentity and survives even when secure storage reads fail.
+    if (_sessionKeyCache.containsKey(userId)) {
+      return _sessionKeyCache[userId]!;
+    }
+
     final privateKey = await _storage.read(key: _privateKeyStorageKey(userId));
     final publicKey = await _storage.read(key: _publicKeyStorageKey(userId));
 
@@ -196,7 +220,7 @@ class ChatEncryptionService {
       throw Exception('Encrypted chat is not initialized on this device.');
     }
 
-    return SimpleKeyPairData(
+    final kp = SimpleKeyPairData(
       base64Decode(privateKey),
       publicKey: SimplePublicKey(
         base64Decode(publicKey),
@@ -204,6 +228,8 @@ class ChatEncryptionService {
       ),
       type: KeyPairType.x25519,
     );
+    _sessionKeyCache[userId] = kp;
+    return kp;
   }
 
   static Future<SecretKey> _deriveSharedAesKey({

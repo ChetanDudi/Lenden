@@ -49,31 +49,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   bool isCreator = false; // Real logic
   String? userEmail; // For permissions
 
-  // Expense state
-  final TextEditingController _expenseDescController = TextEditingController();
-  final TextEditingController _expenseAmountController =
-      TextEditingController();
-  String _expenseCurrency = 'INR';
-  String splitType = 'equal';
-  List<Map<String, dynamic>> customSplits = [];
-  List<String> selectedMembers = []; // New: selected members for expense
-  Map<String, double> customSplitAmounts =
-      {}; // New: track custom split amounts for each member
-  bool addingExpense = false;
-  String? expenseError;
-  List<Map<String, String>> _currencies = [
-    {'code': 'INR', 'symbol': '₹'},
-    {'code': 'USD', 'symbol': '\$'},
-    {'code': 'EUR', 'symbol': '€'},
-    {'code': 'GBP', 'symbol': '£'},
-    {'code': 'JPY', 'symbol': '¥'},
-    {'code': 'CNY', 'symbol': '¥'},
-    {'code': 'CAD', 'symbol': '\$'},
-    {'code': 'AUD', 'symbol': '\$'},
-    {'code': 'CHF', 'symbol': 'Fr'},
-    {'code': 'RUB', 'symbol': '₽'},
-  ];
-
   final TextEditingController _groupSearchCtrl = TextEditingController();
 
   List<Map<String, dynamic>> userGroups = [];
@@ -106,7 +81,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
         _showCreateGroup(prefill: widget.prefillMemberEmails);
       });
     }
-    _loadSupportedCurrencies();
     _fetchUserGroups();
     _fetchGroupBudgetStatus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -129,8 +103,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   void dispose() {
     _titleController.dispose();
     _memberEmailController.dispose();
-    _expenseDescController.dispose();
-    _expenseAmountController.dispose();
     _groupSearchCtrl.dispose();
     super.dispose();
   }
@@ -169,29 +141,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     }
   }
 
-  Future<void> _loadSupportedCurrencies() async {
-    try {
-      final res = await ApiClient.get('/api/currency-conversions/supported');
-      if (res.statusCode != 200) return;
-      final data = jsonDecode(res.body);
-      final currencies =
-          List<Map<String, dynamic>>.from(data['currencies'] ?? const []);
-      if (currencies.isEmpty) return;
-      setState(() {
-        _currencies = currencies
-            .map(
-              (item) => {
-                'code': (item['code'] ?? 'INR').toString().toUpperCase(),
-                'symbol': (item['symbol'] ?? item['code'] ?? '₹').toString(),
-              },
-            )
-            .toList();
-        if (!_currencies.any((item) => item['code'] == _expenseCurrency)) {
-          _expenseCurrency = 'INR';
-        }
-      });
-    } catch (_) {}
-  }
 
 
 
@@ -1233,10 +1182,41 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           shadows: [Shadow(color: Colors.black54, blurRadius: 6)])),
                                                       const SizedBox(height: 5),
                                                       Row(children: [
-                                                        const Icon(Icons.people_rounded, color: Colors.white70, size: 14),
-                                                        const SizedBox(width: 5),
-                                                        Text('${(g['members'] as List).length} member${(g['members'] as List).length == 1 ? '' : 's'}',
-                                                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                                        // Stacked member avatars
+                                                        ...((g['members'] as List).take(4).toList().asMap().entries.map((e) {
+                                                          final mu = e.value is Map
+                                                              ? ((e.value['user'] is Map) ? e.value['user'] as Map : e.value as Map)
+                                                              : <String, dynamic>{};
+                                                          final mp = (mu['profileImage'] ?? mu['profilePicture'] ?? '').toString();
+                                                          final mi = (mu['name'] ?? mu['email'] ?? '?').toString();
+                                                          final initial = mi.isNotEmpty ? mi[0].toUpperCase() : '?';
+                                                          return Transform.translate(
+                                                            offset: Offset(e.key * -5.0, 0),
+                                                            child: CircleAvatar(
+                                                              radius: 10,
+                                                              backgroundColor: AppColors.cyan,
+                                                              child: ClipOval(
+                                                                child: mp.isNotEmpty
+                                                                    ? Image.network(mp,
+                                                                        width: 20, height: 20,
+                                                                        fit: BoxFit.cover,
+                                                                        errorBuilder: (_, __, ___) => Center(
+                                                                          child: Text(initial,
+                                                                              style: const TextStyle(fontSize: 8, color: Colors.white)),
+                                                                        ))
+                                                                    : Center(child: Text(initial,
+                                                                        style: const TextStyle(fontSize: 8, color: Colors.white))),
+                                                              ),
+                                                            ),
+                                                          );
+                                                        })),
+                                                        SizedBox(width: (g['members'] as List).length > 4 ? 2.0 : 6.0),
+                                                        Text(
+                                                          (g['members'] as List).length > 4
+                                                              ? '+${(g['members'] as List).length - 4}'
+                                                              : '${(g['members'] as List).length} member${(g['members'] as List).length == 1 ? '' : 's'}',
+                                                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                                        ),
                                                       ]),
                                                     ])),
                                                     Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
