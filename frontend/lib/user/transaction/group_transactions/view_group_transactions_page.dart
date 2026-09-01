@@ -21,6 +21,7 @@ import 'create_group_page.dart';
 import 'group_detail_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../widgets/free_attempts_banner.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
@@ -60,6 +61,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
   String selectedGroupFilter =
       'All Groups'; // 'All Groups', 'Joined Groups', 'Left Groups'
   bool _showFavouritesOnly = false;
+  bool _showPendingOnly = false;
   String _groupSort = 'default'; // 'default' | 'name_asc' | 'expenses_desc' | 'pending_desc'
   int createdGroupsCount = 0; // Track groups created by user
   String? _displayCurrencyError;
@@ -140,6 +142,113 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
         }
       });
     }
+  }
+
+  Future<void> _showJoinByCodeDialog() async {
+    final t = AppLocalizations.of(context).t;
+    final codeController = TextEditingController();
+    bool joining = false;
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: AppColors.tricolorGradient,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0077B6), AppColors.cyan],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6))],
+                    ),
+                    child: const Icon(Icons.group_add_rounded, color: Colors.white, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(t('join_group_by_code_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(ctx))),
+                  const SizedBox(height: 6),
+                  Text('Enter the invite code shared by your group creator', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx), height: 1.4)),
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.45), width: 1.5),
+                      color: AppColors.cyan.withValues(alpha: 0.05),
+                    ),
+                    child: TextField(
+                      controller: codeController,
+                      textCapitalization: TextCapitalization.characters,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 6, color: AppColors.cyan),
+                      decoration: InputDecoration(
+                        hintText: t('enter_join_code_hint'),
+                        hintStyle: TextStyle(fontSize: 14, letterSpacing: 1, fontWeight: FontWeight.normal, color: AppThemeColors.mutedText(ctx)),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: joining ? null : () async {
+                        final code = codeController.text.trim();
+                        if (code.isEmpty) return;
+                        setDialog(() => joining = true);
+                        final res = await ApiClient.post('/api/group-transactions/join', body: {'joinCode': code});
+                        if (!mounted) return;
+                        Navigator.pop(ctx);
+                        if (res.statusCode == 200) {
+                          showSnack(context, t('join_group_success'));
+                          _fetchUserGroups();
+                        } else {
+                          final err = jsonDecode(res.body)['error'] ?? t('something_went_wrong');
+                          showSnack(context, err.toString(), isError: true);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan, foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: joining
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(t('join_group_button'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    codeController.dispose();
   }
 
   Future<void> _fetchUserGroups() async {
@@ -504,7 +613,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
   }
 
   List<Map<String, dynamic>> get _sortedGroups {
-    final list = List<Map<String, dynamic>>.from(userGroups);
+    var list = List<Map<String, dynamic>>.from(userGroups);
+    if (_showPendingOnly) {
+      list = list.where((g) => (g['userPendingBalance'] as num? ?? 0).toDouble() != 0).toList();
+    }
     switch (_groupSort) {
       case 'name_asc':
         list.sort((a, b) => (a['title'] ?? '').toString().compareTo((b['title'] ?? '').toString()));
@@ -1828,8 +1940,17 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                 if (value == 'export_pdf') _exportPdf();
                 if (value == 'share_as_note') _shareGroupSummaryAsNote();
                 if (value == 'currency_mode') _showCurrencyPicker(context);
+                if (value == 'join_by_code') _showJoinByCodeDialog();
               },
               itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: 'join_by_code',
+                  child: Row(children: [
+                    const Icon(Icons.group_add_rounded, size: 18, color: AppColors.cyan),
+                    const SizedBox(width: 12),
+                    Text(AppLocalizations.of(context).t('join_by_code_menu_label')),
+                  ]),
+                ),
                 PopupMenuItem(
                   value: 'currency_mode',
                   child: Row(children: [
@@ -2150,6 +2271,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                               ],
                             ),
                           ),
+                          const FreeAttemptsBanner(featureKey: 'group_creation'),
                           // Sort chips
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -2173,6 +2295,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                       onSelected: (_) => setState(() => _groupSort = opt.$1),
                                     ),
                                   ),
+                                const SizedBox(width: 4),
+                                FilterChip(
+                                  label: const Text('Has Pending', style: TextStyle(fontSize: 12)),
+                                  selected: _showPendingOnly,
+                                  selectedColor: Colors.orange.withValues(alpha: 0.2),
+                                  checkmarkColor: Colors.orange,
+                                  onSelected: (v) => setState(() => _showPendingOnly = v),
+                                ),
                               ]),
                             ),
                           ),

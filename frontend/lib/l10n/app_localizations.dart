@@ -4571,6 +4571,13 @@ class AppLocalizations {
       'activity_type_support_reply_edited': 'Support Reply Edited',
       'activity_type_support_reply_deleted': 'Support Reply Deleted',
       'activity_type_support_query_status_updated': 'Support Status Updated',
+
+      // Group transaction card — new chip / button labels
+      'pending_owed_label': 'owed',
+      'pending_to_receive_label': 'to receive',
+      'chat_label': 'Chat',
+      'join_by_code_menu_label': 'Join by Code',
+      'creator_badge_label': 'Creator',
     },
     'hi': {
       'settings': 'सेटिंग्स',
@@ -9170,6 +9177,13 @@ class AppLocalizations {
       'activity_type_support_reply_edited': 'सहायता उत्तर संपादित',
       'activity_type_support_reply_deleted': 'सहायता उत्तर हटाया',
       'activity_type_support_query_status_updated': 'सहायता स्थिति अपडेट',
+
+      // Group transaction card — new chip / button labels
+      'pending_owed_label': 'बकाया',
+      'pending_to_receive_label': 'मिलना है',
+      'chat_label': 'चैट',
+      'join_by_code_menu_label': 'कोड से जॉइन',
+      'creator_badge_label': 'क्रिएटर',
     },
   };
 

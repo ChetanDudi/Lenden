@@ -15,6 +15,7 @@ import '../../widgets/stylish_dialog.dart';
 import '../../widgets/wave_widget.dart';
 import 'chat_encryption_service.dart';
 import '../../widgets/app_widgets.dart';
+import '../../services/chat_page_tracker.dart';
 
 class GroupChatPage extends StatefulWidget {
   final String groupTransactionId;
@@ -65,6 +66,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
   @override
   void initState() {
     super.initState();
+    ChatPageTracker.enterGroupChat(widget.groupTransactionId);
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     _currentUserId = user?['_id'];
     _groupImageUrl = widget.groupImageUrl;
@@ -381,6 +383,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   @override
   void dispose() {
+    ChatPageTracker.exitGroupChat();
     socket.dispose();
     _messageController.dispose();
     _messageFocusNode.dispose();

@@ -189,7 +189,7 @@ module.exports = (io) => {
                         category: 'general',
                         message: `New message from ${sender.name || sender.username || sender.email}`,
                     }).catch(() => {});
-                    sendToUser(User, receiver._id, { title: 'New Message 💬', body: `${sender.name || sender.username || sender.email} sent you a message.`, data: { type: 'chat_message' } });
+                    sendToUser(User, receiver._id, { title: 'New Message 💬', body: `${sender.name || sender.username || sender.email} sent you a message.`, data: { type: 'chat_message', transactionId: transactionId.toString() } });
                 }
             } catch (error) {
                 console.error('Error in createMessage socket handler:', error);

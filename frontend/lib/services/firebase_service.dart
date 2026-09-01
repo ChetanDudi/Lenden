@@ -6,6 +6,7 @@ import '../utils/api_client.dart';
 import '../utils/auth_navigation.dart';
 import '../widgets/app_colors.dart';
 import 'sound_service.dart';
+import 'chat_page_tracker.dart';
 
 @pragma('vm:entry-point')
 Future<void> _onBackgroundMessage(RemoteMessage message) async {
@@ -26,10 +27,23 @@ class FirebaseService {
       sound: true,
     );
 
-    // Show in-app banner + play sound when a message arrives while app is open
+    // Show in-app banner + play sound when a message arrives while app is open,
+    // but suppress it when the user is already viewing that exact conversation.
     FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
       final n = msg.notification;
       if (n == null) return;
+
+      final data = msg.data;
+      final type = data['type'];
+
+      if (type == 'group_chat_message') {
+        final groupId = data['groupId'];
+        if (groupId != null && ChatPageTracker.isOnGroupChat(groupId)) return;
+      } else if (type == 'chat_message') {
+        final txId = data['transactionId'];
+        if (txId != null && ChatPageTracker.isOnSecureChat(txId)) return;
+      }
+
       SoundService.playNotification();
       _showForegroundBanner(n.title ?? '', n.body ?? '');
     });

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import 'group_detail_page.dart';
+import '../../chats/group_chat_page.dart';
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/app_widgets.dart';
@@ -597,6 +598,39 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     }
   }
 
+  Future<void> _toggleFavourite(String groupId) async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final email = (session.user?['email'] ?? '').toString();
+    if (email.isEmpty) return;
+    final idx = userGroups.indexWhere((g) => g['_id']?.toString() == groupId);
+    if (idx == -1) return;
+    final group = userGroups[idx];
+    final favList = List<dynamic>.from(group['favourite'] as List? ?? []);
+    group['favourite'] = favList;
+    final isFav = favList.contains(email);
+    setState(() {
+      if (isFav) favList.remove(email); else favList.add(email);
+    });
+    _filterAndSearchGroups();
+    try {
+      final response = await ApiClient.put(
+        '/api/group-transactions/$groupId/favourite',
+        body: {'email': email},
+      );
+      if (response.statusCode != 200) {
+        setState(() {
+          if (isFav) favList.add(email); else favList.remove(email);
+        });
+        _filterAndSearchGroups();
+      }
+    } catch (_) {
+      setState(() {
+        if (isFav) favList.add(email); else favList.remove(email);
+      });
+      _filterAndSearchGroups();
+    }
+  }
+
   Future<void> _showJoinByCodeDialog() async {
     final t = AppLocalizations.of(context).t;
     final codeController = TextEditingController();
@@ -1147,6 +1181,21 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                       decoration: BoxDecoration(color: groupColor, shape: BoxShape.circle,
                                                         border: Border.all(color: Colors.white, width: 1.5)),
                                                     ),
+                                                    Builder(builder: (badgeCtx) {
+                                                      final myEmail = (Provider.of<SessionProvider>(badgeCtx, listen: false).user?['email'] ?? '').toString().toLowerCase();
+                                                      final creatorEmail = (g['creator']?['email'] ?? '').toString().toLowerCase();
+                                                      if (myEmail.isEmpty || myEmail != creatorEmail) return const SizedBox.shrink();
+                                                      return Container(
+                                                        margin: const EdgeInsets.only(left: 6),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: groupColor.withValues(alpha: 0.85),
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                        child: Text(AppLocalizations.of(badgeCtx).t('creator_badge_label'),
+                                                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                                                      );
+                                                    }),
                                                     if (_budgetStatusLoading)
                                                       const Padding(
                                                         padding: EdgeInsets.only(left: 8),
@@ -1173,6 +1222,23 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           ]),
                                                         ),
                                                       ),
+                                                    const Spacer(),
+                                                    Builder(builder: (starCtx) {
+                                                      final myEmail = (Provider.of<SessionProvider>(starCtx, listen: false).user?['email'] ?? '').toString();
+                                                      final isFav = (g['favourite'] as List? ?? []).contains(myEmail);
+                                                      return GestureDetector(
+                                                        onTap: () => _toggleFavourite(gId),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.all(6),
+                                                          decoration: const BoxDecoration(color: Color(0x66000000), shape: BoxShape.circle),
+                                                          child: Icon(
+                                                            isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                                                            color: isFav ? Colors.amber : Colors.white70,
+                                                            size: 16,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }),
                                                   ]),
                                                   const Spacer(),
                                                   Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -1218,8 +1284,47 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           style: const TextStyle(color: Colors.white70, fontSize: 11),
                                                         ),
                                                       ]),
+                                                      Builder(builder: (pbCtx) {
+                                                        final pending = (g['userPendingBalance'] as num? ?? 0).toDouble();
+                                                        if (pending == 0) return const SizedBox.shrink();
+                                                        final tl = AppLocalizations.of(pbCtx).t;
+                                                        return Padding(
+                                                          padding: const EdgeInsets.only(top: 4),
+                                                          child: Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                            decoration: BoxDecoration(
+                                                              color: pending > 0 ? Colors.red.withValues(alpha: 0.8) : Colors.green.withValues(alpha: 0.8),
+                                                              borderRadius: BorderRadius.circular(20),
+                                                            ),
+                                                            child: Text(
+                                                              '₹${pending.abs().toStringAsFixed(0)} ${pending > 0 ? tl('pending_owed_label') : tl('pending_to_receive_label')}',
+                                                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }),
                                                     ])),
                                                     Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                                      GestureDetector(
+                                                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                                                          builder: (_) => GroupChatPage(
+                                                            groupTransactionId: gId,
+                                                            groupTitle: g['title']?.toString() ?? '',
+                                                            members: (g['members'] as List? ?? []),
+                                                            groupImageUrl: g['groupImageUrl']?.toString(),
+                                                          ),
+                                                        )),
+                                                        child: Container(
+                                                          margin: const EdgeInsets.only(bottom: 6),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                          decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(20)),
+                                                          child: Builder(builder: (btnCtx) => Row(mainAxisSize: MainAxisSize.min, children: [
+                                                            const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 13),
+                                                            const SizedBox(width: 4),
+                                                            Text(AppLocalizations.of(btnCtx).t('chat_label'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                                          ])),
+                                                        ),
+                                                      ),
                                                       Builder(builder: (bCtx) {
                                                         final myEmail = (Provider.of<SessionProvider>(bCtx, listen: false).user?['email'] ?? '').toString().toLowerCase();
                                                         final creatorEmail = (g['creator']?['email'] ?? '').toString().toLowerCase();

@@ -13,6 +13,7 @@ import '../../widgets/stylish_dialog.dart';
 import '../../widgets/wave_widget.dart';
 import 'chat_encryption_service.dart';
 import '../../widgets/app_widgets.dart';
+import '../../services/chat_page_tracker.dart';
 
 class ChatPage extends StatefulWidget {
   final String transactionId;
@@ -54,6 +55,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    ChatPageTracker.enterSecureChat(widget.transactionId);
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     _currentUserId = user?['_id'];
     _initializeEncryptedChat();
@@ -217,6 +219,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    ChatPageTracker.exitSecureChat();
     socket.disconnect();
     socket.dispose();
     _messageController.dispose();

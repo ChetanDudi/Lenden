@@ -9,6 +9,7 @@ const {
 } = require('../utils/chatCodec');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { getCoinPricing } = require('../utils/coinPricing');
+const { sendToUser } = require('../services/notificationService');
 
 function hasEncryptedPayloads(encryptedPayloads) {
     return Array.isArray(encryptedPayloads) && encryptedPayloads.length > 0;
@@ -183,6 +184,38 @@ module.exports = (io) => {
                     messageCounts: updatedGroupTransaction.messageCounts,
                     lenDenCoins: sender.lenDenCoins
                 });
+
+                // Push FCM notifications to all active members who are offline
+                const senderIdStr = senderId.toString();
+                const notifyMemberIds = groupTransaction.members
+                    .filter(m => !m.leftAt && m.user.toString() !== senderIdStr)
+                    .map(m => m.user.toString());
+
+                const senderName = sender.name || sender.username || sender.email || 'Someone';
+                const groupTitle = groupTransaction.title || 'Group';
+                const messagePreview = usingEncryptedPayloads
+                    ? '🔒 Encrypted message'
+                    : (decodedMessage || '').slice(0, 100);
+
+                for (const memberId of notifyMemberIds) {
+                    // Only notify members not currently connected to this group's socket room
+                    if (!users[memberId]) {
+                        sendToUser(
+                            User,
+                            memberId,
+                            {
+                                title: `${groupTitle} 💬`,
+                                body: `${senderName}: ${messagePreview}`,
+                                data: {
+                                    type: 'group_chat_message',
+                                    groupId: groupTransactionId.toString(),
+                                    groupName: groupTitle,
+                                },
+                            },
+                            { settingKey: 'groupNotifications' }
+                        );
+                    }
+                }
             } catch (error) {
                 console.error('Error in createGroupMessage socket handler:', error);
                 socket.emit('createGroupMessageError', { ...data, error: 'An error occurred while sending the message.' });
