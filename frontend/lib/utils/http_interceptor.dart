@@ -10,6 +10,15 @@ class HttpInterceptor {
   static bool _isRefreshing = false;
   static final List<Future<http.Response> Function()> _pendingRequests = [];
 
+  // In-memory token cache — avoids read-after-write failures on fresh Android
+  // installs where FlutterSecureStorage (Keystore) returns null immediately after
+  // a write until the Keystore has fully initialised.
+  static String? _cachedAccessToken;
+  static String? _cachedRefreshToken;
+
+  static void setAccessToken(String? token) => _cachedAccessToken = token;
+  static void setRefreshToken(String? token) => _cachedRefreshToken = token;
+
   // Helper to build Uri (accepts full URL or relative path)
   static Uri _buildUri(String urlOrPath) {
     if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
@@ -60,7 +69,7 @@ class HttpInterceptor {
 
   static Future<Map<String, String>> _getHeaders(
       Map<String, String>? additionalHeaders) async {
-    final accessToken = await _storage.read(key: 'access_token');
+    final accessToken = _cachedAccessToken ?? await _storage.read(key: 'access_token');
     Map<String, String> headers = {
       'Accept': 'application/json',
       'User-Agent': 'Lenden-Flutter-App/1.0',
@@ -89,7 +98,7 @@ class HttpInterceptor {
 
     // If unauthorized, try to refresh token and retry
     if (response.statusCode == 401) {
-      final refreshToken = await _storage.read(key: 'refresh_token');
+      final refreshToken = _cachedRefreshToken ?? await _storage.read(key: 'refresh_token');
       if (refreshToken != null) {
         // Set refreshing flag to prevent multiple refresh attempts
         _isRefreshing = true;
@@ -123,8 +132,10 @@ class HttpInterceptor {
                 final newRefresh =
                     (data['refreshToken'] ?? data['refresh'])?.toString();
                 if (newAccess != null && newAccess.isNotEmpty) {
+                  _cachedAccessToken = newAccess;
                   await _storage.write(key: 'access_token', value: newAccess);
                   if (newRefresh != null && newRefresh.isNotEmpty) {
+                    _cachedRefreshToken = newRefresh;
                     await _storage.write(
                         key: 'refresh_token', value: newRefresh);
                   }
@@ -217,6 +228,8 @@ class HttpInterceptor {
   }
 
   static Future<void> _clearTokens() async {
+    _cachedAccessToken = null;
+    _cachedRefreshToken = null;
     await _storage.delete(key: 'access_token');
     await _storage.delete(key: 'refresh_token');
     await _storage.delete(key: 'user_data');

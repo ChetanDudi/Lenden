@@ -111,6 +111,8 @@ class SessionProvider extends ChangeNotifier {
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
+    HttpInterceptor.setAccessToken(accessToken);
+    HttpInterceptor.setRefreshToken(refreshToken);
     await _storage.write(key: 'access_token', value: accessToken);
     await _storage.write(key: 'refresh_token', value: refreshToken);
     notifyListeners();
@@ -121,6 +123,7 @@ class SessionProvider extends ChangeNotifier {
       await saveTokens(token, _refreshToken!);
     } else {
       _accessToken = token;
+      HttpInterceptor.setAccessToken(token);
       await _storage.write(key: 'access_token', value: token);
       notifyListeners();
     }
@@ -131,6 +134,8 @@ class SessionProvider extends ChangeNotifier {
     _refreshToken = null;
     _user = null;
     _role = null;
+    HttpInterceptor.setAccessToken(null);
+    HttpInterceptor.setRefreshToken(null);
     try {
       await Future.wait([
         _storage.delete(key: 'access_token'),
@@ -177,6 +182,8 @@ class SessionProvider extends ChangeNotifier {
     }
     _accessToken = results[0];
     _refreshToken = results[1];
+    HttpInterceptor.setAccessToken(_accessToken);
+    HttpInterceptor.setRefreshToken(_refreshToken);
 
     if (_accessToken == null) {
       _user = null;
