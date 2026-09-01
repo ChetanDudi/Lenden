@@ -16,6 +16,9 @@ class HttpInterceptor {
   static String? _cachedAccessToken;
   static String? _cachedRefreshToken;
 
+  static String? get cachedAccessToken => _cachedAccessToken;
+  static String? get cachedRefreshToken => _cachedRefreshToken;
+
   static void setAccessToken(String? token) => _cachedAccessToken = token;
   static void setRefreshToken(String? token) => _cachedRefreshToken = token;
 
@@ -86,7 +89,7 @@ class HttpInterceptor {
 
     // First attempt
     http.Response response = await request().timeout(
-      const Duration(seconds: 10),
+      const Duration(seconds: 30),
       onTimeout: () => http.Response('{"error":"timeout"}', 408),
     );
 
@@ -153,7 +156,7 @@ class HttpInterceptor {
 
             // Retry the original request with new token
             response = await request().timeout(
-              const Duration(seconds: 10),
+              const Duration(seconds: 30),
               onTimeout: () => http.Response('{"error":"timeout"}', 408),
             );
           } else {
@@ -161,7 +164,7 @@ class HttpInterceptor {
             await _clearTokensAndProcessPending();
             AuthNavigation.redirectToLogin();
             response = await request().timeout(
-              const Duration(seconds: 10),
+              const Duration(seconds: 30),
               onTimeout: () => http.Response('{"error":"timeout"}', 408),
             );
           }
@@ -170,7 +173,7 @@ class HttpInterceptor {
           await _clearTokensAndProcessPending();
           AuthNavigation.redirectToLogin();
           response = await request().timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 30),
             onTimeout: () => http.Response('{"error":"timeout"}', 408),
           );
         } finally {

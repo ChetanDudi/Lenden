@@ -5,6 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api_config.dart';
 import 'auth_navigation.dart';
+import 'http_interceptor.dart';
 
 class ApiMultipartFile {
   final String field;
@@ -40,22 +41,29 @@ class ApiClient {
 
   // Store tokens (call from your auth flow)
   static Future<void> setTokens(String accessToken, String refreshToken) async {
+    // Keep HttpInterceptor's in-memory cache in sync so both clients share one source of truth
+    HttpInterceptor.setAccessToken(accessToken);
+    HttpInterceptor.setRefreshToken(refreshToken);
     await _storage.write(key: _kAccessToken, value: accessToken);
     await _storage.write(key: _kRefreshToken, value: refreshToken);
   }
 
   static Future<void> clearTokens() async {
+    HttpInterceptor.setAccessToken(null);
+    HttpInterceptor.setRefreshToken(null);
     await _storage.delete(key: _kAccessToken);
     await _storage.delete(key: _kRefreshToken);
     await _storage.delete(key: 'user_data');
   }
 
+  // Use HttpInterceptor's in-memory cache first — avoids Android Keystore read-after-write
+  // race condition on fresh installs where storage returns null immediately after a write.
   static Future<String?> _getAccessToken() async {
-    return await _storage.read(key: _kAccessToken);
+    return HttpInterceptor.cachedAccessToken ?? await _storage.read(key: _kAccessToken);
   }
 
   static Future<String?> _getRefreshToken() async {
-    return await _storage.read(key: _kRefreshToken);
+    return HttpInterceptor.cachedRefreshToken ?? await _storage.read(key: _kRefreshToken);
   }
 
   // Low-level request with auto-refresh on 401
@@ -66,7 +74,7 @@ class ApiClient {
     Map<String, String>? extraHeaders,
     Duration? timeout,
   }) async {
-    final effectiveTimeout = timeout ?? const Duration(seconds: 10);
+    final effectiveTimeout = timeout ?? const Duration(seconds: 30);
     final uri = Uri.parse('$_baseUrl$path');
     String? token = await _getAccessToken();
 
