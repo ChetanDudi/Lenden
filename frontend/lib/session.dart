@@ -213,10 +213,10 @@ class SessionProvider extends ChangeNotifier {
     // showing the app so the UI knows who is logged in.
     try {
       var response = await HttpInterceptor.get('/api/users/me')
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) {
         response = await HttpInterceptor.get('/api/admins/me')
-            .timeout(const Duration(seconds: 10));
+            .timeout(const Duration(seconds: 30));
       }
       if (response.statusCode == 200) {
         var user = jsonDecode(response.body);
@@ -266,7 +266,7 @@ class SessionProvider extends ChangeNotifier {
       final profileUrl =
           resolvedRole == 'admin' ? '/api/admins/me' : '/api/users/me';
       final response = await HttpInterceptor.get(profileUrl)
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final freshUser = jsonDecode(response.body);
         if (freshUser['profileImage'] is Map &&

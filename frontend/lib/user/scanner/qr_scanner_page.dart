@@ -486,7 +486,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
     try {
       final res = await ApiClient.get('/api/users/$userId')
-          .timeout(const Duration(seconds: 12));
+          .timeout(const Duration(seconds: 30));
       if (!mounted) return;
       if (res.statusCode != 200) {
         _showError('Recipient not found on LenDen.');
@@ -1104,7 +1104,7 @@ class _QrPaymentPageState extends State<_QrPaymentPage> {
         if (!_usePinMode) 'authOtp': _code,
       };
       final res = await ApiClient.post('/api/wallet/qr-pay', body: body)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
       if (!mounted) return;
       if (res.statusCode == 200) {
         Navigator.of(context).pop(amount);
