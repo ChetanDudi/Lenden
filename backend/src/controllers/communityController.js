@@ -295,6 +295,7 @@ exports.addGroupToCommunity = async (req, res) => {
             message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
             category: 'community',
             deliveryStatus: 'sent', sentAt: new Date(),
+            metadata: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
           });
           sendToUser(User, u._id, {
             title: 'Community Invite',
@@ -566,7 +567,12 @@ exports.addMember = async (req, res) => {
     }
 
     if (targetUser.privacySettings?.allowDirectCommunityAdd === false) {
-      // Send in-app + device notification so the user can join themselves
+      // Track in pendingInvites and send notification (re-invite: clear declinedInvites)
+      if (!community.pendingInvites.some(i => i.email === normalizedEmail)) {
+        community.pendingInvites.push({ email: normalizedEmail, invitedBy: req.user._id });
+        community.declinedInvites = (community.declinedInvites || []).filter(i => i.email !== normalizedEmail);
+        await community.save();
+      }
       try {
         const { sendToUser } = require('../services/notificationService');
         const inviter = await User.findById(req.user._id).select('name email');
@@ -578,6 +584,7 @@ exports.addMember = async (req, res) => {
           message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
           category: 'community',
           deliveryStatus: 'sent', sentAt: new Date(),
+          metadata: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
         });
         sendToUser(User, targetUser._id, {
           title: 'Community Invite',
@@ -614,6 +621,7 @@ exports.addMember = async (req, res) => {
         return res.status(400).json({ error: 'Invite already sent to this user' });
       }
       community.pendingInvites.push({ email: normalizedEmail, invitedBy: req.user._id });
+      community.declinedInvites = (community.declinedInvites || []).filter(i => i.email !== normalizedEmail);
       await community.save();
       try {
         const { sendToUser } = require('../services/notificationService');
@@ -625,6 +633,7 @@ exports.addMember = async (req, res) => {
           title: 'Community Invite',
           message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
           category: 'community', deliveryStatus: 'sent', sentAt: new Date(),
+          metadata: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
         });
         sendToUser(User, targetUser._id, {
           title: 'Community Invite 📬',
@@ -669,6 +678,7 @@ exports.sendCommunityInvite = async (req, res) => {
         message: `${inviterName} invited you to join "${community.name}". Use code ${community.inviteCode} to join.`,
         category: 'community',
         deliveryStatus: 'sent', sentAt: new Date(),
+        metadata: { type: 'community_join_invite', communityId: community._id.toString(), communityName: community.name },
       });
       sendToUser(User, target._id, {
         title: 'Community Invite',
@@ -720,6 +730,7 @@ exports.acceptInvite = async (req, res) => {
       community.members.push({ user: req.user._id, role: 'member', invitedBy: invite.invitedBy });
     }
     community.pendingInvites.splice(inviteIdx, 1);
+    community.declinedInvites = (community.declinedInvites || []).filter(i => i.email !== userEmail);
     await community.save();
     res.json({ success: true });
   } catch (e) {
@@ -737,6 +748,10 @@ exports.declineInvite = async (req, res) => {
     if (inviteIdx === -1) return res.status(404).json({ error: 'No invite found' });
 
     community.pendingInvites.splice(inviteIdx, 1);
+    if (!(community.declinedInvites || []).some(i => i.email === userEmail)) {
+      community.declinedInvites = community.declinedInvites || [];
+      community.declinedInvites.push({ email: userEmail });
+    }
     await community.save();
     res.json({ success: true });
   } catch (e) {

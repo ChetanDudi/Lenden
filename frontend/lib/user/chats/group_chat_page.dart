@@ -415,6 +415,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
             _isLoading = false;
             _isActiveMember = true;
           });
+          // Mark chat as seen so the unread dot clears on the group list
+          ApiClient.put('/api/group-transactions/${widget.groupTransactionId}/chat/mark-seen');
         }
       } else if (response.statusCode == 403) {
         if (mounted) {
@@ -573,153 +575,133 @@ class _GroupChatPageState extends State<GroupChatPage> {
   }
 
   void _showMembersDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              color: AppThemeColors.cardBg(context),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Container(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (ctx, setSheet) {
+            final filtered = query.isEmpty
+                ? widget.members
+                : widget.members.where((m) {
+                    final name = _memberDisplayName(m).toLowerCase();
+                    final email = _extractMemberEmail(m).toLowerCase();
+                    final q = query.toLowerCase();
+                    return name.contains(q) || email.contains(q);
+                  }).toList();
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.75,
               decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(22),
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.cyan, Color(0xFF0077B6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+              child: Column(children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.divider(ctx),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.cyan, Color(0xFF0077B6)]),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(22),
-                        topRight: Radius.circular(22),
-                      ),
+                      child: const Icon(Icons.groups_rounded, color: Colors.white, size: 18),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.groups_rounded,
-                            color: Colors.white, size: 28),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Group Members',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.close,
-                                color: Colors.white, size: 20),
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Group Members',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
+                        color: AppThemeColors.primaryText(ctx)))),
+                    Text('${widget.members.length} member${widget.members.length == 1 ? '' : 's'}',
+                      style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TextField(
+                    onChanged: (v) => setSheet(() => query = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search members...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: AppThemeColors.surfaceBg(ctx),
                     ),
                   ),
-
-                  // Members list
-                  Container(
-                    constraints: BoxConstraints(maxHeight: 400),
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: widget.members.length,
-                      itemBuilder: (context, index) {
-                        final member = widget.members[index];
-                        final memberId = _extractMemberId(member);
-                        final displayName = _memberDisplayName(member);
-                        final hasLeft = member['leftAt'] != null;
-                        final avatarColor =
-                            _avatarColorFor(memberId ?? displayName);
-                        return _buildTricolorMemberBox(
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            leading: _buildUserAvatar(
-                              userId: memberId,
-                              label: displayName,
-                              fallbackColor: avatarColor,
-                            ),
-                            title: _buildHorizontalScrollText(
-                              displayName,
-                              TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: AppThemeColors.primaryText(context),
-                              ),
-                            ),
-                            subtitle: Text(
-                              'Member',
-                              style: TextStyle(
-                                color: AppThemeColors.secondaryText(context),
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(child: Text('No members found',
+                          style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final member = filtered[i];
+                            final memberId = _extractMemberId(member);
+                            final displayName = _memberDisplayName(member);
+                            final email = _extractMemberEmail(member);
+                            final hasLeft = member['leftAt'] != null;
+                            final avatarColor = _avatarColorFor(memberId ?? displayName);
+                            return Container(
                               decoration: BoxDecoration(
-                                color: (hasLeft ? Colors.red : Colors.green)
-                                    .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                color: AppThemeColors.surfaceBg(ctx),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppThemeColors.border(ctx)),
                               ),
-                              child: Text(
-                                hasLeft ? 'Left' : 'Active',
-                                style: TextStyle(
-                                  color: hasLeft ? Colors.red : Colors.green,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                leading: _buildUserAvatar(
+                                  userId: memberId,
+                                  label: displayName,
+                                  fallbackColor: avatarColor,
+                                ),
+                                title: Text(displayName,
+                                  style: TextStyle(fontWeight: FontWeight.w700,
+                                    color: AppThemeColors.primaryText(ctx)),
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                                subtitle: email.isNotEmpty
+                                    ? Text(email,
+                                        style: TextStyle(fontSize: 12,
+                                          color: AppThemeColors.secondaryText(ctx)),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis)
+                                    : null,
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (hasLeft ? Colors.red : Colors.green).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(hasLeft ? 'Left' : 'Active',
+                                    style: TextStyle(
+                                      color: hasLeft ? Colors.red : Colors.green,
+                                      fontWeight: FontWeight.w600, fontSize: 12,
+                                    )),
                                 ),
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Footer
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      '${widget.members.length} members',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+                            );
+                          },
+                        ),
+                ),
+              ]),
+            );
+          },
         );
       },
     );
@@ -816,10 +798,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
                               fallbackColor: avatarColor,
                               radius: 16,
                             ),
-                            title: _buildHorizontalScrollText(
-                              displayName,
-                              const TextStyle(fontWeight: FontWeight.w600),
-                            ),
+                            title: Text(displayName,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
                             onChanged: (v) {
                               setSheetState(() {
                                 if (v == true) {
@@ -1181,141 +1162,164 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
-  Widget _buildTricolorMemberBox({required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: child,
-      ),
-    );
-  }
 
-  Widget _buildHorizontalScrollText(String text, TextStyle style) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Text(text, style: style),
-    );
+  String _extractMemberEmail(dynamic member) {
+    if (member is Map) {
+      final u = member['user'];
+      if (u is Map) return (u['email'] ?? '').toString().trim();
+      return (member['email'] ?? '').toString().trim();
+    }
+    return '';
   }
 
   void _showGroupMessageCounts() {
-    showDialog(
+    final activeMembers = widget.members
+        .where((m) => m is Map && m['leftAt'] == null)
+        .toList();
+    if (activeMembers.isEmpty) return;
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                colors: [AppColors.cyan, Color(0xFF0077B6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (ctx, setSheet) {
+            final filtered = query.isEmpty
+                ? activeMembers
+                : activeMembers.where((m) {
+                    final name = _memberDisplayName(m).toLowerCase();
+                    final email = _extractMemberEmail(m).toLowerCase();
+                    final q = query.toLowerCase();
+                    return name.contains(q) || email.contains(q);
+                  }).toList();
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.75,
               decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(22),
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.forum_outlined,
-                            color: AppColors.cyan),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildHorizontalScrollText(
-                            'Total messages (lifetime)',
-                            const TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ],
+              child: Column(children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.divider(ctx),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.cyan, Color(0xFF0077B6)]),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.forum_outlined, color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Member Messages',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
+                        color: AppThemeColors.primaryText(ctx)))),
+                    Text('${activeMembers.length} member${activeMembers.length == 1 ? '' : 's'}',
+                      style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TextField(
+                    onChanged: (v) => setSheet(() => query = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search members...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: AppThemeColors.surfaceBg(ctx),
                     ),
                   ),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 360),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: widget.members.length,
-                      itemBuilder: (context, index) {
-                        final member = widget.members[index];
-                        final memberId = _extractMemberId(member);
-                        final displayName = _memberDisplayName(member);
-                        final messageCount = _messageCounts[memberId] ?? 0;
-                        final avatarColor =
-                            _avatarColorFor(memberId ?? displayName);
-                        return _buildTricolorMemberBox(
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 4),
-                            leading: _buildUserAvatar(
-                              userId: memberId,
-                              label: displayName,
-                              fallbackColor: avatarColor,
-                            ),
-                            title: _buildHorizontalScrollText(
-                              displayName,
-                              const TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 14),
-                            ),
-                            trailing: Text(
-                              '$messageCount',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.cyan,
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(child: Text('No members found',
+                          style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final member = filtered[i];
+                            final memberId = _extractMemberId(member);
+                            final displayName = _memberDisplayName(member);
+                            final email = _extractMemberEmail(member);
+                            final messageCount = _messageCounts[memberId] ?? 0;
+                            final isMe = memberId == _currentUserId;
+                            final avatarColor = _avatarColorFor(memberId ?? displayName);
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppThemeColors.surfaceBg(ctx),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppThemeColors.border(ctx)),
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close',
-                          style: TextStyle(
-                              color: AppColors.cyan,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                leading: _buildUserAvatar(
+                                  userId: memberId,
+                                  label: displayName,
+                                  fallbackColor: avatarColor,
+                                ),
+                                title: Row(children: [
+                                  Expanded(
+                                    child: Text(displayName,
+                                      style: TextStyle(fontWeight: FontWeight.w700,
+                                        color: AppThemeColors.primaryText(ctx)),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                  if (isMe)
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cyan.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text('You',
+                                        style: TextStyle(fontSize: 11, color: AppColors.cyan,
+                                          fontWeight: FontWeight.w700)),
+                                    ),
+                                ]),
+                                subtitle: email.isNotEmpty
+                                    ? Text(email,
+                                        style: TextStyle(fontSize: 12,
+                                          color: AppThemeColors.secondaryText(ctx)),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis)
+                                    : null,
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('$messageCount',
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                                        color: AppThemeColors.primaryText(ctx), height: 1.1)),
+                                    Text('msg',
+                                      style: TextStyle(fontSize: 10,
+                                        color: AppThemeColors.mutedText(ctx))),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ]),
+            );
+          },
         );
       },
     );

@@ -94,6 +94,7 @@ class _SecureTransactionDetailPageState
       if (mounted) setState(() => _now = DateTime.now());
     });
     _fetchCounterpartyInfo();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshTransaction());
   }
 
   @override
@@ -206,6 +207,7 @@ class _SecureTransactionDetailPageState
         final fresh = (body['transaction'] ?? body) as Map<String, dynamic>;
         setState(() {
           _t = Map<String, dynamic>.from(fresh);
+          _t['unreadChatCount'] = body['unreadChatCount'] ?? 0;
           if (_t['favourite'] is List) {
             _t['favourite'] = List<dynamic>.from(_t['favourite']);
           } else {
@@ -473,12 +475,13 @@ class _SecureTransactionDetailPageState
       showSnack(context, tr('could_not_open_chat_user_not_found_message'), isError: true);
       return;
     }
-    Navigator.push(
+    await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (_) => ChatPage(
                 transactionId: _t['_id'],
                 otherUserId: profile['_id'])));
+    if (mounted) setState(() => _t['unreadChatCount'] = 0);
   }
 
   void _showReceiptOptionsDialog() {
@@ -768,6 +771,7 @@ class _SecureTransactionDetailPageState
     required Color color,
     required VoidCallback onTap,
     int? badge,
+    bool showDot = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -802,6 +806,17 @@ class _SecureTransactionDetailPageState
                       child: Text('$badge',
                           style: const TextStyle(
                               color: Colors.white, fontSize: 9)))),
+            if (showDot)
+              Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                          color: Colors.green.shade500,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5)))),
           ],
         ),
       ),
@@ -1632,7 +1647,8 @@ class _SecureTransactionDetailPageState
                         icon: Icons.chat_bubble_outline,
                         label: loc('chat'),
                         color: Colors.blue,
-                        onTap: _navigateToChat),
+                        onTap: _navigateToChat,
+                        showDot: (_t['unreadChatCount'] as num? ?? 0) > 0),
                     _serviceChip(
                         icon: Icons.gavel_rounded,
                         label: loc('raise_dispute'),

@@ -2,33 +2,39 @@ const User = require('../models/user');
 
 module.exports = async function sessionTimeout(req, res, next) {
   try {
-    // Only check for authenticated user requests
     if (!req.user || req.user.role !== 'user') return next();
 
-    const user = await User.findById(req.user._id).select('sessionTimeout lastActivityAt');
+    const user = await User.findById(req.user._id).select('privacySettings');
     if (!user) return next();
 
-    // sessionTimeout in minutes, 0 means "Never"
-    const timeout = user.sessionTimeout || 30;
+    const ps = user.privacySettings || {};
+    // 0 = never timeout. Default to 0 so users without an explicit setting are never timed out.
+    const timeout = typeof ps.sessionTimeout === 'number' ? ps.sessionTimeout : 0;
+
     if (timeout === 0) {
-      // Never timeout
-      user.lastActivityAt = new Date();
-      await user.save();
+      await User.updateOne(
+        { _id: req.user._id },
+        { $set: { 'privacySettings.lastActivityAt': new Date() } }
+      );
       return next();
     }
 
     const now = Date.now();
-    const lastActivity = user.lastActivityAt ? new Date(user.lastActivityAt).getTime() : now;
-    const diffMinutes = (now - lastActivity) / 60000;
+    // Use JWT iat as a floor: a freshly-issued token means the session cannot have timed
+    // out yet, regardless of any stale lastActivityAt value in the database.
+    const iatMs = req.user.iat ? req.user.iat * 1000 : now;
+    const storedMs = ps.lastActivityAt ? new Date(ps.lastActivityAt).getTime() : iatMs;
+    const effectiveLastActivity = Math.max(storedMs, iatMs);
+    const diffMinutes = (now - effectiveLastActivity) / 60000;
 
     if (diffMinutes > timeout) {
-      // Session expired
       return res.status(440).json({ error: 'Session timed out due to inactivity.' });
     }
 
-    // Update lastActivityAt
-    user.lastActivityAt = new Date();
-    await user.save();
+    await User.updateOne(
+      { _id: req.user._id },
+      { $set: { 'privacySettings.lastActivityAt': new Date() } }
+    );
     next();
   } catch (e) {
     next();

@@ -390,7 +390,7 @@ const getPrivacySettings = async (req, res) => {
       twoFactorAuth: user.privacySettings?.twoFactorAuth ?? false,
       loginNotifications: user.privacySettings?.loginNotifications ?? true,
       deviceManagement: user.privacySettings?.deviceManagement ?? true,
-      sessionTimeout: user.privacySettings?.sessionTimeout ?? 30,
+      sessionTimeout: user.privacySettings?.sessionTimeout ?? 0,
       allowDirectGroupAdd: user.privacySettings?.allowDirectGroupAdd ?? true,
       allowDirectCommunityAdd: user.privacySettings?.allowDirectCommunityAdd ?? true,
       leaderboardVisible: user.privacySettings?.leaderboardVisible ?? true,

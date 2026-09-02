@@ -78,7 +78,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   bool _allowDirectGroupAdd = true;
   bool _allowDirectCommunityAdd = true;
   bool _leaderboardVisible = true;
-  String _sessionTimeout = '30'; // minutes
+  String _sessionTimeout = '0'; // minutes, 0 = never
 
   List<Map<String, dynamic>> _devices = [];
   String? _currentDeviceId;
@@ -114,7 +114,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           _allowDirectGroupAdd = settings['allowDirectGroupAdd'] ?? true;
           _allowDirectCommunityAdd = settings['allowDirectCommunityAdd'] ?? true;
           _leaderboardVisible = settings['leaderboardVisible'] ?? true;
-          _sessionTimeout = settings['sessionTimeout']?.toString() ?? '30';
+          _sessionTimeout = settings['sessionTimeout']?.toString() ?? '0';
         });
       }
     } catch (e) {

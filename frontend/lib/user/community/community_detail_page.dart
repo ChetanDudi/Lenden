@@ -2486,7 +2486,13 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
       Expanded(
         child: Builder(builder: (ctx) {
           final pendingInvites = List<Map<String, dynamic>>.from((_community['pendingInvites'] as List?) ?? []);
-          final totalCount = _members.length + (pendingInvites.isNotEmpty ? pendingInvites.length + 1 : 0);
+          final declinedInvites = List<Map<String, dynamic>>.from((_community['declinedInvites'] as List?) ?? []);
+          final pendingBlock = pendingInvites.isNotEmpty ? pendingInvites.length + 1 : 0;
+          final declinedBlock = declinedInvites.isNotEmpty ? declinedInvites.length + 1 : 0;
+          final totalCount = _members.length + pendingBlock + declinedBlock;
+          final pendingStart = _members.length;
+          final pendingEnd = _members.length + pendingBlock;
+          final declinedStart = pendingEnd;
           return ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           itemCount: totalCount,
@@ -2496,7 +2502,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
           },
           itemBuilder: (_, i) {
             // Pending invites section header
-            if (pendingInvites.isNotEmpty && i == _members.length) {
+            if (pendingInvites.isNotEmpty && i == pendingStart) {
               return Padding(
                 padding: const EdgeInsets.only(top: 10, bottom: 2),
                 child: Row(children: [
@@ -2517,8 +2523,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               );
             }
             // Pending invite rows
-            if (pendingInvites.isNotEmpty && i > _members.length) {
-              final inv = pendingInvites[i - _members.length - 1];
+            if (pendingInvites.isNotEmpty && i > pendingStart && i < pendingEnd) {
+              final inv = pendingInvites[i - pendingStart - 1];
               final invEmail = (inv['email'] ?? '').toString();
               return Container(
                 decoration: BoxDecoration(
@@ -2538,11 +2544,123 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   title: Text(invEmail, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                     color: AppThemeColors.primaryText(context)), overflow: TextOverflow.ellipsis),
                   subtitle: const Text('Invite sent · not yet joined', style: TextStyle(fontSize: 11, color: Color(0xFFFF9800))),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: const Color(0xFFFF9800).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-                    child: const Text('Invited', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (_isAdmin) ...[
+                      GestureDetector(
+                        onTap: () async {
+                          final res = await ApiClient.post(
+                            '/api/communities/${widget.communityId}/members',
+                            body: {'email': invEmail},
+                          );
+                          if (!mounted) return;
+                          if (res.statusCode == 200 || res.statusCode == 201) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Re-invite sent'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            _load();
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFF00897B).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                          child: const Text('Re-invite', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF00897B))),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: const Color(0xFFFF9800).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                      child: const Text('Invited', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                    ),
+                  ]),
+                ),
+              );
+            }
+            // Declined invites section header
+            if (declinedInvites.isNotEmpty && i == declinedStart) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 2),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.cancel_outlined, color: Colors.red, size: 13),
+                      const SizedBox(width: 5),
+                      Text('Declined (${declinedInvites.length})',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red)),
+                    ]),
                   ),
+                ]),
+              );
+            }
+            // Declined invite rows
+            if (declinedInvites.isNotEmpty && i > declinedStart) {
+              final dec = declinedInvites[i - declinedStart - 1];
+              final decEmail = (dec['email'] ?? '').toString();
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.22)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  leading: Container(width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(child: Text(decEmail.isNotEmpty ? decEmail[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)))),
+                  title: Text(decEmail, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                    color: AppThemeColors.primaryText(context)), overflow: TextOverflow.ellipsis),
+                  subtitle: const Text('Invite declined', style: TextStyle(fontSize: 11, color: Colors.red)),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (_isAdmin) ...[
+                      GestureDetector(
+                        onTap: () async {
+                          final res = await ApiClient.post(
+                            '/api/communities/${widget.communityId}/members',
+                            body: {'email': decEmail},
+                          );
+                          if (!mounted) return;
+                          if (res.statusCode == 200 || res.statusCode == 201) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Re-invite sent'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            _load();
+                          } else {
+                            final body = jsonDecode(res.body);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(body['error'] ?? 'Failed to re-invite'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFF00897B).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                          child: const Text('Re-invite', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF00897B))),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(20)),
+                      child: const Text('Declined', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.red)),
+                    ),
+                  ]),
                 ),
               );
             }

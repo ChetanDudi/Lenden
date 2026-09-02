@@ -246,7 +246,7 @@ const userSchema = new mongoose.Schema({
     leaderboardVisible: { type: Boolean, default: true },
     sessionTimeout: {
       type: Number,
-      default: 30 // in minutes, 0 means never timeout
+      default: 0 // in minutes, 0 means never timeout
     },
     lastActivityAt: {
       type: Date,

@@ -1,5 +1,6 @@
 ﻿const mongoose = require('mongoose');
 const Transaction = require('../models/transaction');
+const Chat = require('../models/chat');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
 const lendingborrowingotp = require('../utils/email/lendingborrowingotp');
@@ -1520,7 +1521,17 @@ exports.getTransactionDetails = async (req, res) => {
       return res.status(403).json({ error: 'You are not a party to this transaction' });
     }
 
-    res.json({ transaction });
+    const userId = req.user._id;
+    const lastSeenEntry = (transaction.chatLastSeenAt || []).find(e => e.userId.toString() === userId.toString());
+    const lastSeen = lastSeenEntry?.seenAt || new Date(0);
+    const unreadChatCount = await Chat.countDocuments({
+      transactionId: transaction._id,
+      senderId: { $ne: userId },
+      createdAt: { $gt: lastSeen },
+      deletedFor: { $ne: userId },
+    });
+
+    res.json({ transaction, unreadChatCount });
   } catch (err) {
     console.error('getTransactionDetails error:', err);
     res.status(500).json({ error: 'Failed to fetch transaction details' });
@@ -1567,6 +1578,30 @@ exports.toggleFavourite = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: 'Failed to toggle favourite status' });
+  }
+};
+
+exports.markTransactionChatSeen = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const email = req.user.email;
+    const transaction = await Transaction.findById(id);
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+    if (transaction.userEmail !== email && transaction.counterpartyEmail !== email) {
+      return res.status(403).json({ error: 'Not a party to this transaction' });
+    }
+    const now = new Date();
+    const entry = (transaction.chatLastSeenAt || []).find(e => e.userId.toString() === userId.toString());
+    if (entry) {
+      entry.seenAt = now;
+    } else {
+      transaction.chatLastSeenAt.push({ userId, seenAt: now });
+    }
+    await transaction.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 };
 

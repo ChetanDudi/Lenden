@@ -124,7 +124,11 @@ const transactionSchema = new mongoose.Schema({
   messageCounts: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     count: { type: Number, default: 0 },
-  }]
+  }],
+  chatLastSeenAt: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    seenAt: { type: Date, default: null },
+  }],
 }, { timestamps: true });
 
 transactionSchema.index({ transactionId: 1 });

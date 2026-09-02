@@ -14,6 +14,11 @@ const pendingInviteSchema = new mongoose.Schema({
   invitedAt: { type: Date, default: Date.now },
 }, { _id: false });
 
+const declinedInviteSchema = new mongoose.Schema({
+  email: { type: String, required: true, lowercase: true, trim: true },
+  declinedAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const communitySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 80 },
   description: { type: String, trim: true, default: '', maxlength: 300 },
@@ -24,6 +29,7 @@ const communitySchema = new mongoose.Schema({
   members: [memberSchema],
   groups: [{ type: mongoose.Schema.Types.ObjectId, ref: 'GroupTransaction' }],
   pendingInvites: [pendingInviteSchema],
+  declinedInvites: [declinedInviteSchema],
   inviteCode: { type: String, unique: true, sparse: true },
   privacy: { type: String, enum: ['private', 'invite_only'], default: 'invite_only' },
   settings: {

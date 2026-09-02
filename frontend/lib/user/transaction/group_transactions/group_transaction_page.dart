@@ -119,6 +119,27 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
 
   // Get remaining amount for custom split
 
+  Widget _gtImgPlaceholder(Color color, String title) => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color, Color.lerp(color, Colors.black, 0.4)!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            title.isNotEmpty ? title[0].toUpperCase() : 'G',
+            style: const TextStyle(
+              fontSize: 72,
+              fontWeight: FontWeight.w900,
+              color: Colors.white38,
+              height: 1,
+            ),
+          ),
+        ),
+      );
+
   Future<void> _fetchGroupBudgetStatus() async {
     try {
       final res = await ApiClient.get('/api/budget/status');
@@ -1150,15 +1171,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             final imgUrl = (g['groupImageUrl']?.toString() ?? '').isNotEmpty
                                                 ? g['groupImageUrl'].toString()
                                                 : defaultGroupImageUrl(g['title']?.toString() ?? '');
+                                            final gtitle = g['title']?.toString() ?? '';
+                                            if (imgUrl.isEmpty) {
+                                              return _gtImgPlaceholder(groupColor, gtitle);
+                                            }
                                             return Image.network(imgUrl, fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => Container(
-                                                decoration: BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    colors: [groupColor, Color.lerp(groupColor, Colors.black, 0.4)!],
-                                                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                                                  ),
-                                                ),
-                                              ));
+                                              errorBuilder: (_, __, ___) => _gtImgPlaceholder(groupColor, gtitle));
                                           }),
                                           Container(
                                             decoration: const BoxDecoration(
@@ -1305,25 +1323,42 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                       }),
                                                     ])),
                                                     Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                                      GestureDetector(
-                                                        onTap: () => Navigator.push(context, MaterialPageRoute(
-                                                          builder: (_) => GroupChatPage(
-                                                            groupTransactionId: gId,
-                                                            groupTitle: g['title']?.toString() ?? '',
-                                                            members: (g['members'] as List? ?? []),
-                                                            groupImageUrl: g['groupImageUrl']?.toString(),
+                                                      Stack(
+                                                        clipBehavior: Clip.none,
+                                                        children: [
+                                                          GestureDetector(
+                                                            onTap: () => Navigator.push(context, MaterialPageRoute(
+                                                              builder: (_) => GroupChatPage(
+                                                                groupTransactionId: gId,
+                                                                groupTitle: g['title']?.toString() ?? '',
+                                                                members: (g['members'] as List? ?? []),
+                                                                groupImageUrl: g['groupImageUrl']?.toString(),
+                                                              ),
+                                                            )),
+                                                            child: Container(
+                                                              margin: const EdgeInsets.only(bottom: 6),
+                                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                              decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(20)),
+                                                              child: Builder(builder: (btnCtx) => Row(mainAxisSize: MainAxisSize.min, children: [
+                                                                const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 13),
+                                                                const SizedBox(width: 4),
+                                                                Text(AppLocalizations.of(btnCtx).t('chat_label'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                                              ])),
+                                                            ),
                                                           ),
-                                                        )),
-                                                        child: Container(
-                                                          margin: const EdgeInsets.only(bottom: 6),
-                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                          decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(20)),
-                                                          child: Builder(builder: (btnCtx) => Row(mainAxisSize: MainAxisSize.min, children: [
-                                                            const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 13),
-                                                            const SizedBox(width: 4),
-                                                            Text(AppLocalizations.of(btnCtx).t('chat_label'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                                                          ])),
-                                                        ),
+                                                          if ((g['unreadMessageCount'] as num? ?? 0) > 0)
+                                                            Positioned(
+                                                              right: -2, top: -2,
+                                                              child: Container(
+                                                                width: 9, height: 9,
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors.green.shade500,
+                                                                  shape: BoxShape.circle,
+                                                                  border: Border.all(color: Colors.white, width: 1.5),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                        ],
                                                       ),
                                                       Builder(builder: (bCtx) {
                                                         final myEmail = (Provider.of<SessionProvider>(bCtx, listen: false).user?['email'] ?? '').toString().toLowerCase();

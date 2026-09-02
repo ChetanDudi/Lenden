@@ -277,7 +277,7 @@ class SessionProvider extends ChangeNotifier {
         _user = freshUser;
         _role = resolvedRole;
         await _saveUserData(freshUser);
-      } else if (response.statusCode == 401 || response.statusCode == 440) {
+      } else if (response.statusCode == 401) {
         await clearTokens();
       }
     } catch (_) {}

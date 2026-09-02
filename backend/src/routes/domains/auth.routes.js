@@ -54,7 +54,7 @@ module.exports = (router, { auth, sessionTimeout, loginLimiter, otpSendLimiter, 
   router.post('/users/logout-device', auth, sessionTimeout, userController.logoutDevice);
 
   // Profile
-  router.get('/users/me', auth, sessionTimeout, profileController.getUserProfile);
+  router.get('/users/me', auth, profileController.getUserProfile);
   router.post('/users/daily-login-reward', auth, sessionTimeout, userController.applyDailyLoginRewardOnAppOpen);
   router.get('/users/freebie-counts', auth, userController.getFreebieCounts);
   router.put('/users/me', auth, sessionTimeout, upload.single('profileImage'), editProfileController.updateUserProfile);

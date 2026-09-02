@@ -66,6 +66,7 @@ class GroupMembersPage extends StatefulWidget {
   final String creatorEmail;
   final List<dynamic> initialMembers;
   final List<dynamic> initialPendingInvites;
+  final List<dynamic> initialDeclinedInvites;
   final bool openAddMember;
 
   const GroupMembersPage({
@@ -77,6 +78,7 @@ class GroupMembersPage extends StatefulWidget {
     required this.creatorEmail,
     required this.initialMembers,
     this.initialPendingInvites = const [],
+    this.initialDeclinedInvites = const [],
     this.openAddMember = false,
   });
 
@@ -87,6 +89,7 @@ class GroupMembersPage extends StatefulWidget {
 class _GroupMembersPageState extends State<GroupMembersPage> {
   late List<dynamic> _members;
   late List<dynamic> _pendingInvites;
+  late List<dynamic> _declinedInvites;
   bool _loading = false;
   String? _error;
   String _filter = 'active';
@@ -98,6 +101,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     super.initState();
     _members = List<dynamic>.from(widget.initialMembers);
     _pendingInvites = List<dynamic>.from(widget.initialPendingInvites);
+    _declinedInvites = List<dynamic>.from(widget.initialDeclinedInvites);
     if (widget.openAddMember) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _showAddMemberSheet());
     }
@@ -135,6 +139,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           setState(() {
             _members = List<dynamic>.from(group['members'] ?? []);
             _pendingInvites = List<dynamic>.from(group['pendingInvites'] ?? []);
+            _declinedInvites = List<dynamic>.from(group['declinedInvites'] ?? []);
           });
         }
       } else {
@@ -847,7 +852,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           Expanded(
             child: _error != null
                 ? errorStateWidget(context, _error!, _refresh)
-                : filtered.isEmpty && _pendingInvites.isEmpty
+                : filtered.isEmpty && _pendingInvites.isEmpty && _declinedInvites.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -863,10 +868,16 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length + (_pendingInvites.isNotEmpty ? _pendingInvites.length + 1 : 0),
+                    itemCount: filtered.length
+                        + (_pendingInvites.isNotEmpty ? _pendingInvites.length + 1 : 0)
+                        + (_declinedInvites.isNotEmpty ? _declinedInvites.length + 1 : 0),
                     itemBuilder: (_, i) {
-                      // Pending invites section header + rows
-                      if (_pendingInvites.isNotEmpty && i == filtered.length) {
+                      final pendingStart = filtered.length;
+                      final pendingEnd = filtered.length + (_pendingInvites.isNotEmpty ? _pendingInvites.length + 1 : 0);
+                      final declinedStart = pendingEnd;
+
+                      // Pending invites section header
+                      if (_pendingInvites.isNotEmpty && i == pendingStart) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 8, bottom: 4),
                           child: Row(children: [
@@ -886,8 +897,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                           ]),
                         );
                       }
-                      if (_pendingInvites.isNotEmpty && i > filtered.length) {
-                        final inv = _pendingInvites[i - filtered.length - 1] as Map<String, dynamic>;
+                      // Pending invite rows
+                      if (_pendingInvites.isNotEmpty && i > pendingStart && i < pendingEnd) {
+                        final inv = _pendingInvites[i - pendingStart - 1] as Map<String, dynamic>;
                         final invEmail = (inv['email'] ?? '').toString();
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
@@ -911,6 +923,21 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                               const SizedBox(height: 2),
                               const Text('Invite sent · awaiting', style: TextStyle(fontSize: 11, color: Color(0xFFFF9800), fontWeight: FontWeight.w500)),
                             ])),
+                            if (widget.isCreator) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () => _addMember(invEmail),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cyan.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text('Re-invite', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.cyan)),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
@@ -918,6 +945,79 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Text('Invited', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFF9800))),
+                            ),
+                          ]),
+                        );
+                      }
+                      // Declined invites section header
+                      if (_declinedInvites.isNotEmpty && i == declinedStart) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 4),
+                          child: Row(children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.cancel_outlined, color: Colors.red, size: 13),
+                                const SizedBox(width: 5),
+                                Text('Declined (${_declinedInvites.length})',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red)),
+                              ]),
+                            ),
+                          ]),
+                        );
+                      }
+                      // Declined invite rows
+                      if (_declinedInvites.isNotEmpty && i > declinedStart) {
+                        final dec = _declinedInvites[i - declinedStart - 1] as Map<String, dynamic>;
+                        final decEmail = (dec['email'] ?? '').toString();
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
+                          ),
+                          child: Row(children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Colors.red.withValues(alpha: 0.12),
+                              child: Text(decEmail.isNotEmpty ? decEmail[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(decEmail, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                                color: AppThemeColors.primaryText(context)), overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 2),
+                              const Text('Invite declined', style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w500)),
+                            ])),
+                            if (widget.isCreator) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () => _addMember(decEmail),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cyan.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text('Re-invite', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.cyan)),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text('Declined', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.red)),
                             ),
                           ]),
                         );
@@ -936,48 +1036,66 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                       final isGroupCreator = email.toLowerCase() ==
                           widget.creatorEmail.toLowerCase();
                       final memberId = (m['_id'] ?? '').toString();
+                      final profileImageUrl = (m['profileImage'] as String?) ?? '';
 
                       return _tricolorBorderBox(
                         margin: const EdgeInsets.only(bottom: 12),
-                        radius: 18,
-                        borderWidth: 2,
+                        radius: 20,
+                        borderWidth: isGroupCreator ? 2.5 : 1.5,
                         child: Container(
-                          color: AppThemeColors.cardBg(context),
+                          decoration: BoxDecoration(
+                            color: AppThemeColors.cardBg(context),
+                            borderRadius: BorderRadius.circular(18.5),
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
+                                horizontal: 14, vertical: 14),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Avatar
-                                Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Container(
-                                      decoration: isGroupCreator
-                                          ? BoxDecoration(
-                                              gradient: AppColors.tricolorGradient,
-                                              shape: BoxShape.circle,
+                                // Avatar with optional tricolor ring for creator
+                                Container(
+                                  decoration: isGroupCreator
+                                      ? const BoxDecoration(
+                                          gradient: AppColors.tricolorGradient,
+                                          shape: BoxShape.circle,
+                                        )
+                                      : null,
+                                  padding: isGroupCreator
+                                      ? const EdgeInsets.all(2.5)
+                                      : EdgeInsets.zero,
+                                  child: CircleAvatar(
+                                    radius: 28,
+                                    backgroundColor: isLeft
+                                        ? Colors.grey.shade300
+                                        : ah.avatarColor(email),
+                                    child: ClipOval(
+                                      child: profileImageUrl.isNotEmpty
+                                          ? Image.network(
+                                              profileImageUrl,
+                                              width: 56,
+                                              height: 56,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  Text(
+                                                email.isNotEmpty
+                                                    ? email[0].toUpperCase()
+                                                    : '?',
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                    fontSize: 20),
+                                              ),
                                             )
-                                          : null,
-                                      padding: isGroupCreator
-                                          ? const EdgeInsets.all(2)
-                                          : EdgeInsets.zero,
-                                      child: CircleAvatar(
-                                        radius: 22,
-                                        backgroundColor: isLeft
-                                            ? Colors.grey[400]
-                                            : ah.avatarColor(email),
-                                        child: ClipOval(
-                                          child: memberId.isNotEmpty
+                                          : (memberId.isNotEmpty
                                               ? Image.network(
                                                   '${ApiConfig.baseUrl}/api/users/$memberId/profile-image',
-                                                  width: 44,
-                                                  height: 44,
+                                                  width: 56,
+                                                  height: 56,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (context,
-                                                          error,
-                                                          stackTrace) =>
-                                                      Text(
+                                                  errorBuilder:
+                                                      (_, __, ___) => Text(
                                                     email.isNotEmpty
                                                         ? email[0]
                                                             .toUpperCase()
@@ -986,7 +1104,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                                         color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.bold,
-                                                        fontSize: 16),
+                                                        fontSize: 20),
                                                   ),
                                                 )
                                               : Text(
@@ -997,38 +1115,46 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                                       color: Colors.white,
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      fontSize: 16),
-                                                ),
-                                        ),
-                                      ),
+                                                      fontSize: 20),
+                                                )),
                                     ),
-                                  ],
+                                  ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 14),
 
-                                // Info
+                                // Info column
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      // Name + badges
-                                      Wrap(
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        spacing: 4,
-                                        children: [
-                                          Text(
-                                            name.isNotEmpty ? name : email,
+                                      // Display name
+                                      Text(
+                                        name.isNotEmpty ? name : email,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15,
+                                          color: isLeft
+                                              ? AppThemeColors.mutedText(context)
+                                              : AppThemeColors.primaryText(context),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (name.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
+                                        Text(email,
                                             style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                              color: isLeft
-                                                  ? Colors.grey
-                                                  : AppThemeColors.primaryText(context),
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                                fontSize: 12,
+                                                color: AppThemeColors.mutedText(context)),
+                                            overflow: TextOverflow.ellipsis),
+                                      ],
+                                      const SizedBox(height: 6),
+                                      // Badges row
+                                      Wrap(
+                                        spacing: 5,
+                                        runSpacing: 4,
+                                        children: [
+                                          _statusBadge(isLeft),
                                           if (isGroupCreator)
                                             _badge(t('creator_label'),
                                                 AppColors.tricolorOrange,
@@ -1037,29 +1163,26 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                             _badge(t('you_label'),
                                                 const Color(0xFF1565C0),
                                                 Colors.white),
+                                          if (m['joinedViaInvite'] == true)
+                                            _badge('Via Invite',
+                                                const Color(0xFF7B1FA2),
+                                                Colors.white),
                                         ],
                                       ),
-                                      if (name.isNotEmpty)
-                                        Text(email,
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppThemeColors.secondaryText(context)),
-                                            overflow: TextOverflow.ellipsis),
-                                      const SizedBox(height: 4),
-                                      _statusBadge(isLeft),
                                     ],
                                   ),
                                 ),
 
                                 // Remove / Re-add button
-                                if (widget.isCreator && !isMe)
+                                if (widget.isCreator && !isMe) ...[
+                                  const SizedBox(width: 8),
                                   GestureDetector(
                                     onTap: isLeft
                                         ? () => _addMember(email)
                                         : () => _removeMember(email),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
+                                          horizontal: 10, vertical: 7),
                                       decoration: BoxDecoration(
                                         gradient: isLeft
                                             ? const LinearGradient(
@@ -1100,6 +1223,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                       ),
                                     ),
                                   ),
+                                ],
                               ],
                             ),
                           ),

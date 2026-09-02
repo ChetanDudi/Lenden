@@ -251,6 +251,7 @@ class _ChatPageState extends State<ChatPage> {
             }
             _isLoading = false;
           });
+          ApiClient.put('/api/transactions/${widget.transactionId}/chat/mark-seen');
         }
       } else {
         if (mounted) setState(() => _isLoading = false);
@@ -623,138 +624,175 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showMessageCounts() {
+    final session = Provider.of<SessionProvider>(context, listen: false);
     final currentUserMessageCount = _messageCounts[_currentUserId] ?? 0;
     final otherUserMessageCount = _messageCounts[widget.otherUserId] ?? 0;
 
-    showDialog(
+    final myName = (session.user?['name'] ?? '').toString().trim();
+    final myEmail = (session.user?['email'] ?? '').toString().trim();
+    final myGender = session.user?['gender']?.toString();
+    final otherName = (_otherUser?['name'] ?? '').toString().trim();
+    final otherEmail = (_otherUser?['email'] ?? '').toString().trim();
+    final otherGender = _otherUser?['gender']?.toString();
+
+    final users = [
+      {'label': myName.isNotEmpty ? myName : 'You', 'email': myEmail, 'id': _currentUserId, 'gender': myGender, 'count': currentUserMessageCount, 'isMe': true},
+      {'label': otherName.isNotEmpty ? otherName : 'User', 'email': otherEmail, 'id': widget.otherUserId, 'gender': otherGender, 'count': otherUserMessageCount, 'isMe': false},
+    ];
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                colors: [AppColors.cyan, Color(0xFF0077B6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (ctx, setSheet) {
+            final filtered = query.isEmpty
+                ? users
+                : users.where((u) {
+                    final name = (u['label'] as String).toLowerCase();
+                    final email = (u['email'] as String).toLowerCase();
+                    final q = query.toLowerCase();
+                    return name.contains(q) || email.contains(q);
+                  }).toList();
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.6,
               decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(22),
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.forum_outlined, color: AppColors.cyan),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: const Text(
-                              'Total messages (lifetime)',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
+              child: Column(children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.divider(ctx),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.cyan, Color(0xFF0077B6)]),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.forum_outlined, color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Message Counts',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
+                        color: AppThemeColors.primaryText(ctx)))),
+                    Text('Lifetime total',
+                      style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TextField(
+                    onChanged: (v) => setSheet(() => query = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: AppThemeColors.surfaceBg(ctx),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(child: Text('No results',
+                          style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final u = filtered[i];
+                            final label = u['label'] as String;
+                            final email = u['email'] as String;
+                            final userId = u['id'] as String?;
+                            final gender = u['gender'] as String?;
+                            final count = u['count'] as int;
+                            final isMe = u['isMe'] as bool;
+                            final accentColor = isMe ? AppColors.cyan : const Color(0xFF7B1FA2);
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppThemeColors.surfaceBg(ctx),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppThemeColors.border(ctx)),
                               ),
-                            ),
-                          ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                leading: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: accentColor.withValues(alpha: 0.4), width: 2),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: accentColor.withValues(alpha: 0.12),
+                                    child: ClipOval(
+                                      child: _buildUserNetworkAvatar(userId: userId, gender: gender, size: 44),
+                                    ),
+                                  ),
+                                ),
+                                title: Row(children: [
+                                  Expanded(
+                                    child: Text(label,
+                                      style: TextStyle(fontWeight: FontWeight.w700,
+                                        color: AppThemeColors.primaryText(ctx)),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                  if (isMe)
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cyan.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text('You',
+                                        style: TextStyle(fontSize: 11, color: AppColors.cyan,
+                                          fontWeight: FontWeight.w700)),
+                                    ),
+                                ]),
+                                subtitle: email.isNotEmpty
+                                    ? Text(email,
+                                        style: TextStyle(fontSize: 12,
+                                          color: AppThemeColors.secondaryText(ctx)),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis)
+                                    : null,
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('$count',
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                                        color: AppThemeColors.primaryText(ctx), height: 1.1)),
+                                    Text('msg',
+                                      style: TextStyle(fontSize: 10,
+                                        color: AppThemeColors.mutedText(ctx))),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                    child: Column(
-                      children: [
-                        _buildCountRow(
-                          'You',
-                          currentUserMessageCount,
-                          userId: _currentUserId,
-                          gender: Provider.of<SessionProvider>(context,
-                                  listen: false)
-                              .user?['gender']
-                              ?.toString(),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildCountRow(
-                          _otherUser!['name'] ?? 'User',
-                          otherUserMessageCount,
-                          userId: widget.otherUserId,
-                          gender: _otherUser?['gender']?.toString(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close',
-                          style: TextStyle(
-                              color: AppColors.cyan,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+                ),
+              ]),
+            );
+          },
         );
       },
-    );
-  }
-
-  Widget _buildCountRow(String label, int count,
-      {String? userId, String? gender}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppThemeColors.tinted(context,
-            light: const Color(0xFFEAF7FB), dark: const Color(0xFF1A2E33)),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: AppColors.cyan.withValues(alpha: 0.18),
-            child: ClipOval(
-              child: _buildUserNetworkAvatar(
-                userId: userId,
-                gender: gender,
-                size: 28,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700)),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text('$count',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.cyan)),
-        ],
-      ),
     );
   }
 

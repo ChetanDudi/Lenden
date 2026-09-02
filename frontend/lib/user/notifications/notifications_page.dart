@@ -27,6 +27,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   List<dynamic> _notifications = [];
   List<Map<String, dynamic>> _incomingRequests = [];
   final Set<String> _removingRequestIds = {};
+  final Set<String> _processingInviteIds = {};
   bool _isLoading = true;
   bool _hasError = false;
   bool _isShowingAll = false;
@@ -152,6 +153,68 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
         ),
       );
     }
+  }
+
+  Future<void> _acceptGroupInvite(String groupId, String notifId) async {
+    setState(() => _processingInviteIds.add(notifId));
+    final res = await ApiClient.post('/api/group-transactions/$groupId/invites/accept');
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      setState(() {
+        _notifications.removeWhere((n) => n['_id']?.toString() == notifId);
+        _processingInviteIds.remove(notifId);
+        _calculateUnreadCount();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Joined group successfully'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+      );
+    } else {
+      setState(() => _processingInviteIds.remove(notifId));
+    }
+  }
+
+  Future<void> _declineGroupInvite(String groupId, String notifId) async {
+    setState(() => _processingInviteIds.add(notifId));
+    await ApiClient.delete('/api/group-transactions/$groupId/invites/decline');
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 250));
+    setState(() {
+      _notifications.removeWhere((n) => n['_id']?.toString() == notifId);
+      _processingInviteIds.remove(notifId);
+      _calculateUnreadCount();
+    });
+  }
+
+  Future<void> _acceptCommunityInvite(String communityId, String notifId) async {
+    setState(() => _processingInviteIds.add(notifId));
+    final res = await ApiClient.post('/api/communities/$communityId/invites/accept');
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      setState(() {
+        _notifications.removeWhere((n) => n['_id']?.toString() == notifId);
+        _processingInviteIds.remove(notifId);
+        _calculateUnreadCount();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Joined community successfully'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+      );
+    } else {
+      setState(() => _processingInviteIds.remove(notifId));
+    }
+  }
+
+  Future<void> _declineCommunityInvite(String communityId, String notifId) async {
+    setState(() => _processingInviteIds.add(notifId));
+    await ApiClient.delete('/api/communities/$communityId/invites/decline');
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 250));
+    setState(() {
+      _notifications.removeWhere((n) => n['_id']?.toString() == notifId);
+      _processingInviteIds.remove(notifId);
+      _calculateUnreadCount();
+    });
   }
 
   Future<void> _clearReadNotifications() async {
@@ -704,6 +767,17 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     final title = (notification['title'] ?? '').toString().trim();
     final message = _prettifyMessage((notification['message'] ?? '').toString());
     final timeStr = _formatTime(notification['createdAt']);
+    final notifId = notification['_id']?.toString() ?? '';
+    final metadata = notification['metadata'] as Map<String, dynamic>? ?? {};
+    final inviteType = (metadata['type'] ?? '').toString();
+    final isGroupInvite = inviteType == 'group_join_invite';
+    final isCommunityInvite = inviteType == 'community_join_invite';
+    final inviteTargetId = isGroupInvite
+        ? (metadata['groupId'] ?? '').toString()
+        : isCommunityInvite
+            ? (metadata['communityId'] ?? '').toString()
+            : '';
+    final isProcessing = _processingInviteIds.contains(notifId);
 
     return InkWell(
       onTap: () => _openNotificationTarget(notification),
@@ -834,6 +908,50 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                             color: AppThemeColors.secondaryText(context),
                           ),
                         ),
+                        if ((isGroupInvite || isCommunityInvite) && inviteTargetId.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: isProcessing ? null : () {
+                                    if (isGroupInvite) _declineGroupInvite(inviteTargetId, notifId);
+                                    else _declineCommunityInvite(inviteTargetId, notifId);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                    side: const BorderSide(color: Colors.red),
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  child: isProcessing
+                                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+                                      : const Text('Decline', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: isProcessing ? null : () {
+                                    if (isGroupInvite) _acceptGroupInvite(inviteTargetId, notifId);
+                                    else _acceptCommunityInvite(inviteTargetId, notifId);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.cyan,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  child: isProcessing
+                                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                      : const Text('Accept & Join', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,

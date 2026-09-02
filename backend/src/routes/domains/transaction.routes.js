@@ -45,6 +45,7 @@ module.exports = (router, { auth, otpSendLimiter, otpVerifyLimiter, budgetCheck,
   router.post('/transactions/partial-payment/verify-pin', auth, transactionController.verifyPartialPaymentPin);
   router.post('/transactions/verify-creation-pin', auth, transactionController.verifyTransactionCreationPin);
   router.post('/transactions/partial-payment', auth, transactionController.processPartialPayment);
+  router.put('/transactions/:id/chat/mark-seen', auth, transactionController.markTransactionChatSeen);
   router.get('/transactions/:transactionId', auth, transactionController.getTransactionDetails);
 
   // Analytics

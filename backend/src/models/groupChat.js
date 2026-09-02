@@ -72,6 +72,9 @@ const groupChatSchema = new mongoose.Schema({
     }]
 }, { timestamps: true });
 
+groupChatSchema.index({ groupTransactionId: 1, createdAt: -1 });
+groupChatSchema.index({ groupTransactionId: 1, senderId: 1, createdAt: 1 });
+
 const GroupChat = mongoose.model('GroupChat', groupChatSchema);
 
 module.exports = GroupChat;

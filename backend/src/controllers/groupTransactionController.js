@@ -1,4 +1,5 @@
 const GroupTransaction = require('../models/groupTransaction');
+const GroupChat = require('../models/groupChat');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
@@ -184,7 +185,8 @@ exports.createGroupWithCoins = async (req, res) => {
 
     const members = memberIds.map(id => ({ user: id }));
     const balances = memberIds.map(id => ({ user: id, balance: 0 }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds });
+    const pendingInvites = skippedUsers.map(u => ({ email: u.email.toLowerCase(), invitedBy: creator._id }));
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds, pendingInvites });
     if (validCommunityIds.length > 0) {
       try {
         const Community = require('../models/community');
@@ -226,22 +228,8 @@ exports.createGroupWithCoins = async (req, res) => {
     });
 
     try {
-      const creatorUser = await User.findById(creator._id).select('name email');
-      const creatorName = creatorUser?.name || creatorUser?.email || 'Someone';
-      for (const skipped of skippedUsers) {
-        await Notification.create({
-          sender: creator._id, senderModel: 'User',
-          recipientType: 'specific-users', recipients: [skipped._id], recipientModel: 'User',
-          message: `${creatorName} created a group "${title}" and invited you to join.`,
-          category: 'group',
-          deliveryStatus: 'sent', sentAt: new Date(),
-        });
-        sendToUser(User, skipped._id, {
-          title: 'Group Invite',
-          body: `${creatorName} invited you to join "${title}". Tap to view.`,
-          data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: title },
-        }, { settingKey: 'groupNotifications' });
-      }
+      // Skipped users are added to pendingInvites; they receive a notification only when
+      // the creator explicitly invites them via addMember or sendGroupInvite.
       const creatorInfo = { creatorId: creator._id, creatorEmail: creator.email };
       await logGroupActivityForAllMembers('group_created_with_coins', group, {}, null, creatorInfo);
       groupTransactionEmail.sendGroupCreatedEmail(populatedGroup, creator);
@@ -391,23 +379,8 @@ exports.createGroup = async (req, res) => {
           eligible.forEach(u => sendToUser(User, u._id, { title: 'Added to Group', body: `${creator.email} added you to the group "${title}".`, data: { type: 'group_created' } }, { settingKey: 'groupNotifications' }));
         }
       }
-      // Notify skipped users  they have direct-add restricted but are invited to join
-      const creatorUser = await User.findById(creator._id).select('name email');
-      const creatorName = creatorUser?.name || creatorUser?.email || 'Someone';
-      for (const skipped of skippedUsers) {
-        await Notification.create({
-          sender: creator._id, senderModel: 'User',
-          recipientType: 'specific-users', recipients: [skipped._id], recipientModel: 'User',
-          message: `${creatorName} created a group "${title}" and invited you to join.`,
-          category: 'group',
-          deliveryStatus: 'sent', sentAt: new Date(),
-        });
-        sendToUser(User, skipped._id, {
-          title: 'Group Invite',
-          body: `${creatorName} invited you to join "${title}". Tap to view.`,
-          data: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: title },
-        }, { settingKey: 'groupNotifications' });
-      }
+      // Skipped users are added to pendingInvites in the createGroup path below.
+      // Notifications are sent only when the creator explicitly invites via addMember or sendGroupInvite.
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -425,7 +398,7 @@ exports.sendGroupInvite = async (req, res) => {
       return res.status(400).json({ error: 'emails array required' });
     }
 
-    const group = await GroupTransaction.findById(groupId).select('title members');
+    const group = await GroupTransaction.findById(groupId).select('title members pendingInvites declinedInvites joinCode');
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
     const isMember = group.members.some(
@@ -435,18 +408,27 @@ exports.sendGroupInvite = async (req, res) => {
 
     const inviter = await User.findById(req.user._id).select('name email');
     const inviterName = inviter?.name || inviter?.email || 'Someone';
+    const joinCodeText = group.joinCode ? ` Join code: ${group.joinCode}` : '';
 
     const normalizedEmails = emails.map(e => e.toString().toLowerCase().trim());
     const targets = await User.find({ email: { $in: normalizedEmails } }).select('_id email');
 
+    let changed = false;
     for (const target of targets) {
+      // Add to pendingInvites if not already there (re-invite: also remove from declinedInvites)
+      if (!group.pendingInvites.some(i => i.email === target.email.toLowerCase())) {
+        group.pendingInvites.push({ email: target.email.toLowerCase(), invitedBy: req.user._id });
+        group.declinedInvites = (group.declinedInvites || []).filter(i => i.email !== target.email.toLowerCase());
+        changed = true;
+      }
       await Notification.create({
         sender: req.user._id, senderModel: 'User',
         recipientType: 'specific-users', recipients: [target._id], recipientModel: 'User',
         title: 'Group Invite',
-        message: `${inviterName} invited you to join "${group.title}". Ask them for the join code or use the app to request an invite.`,
+        message: `${inviterName} invited you to join "${group.title}".${joinCodeText}`,
         category: 'group',
         deliveryStatus: 'sent', sentAt: new Date(),
+        metadata: { type: 'group_join_invite', groupId: groupId.toString(), groupTitle: group.title },
       });
       sendToUser(User, target._id, {
         title: 'Group Invite',
@@ -454,6 +436,7 @@ exports.sendGroupInvite = async (req, res) => {
         data: { type: 'group_join_invite', groupId: groupId.toString(), groupTitle: group.title },
       }, { settingKey: 'groupNotifications' });
     }
+    if (changed) await group.save();
 
     res.json({ sent: targets.length });
   } catch (e) {
@@ -484,9 +467,10 @@ exports.addMember = async (req, res) => {
 
     // Respect target user's group-add privacy setting only for genuinely new adds
     if (user.privacySettings?.allowDirectGroupAdd === false) {
-      // Add to pendingInvites if not already there
+      // Add to pendingInvites if not already there (re-invite: also remove from declinedInvites)
       if (!group.pendingInvites.some(i => i.email === user.email.toLowerCase())) {
         group.pendingInvites.push({ email: user.email.toLowerCase(), invitedBy: req.user._id });
+        group.declinedInvites = (group.declinedInvites || []).filter(i => i.email !== user.email.toLowerCase());
         await group.save();
       }
       // In-app notification
@@ -499,6 +483,7 @@ exports.addMember = async (req, res) => {
           title: 'Group Invite',
           message: `${inviterName} invited you to join "${group.title}". Use code ${group.joinCode ?? 'shared by admin'} to join.`,
           category: 'group', deliveryStatus: 'sent', sentAt: new Date(),
+          metadata: { type: 'group_join_invite', groupId: group._id.toString(), groupTitle: group.title },
         });
         sendToUser(User, user._id, {
           title: 'Group Invite',
@@ -570,6 +555,58 @@ exports.addMember = async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.acceptGroupInvite = async (req, res) => {
+  try {
+    const userEmail = (req.user.email || '').toLowerCase();
+    const group = await GroupTransaction.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const inviteIdx = group.pendingInvites.findIndex(i => i.email === userEmail);
+    if (inviteIdx === -1) return res.status(404).json({ error: 'No invite found' });
+
+    if (!group.members.some(m => m.user.toString() === req.user._id.toString() && !m.leftAt)) {
+      const existingIdx = group.members.findIndex(m => m.user.toString() === req.user._id.toString());
+      if (existingIdx !== -1) {
+        group.members[existingIdx].leftAt = null;
+        group.members[existingIdx].joinedAt = new Date();
+        group.members[existingIdx].joinedViaInvite = true;
+      } else {
+        group.members.push({ user: req.user._id, joinedViaInvite: true });
+      }
+      if (!group.balances.some(b => b.user.toString() === req.user._id.toString())) {
+        group.balances.push({ user: req.user._id, balance: 0 });
+      }
+    }
+    group.pendingInvites.splice(inviteIdx, 1);
+    group.declinedInvites = (group.declinedInvites || []).filter(i => i.email !== userEmail);
+    await group.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+exports.declineGroupInvite = async (req, res) => {
+  try {
+    const userEmail = (req.user.email || '').toLowerCase();
+    const group = await GroupTransaction.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const inviteIdx = group.pendingInvites.findIndex(i => i.email === userEmail);
+    if (inviteIdx === -1) return res.status(404).json({ error: 'No invite found' });
+
+    group.pendingInvites.splice(inviteIdx, 1);
+    if (!(group.declinedInvites || []).some(i => i.email === userEmail)) {
+      group.declinedInvites = group.declinedInvites || [];
+      group.declinedInvites.push({ email: userEmail });
+    }
+    await group.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 };
 
@@ -1041,6 +1078,20 @@ exports.otpVerifySettle = async (req, res) => {
   }
 };
 
+exports.markGroupChatSeen = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user._id;
+    await GroupTransaction.updateOne(
+      { _id: groupId, 'members.user': userId },
+      { $set: { 'members.$.chatLastSeenAt': new Date() } }
+    );
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
 // Get all groups for the logged-in user (as creator or member)
 exports.getUserGroups = async (req, res) => {
   try {
@@ -1072,6 +1123,20 @@ exports.getUserGroups = async (req, res) => {
       .populate('members.user', 'email name profileImage')
       .populate('creator', 'email name profileImage')
       .sort({ createdAt: -1 });
+
+    // Compute unread message counts for each group in parallel
+    const unreadCountMap = {};
+    await Promise.all(groups.map(async (group) => {
+      const memberEntry = (group.members || []).find(m => m.user && m.user._id.toString() === userId.toString());
+      const lastSeen = memberEntry?.chatLastSeenAt || new Date(0);
+      const count = await GroupChat.countDocuments({
+        groupTransactionId: group._id,
+        senderId: { $ne: userId },
+        createdAt: { $gt: lastSeen },
+        deletedFor: { $ne: userId },
+      });
+      unreadCountMap[group._id.toString()] = count;
+    }));
 
     const createdGroupsCount = groups.filter(
       (g) => g.creator && g.creator._id.toString() === userId.toString()
@@ -1134,6 +1199,7 @@ exports.getUserGroups = async (req, res) => {
                   role: m.role || 'member',
                   joinedAt: m.joinedAt,
                   leftAt: m.leftAt,
+                  joinedViaInvite: m.joinedViaInvite || false,
                   profileImage: m.user.profileImage
                     ? `${req.protocol}://${req.get('host')}/api/users/${m.user._id}/profile-image`
                     : null,
@@ -1156,6 +1222,8 @@ exports.getUserGroups = async (req, res) => {
           userPendingBalance: Number(userPendingBalance.toFixed(2)),
           joinCode: obj.joinCode || null,
           pendingInvites: (obj.pendingInvites || []).map(i => ({ email: i.email, invitedAt: i.invitedAt })),
+          declinedInvites: (obj.declinedInvites || []).map(i => ({ email: i.email, declinedAt: i.declinedAt })),
+          unreadMessageCount: unreadCountMap[obj._id.toString()] ?? 0,
         };
       })
     );

@@ -6,6 +6,11 @@ const pendingGroupInviteSchema = new mongoose.Schema({
   invitedAt: { type: Date, default: Date.now },
 }, { _id: false });
 
+const declinedGroupInviteSchema = new mongoose.Schema({
+  email: { type: String, required: true, lowercase: true, trim: true },
+  declinedAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const groupTransactionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -14,6 +19,8 @@ const groupTransactionSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     joinedAt: { type: Date, default: Date.now },
     leftAt: { type: Date, default: null },
+    joinedViaInvite: { type: Boolean, default: false },
+    chatLastSeenAt: { type: Date, default: null },
   }],
   expenses: [{
     description: { type: String, required: true },
@@ -55,6 +62,7 @@ const groupTransactionSchema = new mongoose.Schema({
   }],
   joinCode: { type: String },
   pendingInvites: [pendingGroupInviteSchema],
+  declinedInvites: [declinedGroupInviteSchema],
   communityIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
   favourite: [{ type: String }], // Array of user emails
   messageCounts: [{

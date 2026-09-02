@@ -1260,6 +1260,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
     if (_loginMethod == 'Email + OTP') {
       EmailOtpLogin.showErrorDialog(context, message);
     } else {
@@ -1280,6 +1281,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
   }
 
   void _showGoogleNetworkErrorDialog() {
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: true,

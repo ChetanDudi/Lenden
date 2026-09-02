@@ -5,6 +5,27 @@ import '../../../utils/theme_helper.dart';
 import '../../../utils/community_helpers.dart';
 import 'group_detail_page.dart';
 
+Widget _groupPlaceholder(Color color, String title) => Container(
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      colors: [color, Color.lerp(color, Colors.black, 0.4)!],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  ),
+  child: Center(
+    child: Text(
+      title.isNotEmpty ? title[0].toUpperCase() : 'G',
+      style: const TextStyle(
+        fontSize: 72,
+        fontWeight: FontWeight.w900,
+        color: Colors.white38,
+        height: 1,
+      ),
+    ),
+  ),
+);
+
 class GroupOverviewPage extends StatelessWidget {
   final Map<String, dynamic> group;
   final double userPendingBalance;
@@ -136,19 +157,14 @@ class GroupOverviewPage extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    imgUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [groupColor, Color.lerp(groupColor, Colors.black, 0.45)!],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                    ),
-                  ),
+                  if (imgUrl.isNotEmpty)
+                    Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _groupPlaceholder(groupColor, title),
+                    )
+                  else
+                    _groupPlaceholder(groupColor, title),
                   Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(

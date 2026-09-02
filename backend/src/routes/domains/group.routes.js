@@ -8,6 +8,8 @@ module.exports = (router, { auth, otpVerifyLimiter, budgetCheck, handleUsage, up
 
   // Membership
   router.post('/group-transactions/:groupId/send-invite', auth, groupTransactionController.sendGroupInvite);
+  router.post('/group-transactions/:groupId/invites/accept', auth, groupTransactionController.acceptGroupInvite);
+  router.delete('/group-transactions/:groupId/invites/decline', auth, groupTransactionController.declineGroupInvite);
   router.post('/group-transactions/:groupId/add-member', auth, groupTransactionController.addMember);
   router.post('/group-transactions/:groupId/remove-member', auth, groupTransactionController.removeMember);
   router.post('/group-transactions/:groupId/leave', auth, groupTransactionController.leaveGroup);
@@ -52,4 +54,5 @@ module.exports = (router, { auth, otpVerifyLimiter, budgetCheck, handleUsage, up
 
   // Group chat
   router.get('/group-chat/messages/:groupTransactionId', auth, groupChatController.getGroupMessages);
+  router.put('/group-transactions/:groupId/chat/mark-seen', auth, groupTransactionController.markGroupChatSeen);
 };

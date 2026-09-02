@@ -39,5 +39,12 @@ String defaultCommunityImageUrl(String communityName) {
   return _kDefaultCommunityImage;
 }
 
-/// Same keyword-based lookup for groups.
-String defaultGroupImageUrl(String groupTitle) => defaultCommunityImageUrl(groupTitle);
+/// Keyword-based lookup for groups.
+/// Returns '' when no keyword matches (callers should show a local placeholder).
+String defaultGroupImageUrl(String groupTitle) {
+  final n = groupTitle.toLowerCase();
+  for (final entry in _kCategoryImages.entries) {
+    if (entry.value.any((k) => n.contains(k))) return entry.key;
+  }
+  return '';
+}
