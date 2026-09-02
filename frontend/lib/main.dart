@@ -358,6 +358,15 @@ class _AppInitializerState extends State<AppInitializer>
               );
             }
             _showPendingDailyRewardIfNeeded();
+            // If the user has a valid persisted session, go straight to their
+            // dashboard instead of the public landing page.
+            final session =
+                Provider.of<SessionProvider>(context, listen: false);
+            if (session.token != null && session.user != null) {
+              return session.isAdmin
+                  ? const AdminDashboardPage()
+                  : const UserDashboardPage();
+            }
             return const MyApp();
           },
         ),

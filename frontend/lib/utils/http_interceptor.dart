@@ -117,6 +117,9 @@ class HttpInterceptor {
             },
           ];
           bool refreshed = false;
+          // True when the server responded (even with a 4xx) — distinguishes
+          // a genuine token rejection from a pure network failure.
+          bool serverRejected = false;
           for (final c in candidates) {
             try {
               final refreshResponse = await http.post(
@@ -145,8 +148,12 @@ class HttpInterceptor {
                   refreshed = true;
                   break;
                 }
+              } else {
+                // Server reached but rejected the token (401/400/etc.)
+                serverRejected = true;
               }
             } catch (_) {
+              // Network error — server unreachable; try next candidate.
               continue;
             }
           }
@@ -159,28 +166,29 @@ class HttpInterceptor {
               const Duration(seconds: 30),
               onTimeout: () => http.Response('{"error":"timeout"}', 408),
             );
-          } else {
-            // Refresh failed, clear tokens and process pending requests
+          } else if (serverRejected) {
+            // Server confirmed the token is invalid — genuine auth failure.
             await _clearTokensAndProcessPending();
             AuthNavigation.redirectToLogin();
             response = await request().timeout(
               const Duration(seconds: 30),
               onTimeout: () => http.Response('{"error":"timeout"}', 408),
             );
+          } else {
+            // All refresh attempts failed with network errors (device offline,
+            // server unreachable). Don't log the user out — a transient
+            // connectivity blip should not end the session.
+            await _processPendingRequests();
           }
         } catch (e) {
-          // Refresh failed, clear tokens and process pending requests
-          await _clearTokensAndProcessPending();
-          AuthNavigation.redirectToLogin();
-          response = await request().timeout(
-            const Duration(seconds: 30),
-            onTimeout: () => http.Response('{"error":"timeout"}', 408),
-          );
+          // Unexpected exception in refresh machinery — don't logout; let the
+          // caller surface the error via the original 401 response.
+          await _processPendingRequests();
         } finally {
           _isRefreshing = false;
         }
       } else {
-        // No refresh token available, clear tokens
+        // No refresh token stored — nothing to try, clear and redirect.
         await _clearTokens();
         AuthNavigation.redirectToLogin();
       }

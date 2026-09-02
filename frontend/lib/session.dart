@@ -167,14 +167,9 @@ class SessionProvider extends ChangeNotifier {
         _storage.read(key: 'user_data'),
       ]);
     } catch (_) {
-      // On Windows, the .dat file may be locked by the dying previous process.
-      // Retry once after 500ms so the lock can be released, then give up.
-      try {
-        await _storage.deleteAll();
-      } catch (_) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        try { await _storage.deleteAll(); } catch (_) {}
-      }
+      // Storage read failed (e.g. transient Android Keystore hiccup).
+      // Leave stored tokens intact — do NOT delete them. Surfacing as
+      // "not logged in" is safe; a restart will usually recover the read.
       _user = null;
       _role = null;
       notifyListeners();
