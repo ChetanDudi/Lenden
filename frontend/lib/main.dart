@@ -358,14 +358,23 @@ class _AppInitializerState extends State<AppInitializer>
               );
             }
             _showPendingDailyRewardIfNeeded();
-            // If the user has a valid persisted session, go straight to their
-            // dashboard instead of the public landing page.
             final session =
                 Provider.of<SessionProvider>(context, listen: false);
             if (session.token != null && session.user != null) {
+              // Valid persisted session — go straight to the dashboard.
               return session.isAdmin
                   ? const AdminDashboardPage()
                   : const UserDashboardPage();
+            }
+            if (session.token != null && session.user == null) {
+              // Token exists but user data couldn't be loaded (network was down
+              // during startup). Show a retry screen instead of the landing page
+              // so the user doesn't think they're logged out.
+              return _SessionRetryScreen(onRetry: () {
+                setState(() {
+                  _bootstrapFuture = _initializeApp();
+                });
+              });
             }
             return const MyApp();
           },
@@ -400,6 +409,63 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const HomePage();
+  }
+}
+
+class _SessionRetryScreen extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _SessionRetryScreen({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
+    return Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 36),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.wifi_off_rounded,
+                  size: 64,
+                  color: AppThemeColors.secondaryText(context)),
+              const SizedBox(height: 20),
+              Text(
+                t('no_internet_title'),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t('no_internet_message'),
+                style: TextStyle(
+                    fontSize: 14,
+                    color: AppThemeColors.secondaryText(context)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                label: Text(t('retry'),
+                    style: const TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.cyan,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

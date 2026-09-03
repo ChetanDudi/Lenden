@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'session_storage.dart';
 import '../api_config.dart';
 import 'auth_navigation.dart';
 import 'http_interceptor.dart';
@@ -35,7 +35,6 @@ class ApiClient {
   static void Function()? onMaintenance;
 
   // Secure storage keys
-  static const _storage = FlutterSecureStorage();
   static const String _kAccessToken = 'access_token';
   static const String _kRefreshToken = 'refresh_token';
 
@@ -44,26 +43,26 @@ class ApiClient {
     // Keep HttpInterceptor's in-memory cache in sync so both clients share one source of truth
     HttpInterceptor.setAccessToken(accessToken);
     HttpInterceptor.setRefreshToken(refreshToken);
-    await _storage.write(key: _kAccessToken, value: accessToken);
-    await _storage.write(key: _kRefreshToken, value: refreshToken);
+    await SessionStorage.write(key: _kAccessToken, value: accessToken);
+    await SessionStorage.write(key: _kRefreshToken, value: refreshToken);
   }
 
   static Future<void> clearTokens() async {
     HttpInterceptor.setAccessToken(null);
     HttpInterceptor.setRefreshToken(null);
-    await _storage.delete(key: _kAccessToken);
-    await _storage.delete(key: _kRefreshToken);
-    await _storage.delete(key: 'user_data');
+    await SessionStorage.delete(key: _kAccessToken);
+    await SessionStorage.delete(key: _kRefreshToken);
+    await SessionStorage.delete(key: 'user_data');
   }
 
   // Use HttpInterceptor's in-memory cache first — avoids Android Keystore read-after-write
   // race condition on fresh installs where storage returns null immediately after a write.
   static Future<String?> _getAccessToken() async {
-    return HttpInterceptor.cachedAccessToken ?? await _storage.read(key: _kAccessToken);
+    return HttpInterceptor.cachedAccessToken ?? await SessionStorage.read(key: _kAccessToken);
   }
 
   static Future<String?> _getRefreshToken() async {
-    return HttpInterceptor.cachedRefreshToken ?? await _storage.read(key: _kRefreshToken);
+    return HttpInterceptor.cachedRefreshToken ?? await SessionStorage.read(key: _kRefreshToken);
   }
 
   // Low-level request with auto-refresh on 401
@@ -179,23 +178,31 @@ class ApiClient {
                 .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
         }
-      } else {
-        await clearTokens();
-        AuthNavigation.redirectToLogin();
       }
+      // _refreshTokens() already cleared tokens + redirected if the server
+      // rejected the token. If it returned false due to a network error, we
+      // do NOT logout — return the original 401 and let the UI surface it.
     }
 
     return resp;
   }
 
-  // Refresh tokens using refresh token stored in storage. Returns true if refreshed.
+  // Refresh tokens using refresh token stored in storage.
+  // Returns true when a new access token was obtained.
+  // Returns false on network error (tokens are preserved — caller must NOT logout).
+  // Returns false and also clears tokens + redirects when the server explicitly
+  // rejects the refresh token (genuine auth failure).
   static Future<bool> _refreshTokens() async {
     final refreshToken = await _getRefreshToken();
-    if (refreshToken == null) return false;
+    if (refreshToken == null) {
+      await clearTokens();
+      onAuthFailed?.call();
+      AuthNavigation.redirectToLogin();
+      return false;
+    }
 
     try {
-      final uri = Uri.parse(
-          '$_baseUrl/api/users/refresh-token'); // adjust if endpoint differs
+      final uri = Uri.parse('$_baseUrl/api/users/refresh-token');
       final response = await _client.post(uri,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'refreshToken': refreshToken}));
@@ -211,12 +218,14 @@ class ApiClient {
           return true;
         }
       } else {
+        // Server responded and rejected the token — genuine auth failure.
         await clearTokens();
         onAuthFailed?.call();
         AuthNavigation.redirectToLogin();
       }
     } catch (_) {
-      // ignore
+      // Network error — server unreachable. Do NOT clear tokens: a transient
+      // connectivity issue must not permanently log the user out.
     }
     return false;
   }
@@ -339,10 +348,9 @@ class ApiClient {
       if (refreshed) {
         token = await _getAccessToken();
         response = await sendRequest(token);
-      } else {
-        await clearTokens();
-        AuthNavigation.redirectToLogin();
       }
+      // _refreshTokens() already handles server rejection (clears + redirects).
+      // On network error it returns false without clearing — do not logout here.
     }
 
     return response;

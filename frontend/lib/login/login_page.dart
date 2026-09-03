@@ -249,8 +249,14 @@ class _UserLoginPageState extends State<UserLoginPage> {
           if (profileRes != null) {
             profileRes['role'] = userType == 'admin' ? 'admin' : 'user';
             session.setUser(profileRes);
-            await session.checkSubscriptionStatus();
+          } else if (userOrAdmin != null) {
+            // Profile fetch failed — persist the basic login response so
+            // user_data is always written and cold-start works offline.
+            final fallback = Map<String, dynamic>.from(userOrAdmin as Map);
+            fallback['role'] = userType == 'admin' ? 'admin' : 'user';
+            session.setUser(fallback);
           }
+          await session.checkSubscriptionStatus();
         }
       }
 

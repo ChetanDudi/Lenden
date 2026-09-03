@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'utils/session_storage.dart';
 import 'dart:convert';
 import 'utils/http_interceptor.dart';
 import 'utils/share_utils.dart' show clearReferralCache;
 import 'user/chats/chat_encryption_service.dart';
 
 class SessionProvider extends ChangeNotifier {
-  final _storage = const FlutterSecureStorage();
   String? _accessToken;
   String? _refreshToken;
   Map<String, dynamic>? _user;
@@ -95,13 +94,13 @@ class SessionProvider extends ChangeNotifier {
   Future<void> loadTokens() async {
     try {
       final results = await Future.wait([
-        _storage.read(key: 'access_token'),
-        _storage.read(key: 'refresh_token'),
+        SessionStorage.read(key: 'access_token'),
+        SessionStorage.read(key: 'refresh_token'),
       ]);
       _accessToken = results[0];
       _refreshToken = results[1];
     } catch (_) {
-      try { await _storage.deleteAll(); } catch (_) {}
+      try { await SessionStorage.deleteAll(); } catch (_) {}
       _accessToken = null;
       _refreshToken = null;
     }
@@ -113,8 +112,8 @@ class SessionProvider extends ChangeNotifier {
     _refreshToken = refreshToken;
     HttpInterceptor.setAccessToken(accessToken);
     HttpInterceptor.setRefreshToken(refreshToken);
-    await _storage.write(key: 'access_token', value: accessToken);
-    await _storage.write(key: 'refresh_token', value: refreshToken);
+    await SessionStorage.write(key: 'access_token', value: accessToken);
+    await SessionStorage.write(key: 'refresh_token', value: refreshToken);
     notifyListeners();
   }
 
@@ -124,7 +123,7 @@ class SessionProvider extends ChangeNotifier {
     } else {
       _accessToken = token;
       HttpInterceptor.setAccessToken(token);
-      await _storage.write(key: 'access_token', value: token);
+      await SessionStorage.write(key: 'access_token', value: token);
       notifyListeners();
     }
   }
@@ -138,12 +137,12 @@ class SessionProvider extends ChangeNotifier {
     HttpInterceptor.setRefreshToken(null);
     try {
       await Future.wait([
-        _storage.delete(key: 'access_token'),
-        _storage.delete(key: 'refresh_token'),
-        _storage.delete(key: 'user_data'),
+        SessionStorage.delete(key: 'access_token'),
+        SessionStorage.delete(key: 'refresh_token'),
+        SessionStorage.delete(key: 'user_data'),
       ]);
     } catch (_) {
-      try { await _storage.deleteAll(); } catch (_) {}
+      try { await SessionStorage.deleteAll(); } catch (_) {}
     }
     clearCounterparties();
     clearSubscription();
@@ -162,9 +161,9 @@ class SessionProvider extends ChangeNotifier {
     List<String?> results;
     try {
       results = await Future.wait([
-        _storage.read(key: 'access_token'),
-        _storage.read(key: 'refresh_token'),
-        _storage.read(key: 'user_data'),
+        SessionStorage.read(key: 'access_token'),
+        SessionStorage.read(key: 'refresh_token'),
+        SessionStorage.read(key: 'user_data'),
       ]);
     } catch (_) {
       // Storage read failed (e.g. transient Android Keystore hiccup).
@@ -230,13 +229,15 @@ class SessionProvider extends ChangeNotifier {
         notifyListeners();
         unawaited(_doBackgroundInit(refreshProfile: false));
       } else {
-        await clearTokens();
+        // The interceptor already handles genuine token rejection:
+        // it clears tokens + calls redirectToLogin() when the server
+        // confirms the refresh token is invalid. A non-200 here means
+        // a transient network issue prevented the refresh — do NOT
+        // clear tokens or the 7-day refresh token is permanently lost.
         notifyListeners();
       }
     } catch (_) {
-      // Network error: keep tokens intact so the user doesn't get logged out
-      // on a transient connection failure. Show the app as-is (user = null →
-      // the root widget will present a retry screen rather than login).
+      // Network error: keep tokens intact.
       notifyListeners();
     }
   }
@@ -272,9 +273,11 @@ class SessionProvider extends ChangeNotifier {
         _user = freshUser;
         _role = resolvedRole;
         await _saveUserData(freshUser);
-      } else if (response.statusCode == 401) {
-        await clearTokens();
       }
+      // Non-200: the interceptor already handled genuine auth failures
+      // (it redirects to login when the server confirms the refresh token
+      // is invalid). A 401 here after the interceptor ran means a transient
+      // network issue; do NOT clear tokens or the refresh token is lost.
     } catch (_) {}
   }
 
@@ -458,7 +461,7 @@ class SessionProvider extends ChangeNotifier {
 
   Future<void> _saveUserData(Map<String, dynamic> user) async {
     try {
-      await _storage.write(key: 'user_data', value: jsonEncode(user));
+      await SessionStorage.write(key: 'user_data', value: jsonEncode(user));
     } catch (e) {
       print('Failed to persist user data: $e');
     }
@@ -514,7 +517,7 @@ class SessionProvider extends ChangeNotifier {
   Future<void> clearUser() async {
     _user = null;
     _role = null;
-    await _storage.delete(key: 'user_data');
+    await SessionStorage.delete(key: 'user_data');
     notifyListeners();
   }
 
@@ -573,10 +576,10 @@ class SessionProvider extends ChangeNotifier {
   }
 
   Future<void> saveDeviceId(String deviceId) async {
-    await _storage.write(key: _deviceIdKey, value: deviceId);
+    await SessionStorage.write(key: _deviceIdKey, value: deviceId);
   }
 
   Future<String?> getDeviceId() async {
-    return await _storage.read(key: _deviceIdKey);
+    return await SessionStorage.read(key: _deviceIdKey);
   }
 }
