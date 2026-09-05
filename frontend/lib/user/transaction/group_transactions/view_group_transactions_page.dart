@@ -28,6 +28,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../widgets/share_as_note_sheet.dart';
 import '../../../utils/community_helpers.dart';
 import 'group_overview_page.dart';
+import '../../../utils/transaction_constants.dart';
 
 final _oidRe = RegExp(r'^[0-9a-f]{24}$');
 String _sanitizeUser(dynamic v, {String fallback = 'Deleted Account'}) {
@@ -63,20 +64,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
   bool _showFavouritesOnly = false;
   bool _showPendingOnly = false;
   String _groupSort = 'default'; // 'default' | 'name_asc' | 'expenses_desc' | 'pending_desc'
+  String _selectedMemberFilter = 'all';
   int createdGroupsCount = 0; // Track groups created by user
   String? _displayCurrencyError;
-  List<Map<String, String>> _currencies = [
-    {'code': 'INR', 'symbol': '₹'},
-    {'code': 'USD', 'symbol': '\$'},
-    {'code': 'EUR', 'symbol': '€'},
-    {'code': 'GBP', 'symbol': '£'},
-    {'code': 'JPY', 'symbol': '¥'},
-    {'code': 'CNY', 'symbol': '¥'},
-    {'code': 'CAD', 'symbol': '\$'},
-    {'code': 'AUD', 'symbol': '\$'},
-    {'code': 'CHF', 'symbol': 'Fr'},
-    {'code': 'RUB', 'symbol': '₽'},
-  ];
+  List<Map<String, String>> _currencies = List<Map<String, String>>.from(kTxCurrencies);
 
   @override
   void initState() {
@@ -545,8 +536,32 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     );
   }
 
+  List<Map<String, dynamic>> _memberOptions() {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final myEmail = session.user?['email']?.toString() ?? '';
+    final seen = <String>{};
+    final opts = <Map<String, dynamic>>[{'email': 'all', 'name': 'All'}];
+    for (final g in userGroups) {
+      for (final m in (g['members'] as List? ?? [])) {
+        final email = (m is Map ? (m['email'] ?? '') : '').toString();
+        final name = (m is Map ? (m['name'] ?? m['username'] ?? email.split('@').first) : '').toString();
+        if (email.isNotEmpty && email != myEmail && !seen.contains(email)) {
+          seen.add(email);
+          final pic = (m is Map ? (m['profileImage'] ?? m['profilePicture'] ?? '') : '').toString();
+          opts.add({'email': email, 'name': name, 'profileImage': pic});
+        }
+      }
+    }
+    return opts;
+  }
+
   List<Map<String, dynamic>> get _sortedGroups {
     var list = List<Map<String, dynamic>>.from(userGroups);
+    // Member filter
+    if (_selectedMemberFilter != 'all') {
+      list = list.where((g) => (g['members'] as List? ?? []).any((m) =>
+        m is Map && m['email']?.toString() == _selectedMemberFilter)).toList();
+    }
     if (_showPendingOnly) {
       list = list.where((g) => (g['userPendingBalance'] as num? ?? 0).toDouble() != 0).toList();
     }
@@ -874,14 +889,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     final title    = (group['title'] ?? 'Group').toString();
     final members  = (group['members'] as List? ?? []);
@@ -995,7 +1002,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                 final eAmt    = (e is Map ? (e['amount'] as num?) : null)?.toDouble() ?? 0;
                 final eCurr   = e is Map ? (e['currency'] ?? 'INR').toString() : 'INR';
                 final ePaidBy = _sanitizeUser(e is Map ? e['paidBy'] : null);
-                final eAmtStr = '${pdfSym(eCurr)} ${eAmt.toStringAsFixed(2)}';
+                final eAmtStr = '${txPdfSymbol(eCurr)} ${eAmt.toStringAsFixed(2)}';
                 return pw.TableRow(children: [eDesc, eAmtStr, ePaidBy].map((v) => pw.Padding(
                   padding: const pw.EdgeInsets.all(6),
                   child: pw.Text(v, style: pw.TextStyle(fontSize: 9)),
@@ -1079,14 +1086,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     const green     = PdfColor.fromInt(0xFF2E7D32);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     pw.Widget pCell(String text, {bool bold = false, PdfColor? color}) =>
         pw.Padding(
@@ -1140,7 +1139,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Total Amount (INR)', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-              pw.Text('${pdfSym('INR')}${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
+              pw.Text('${txPdfSymbol('INR')}${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
             ]),
           ]),
         ),
@@ -1184,7 +1183,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                     decoration: pw.BoxDecoration(color: i.isEven ? lightGrey : null),
                     children: [
                       pCell((e['description'] ?? '—').toString()),
-                      pCell('${pdfSym('INR')}${amt.toStringAsFixed(2)}', color: green),
+                      pCell('${txPdfSymbol('INR')}${amt.toStringAsFixed(2)}', color: green),
                       pCell(_sanitizeUser(e['addedBy'], fallback: '—')),
                       pCell(dateStr),
                     ],
@@ -1620,6 +1619,77 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                               ]),
                             ),
                           ),
+                          // Member filter strip
+                          if (userGroups.isNotEmpty) Builder(builder: (ctx) {
+                            final members = _memberOptions();
+                            if (members.length <= 1) return const SizedBox.shrink();
+                            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                                child: Row(children: [
+                                  Container(width: 22, height: 22, decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                                    child: const Icon(Icons.people_alt_outlined, size: 13, color: AppColors.cyan)),
+                                  const SizedBox(width: 6),
+                                  Text('Filter by Member', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                                ]),
+                              ),
+                              SizedBox(
+                                height: 64,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  itemCount: members.length,
+                                  itemBuilder: (ctx2, mi) {
+                                    final m = members[mi];
+                                    final email = m['email'] as String;
+                                    final name = m['name'] as String;
+                                    final pic = (m['profileImage'] ?? '').toString();
+                                    final isAll = email == 'all';
+                                    final isSelected = _selectedMemberFilter == email;
+                                    return GestureDetector(
+                                      onTap: () => setState(() => _selectedMemberFilter = isSelected && !isAll ? 'all' : email),
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(right: 10),
+                                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                          Container(
+                                            width: 38, height: 38,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: isSelected ? AppColors.cyan : AppThemeColors.border(ctx2), width: isSelected ? 2 : 1),
+                                            ),
+                                            child: ClipOval(
+                                              child: (!isAll && pic.isNotEmpty)
+                                                ? Image.network(pic, width: 38, height: 38, fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => Container(
+                                                      color: isSelected ? AppColors.cyan.withValues(alpha: 0.14) : AppThemeColors.surfaceBg(ctx2),
+                                                      child: Icon(Icons.person_rounded, size: 18, color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx2)),
+                                                    ))
+                                                : Container(
+                                                    color: isSelected ? AppColors.cyan.withValues(alpha: 0.14) : AppThemeColors.surfaceBg(ctx2),
+                                                    child: Icon(isAll ? Icons.groups_rounded : Icons.person_rounded, size: 18,
+                                                      color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx2)),
+                                                  ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          SizedBox(
+                                            width: 48,
+                                            child: Text(
+                                              isAll ? 'All' : name.isEmpty ? email.split('@').first : name.split(' ').first,
+                                              maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                                              style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                                color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx2)),
+                                            ),
+                                          ),
+                                        ]),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ]);
+                          }),
+
                           // Groups List
                           userGroups.isEmpty &&
                                   _searchController.text.isNotEmpty

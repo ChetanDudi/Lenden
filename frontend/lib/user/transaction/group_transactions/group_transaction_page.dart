@@ -61,6 +61,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       'newest'; // newest, oldest, name_az, name_za, members_high, members_low
   String memberCountFilter = 'all'; // all, 2-5, 6-10, 10+
   String dateFilter = 'all'; // all, 7days, 30days, custom
+  String _memberEmailFilter = 'all';
   DateTime? customStartDate;
   DateTime? customEndDate;
   Color? selectedGroupColor; // for group color customization
@@ -390,6 +391,13 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       if (_showFavouritesOnly) {
         final isFavourite = (g['favourite'] as List? ?? []).contains(myEmail);
         if (!isFavourite) return false;
+      }
+
+      // Member email filter
+      if (_memberEmailFilter != 'all') {
+        final hasMember = (g['members'] as List? ?? []).any(
+          (m) => m is Map && (m['email'] ?? '').toString() == _memberEmailFilter);
+        if (!hasMember) return false;
       }
 
       final title = (g['title'] ?? '').toString().toLowerCase();
@@ -1092,6 +1100,95 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                   ]),
                                 ),
                                 const SizedBox(height: 8),
+                                // Member filter strip
+                                Builder(builder: (ctx) {
+                                  final session = Provider.of<SessionProvider>(ctx, listen: false);
+                                  final myEmail = session.user?['email']?.toString() ?? '';
+                                  final seen = <String>{};
+                                  final members = <Map<String, dynamic>>[{'email': 'all', 'name': 'All'}];
+                                  for (final g in userGroups) {
+                                    for (final m in (g['members'] as List? ?? [])) {
+                                      if (m is Map) {
+                                        final email = (m['email'] ?? '').toString();
+                                        final name = (m['name'] ?? m['username'] ?? email.split('@').first).toString();
+                                        if (email.isNotEmpty && email != myEmail && !seen.contains(email)) {
+                                          seen.add(email);
+                                          final pic = (m['profileImage'] ?? m['profilePicture'] ?? '').toString();
+                                          members.add({'email': email, 'name': name, 'profileImage': pic});
+                                        }
+                                      }
+                                    }
+                                  }
+                                  if (members.length <= 1) return const SizedBox.shrink();
+                                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Row(children: [
+                                        Container(width: 20, height: 20, decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(5)),
+                                          child: const Icon(Icons.people_alt_outlined, size: 12, color: AppColors.cyan)),
+                                        const SizedBox(width: 6),
+                                        Text('Filter by Member', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: AppThemeColors.secondaryText(ctx))),
+                                      ]),
+                                    ),
+                                    SizedBox(
+                                      height: 60,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: members.length,
+                                        itemBuilder: (ctx2, mi) {
+                                          final m = members[mi];
+                                          final email = m['email'] as String;
+                                          final name = m['name'] as String;
+                                          final pic = (m['profileImage'] ?? '').toString();
+                                          final isAll = email == 'all';
+                                          final isSelected = _memberEmailFilter == email;
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() => _memberEmailFilter = isSelected && !isAll ? 'all' : email);
+                                              _filterAndSearchGroups();
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(right: 10),
+                                              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                Container(
+                                                  width: 36, height: 36,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(color: isSelected ? AppColors.cyan : AppThemeColors.border(ctx2), width: isSelected ? 2 : 1),
+                                                  ),
+                                                  child: ClipOval(
+                                                    child: (!isAll && pic.isNotEmpty)
+                                                      ? Image.network(pic, width: 36, height: 36, fit: BoxFit.cover,
+                                                          errorBuilder: (_, __, ___) => Container(
+                                                            color: isSelected ? AppColors.cyan.withValues(alpha: 0.14) : AppThemeColors.surfaceBg(ctx2),
+                                                            child: Icon(Icons.person_rounded, size: 17, color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx2)),
+                                                          ))
+                                                      : Container(
+                                                          color: isSelected ? AppColors.cyan.withValues(alpha: 0.14) : AppThemeColors.surfaceBg(ctx2),
+                                                          child: Icon(isAll ? Icons.groups_rounded : Icons.person_rounded, size: 17,
+                                                            color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx2)),
+                                                        ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 3),
+                                                SizedBox(
+                                                  width: 46,
+                                                  child: Text(
+                                                    isAll ? 'All' : name.split(' ').first,
+                                                    maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                                                    style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                                      color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx2)),
+                                                  ),
+                                                ),
+                                              ]),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ]);
+                                }),
                                 if (_showFavouritesOnly &&
                                     filteredGroups.isEmpty)
                                   Container(

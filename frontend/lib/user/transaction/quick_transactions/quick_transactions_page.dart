@@ -7,13 +7,13 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../utils/share_utils.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../api_config.dart';
 import '../../../widgets/currency_display.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
@@ -27,6 +27,7 @@ import './recurring_templates_page.dart';
 import './scheduled_transactions_page.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
+import '../../../utils/session_storage.dart';
 import '../../../widgets/search_tab_bar.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/wave_widget.dart';
@@ -35,30 +36,20 @@ import '../../../widgets/app_widgets.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
 import './widgets/quick_transaction_filter_page.dart';
+import '../../../utils/transaction_constants.dart';
 
-const _kCategories = [
-  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
-  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
-  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
-  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
-  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
-  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
-  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
-  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
-  {'key': 'personal',      'label': 'Personal',      'icon': Icons.person_rounded},
-  {'key': 'rent',          'label': 'Rent',          'icon': Icons.home_rounded},
-  {'key': 'business',      'label': 'Business',      'icon': Icons.business_center_rounded},
-  {'key': 'travel',        'label': 'Travel',        'icon': Icons.flight_rounded},
-  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
-];
+IconData _catIcon(String? key) => txCatIcon(key);
+String _catLabel(String? key) => txCatLabel(key);
 
-IconData _catIcon(String? key) {
-  final cat = _kCategories.firstWhere((c) => c['key'] == key, orElse: () => _kCategories.last);
-  return cat['icon'] as IconData;
-}
+class _QTCardTheme {
+  static List<Color> colorsFor(String category, bool isCleared) =>
+      isCleared ? kTxClearedGradient : txCatGradient(category);
 
-String _catLabel(String? key) {
-  return (_kCategories.firstWhere((c) => c['key'] == key, orElse: () => _kCategories.last)['label'] as String);
+  static Widget watermark(String category) => Icon(
+    txCatIcon(category),
+    size: 175,
+    color: Colors.white.withValues(alpha: 0.22),
+  );
 }
 
 final _oidRe = RegExp(r'^[0-9a-f]{24}$');
@@ -106,6 +97,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   String _selectedCounterparty = 'all';
   String _categoryFilter = 'all';
   bool _showFavouritesOnly = false;
+  double? _qtMinAmount;
+  double? _qtMaxAmount;
   bool _showAll = false;
   int _qtPage = 1;
   bool _qtHasMore = false;
@@ -113,11 +106,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   static const int _qtPageSize = 20;
   Set<String> _blockedEmails = {};
   Set<String> _pinnedTransactionIds = {};
+  // Tracks transactions for which the lender sent a payment request this session
+  final Set<String> _paymentRequestedTxIds = {};
   int _bannerRefreshTrigger = 0;
   Map<String, dynamic>? _dailyLimits;
   String? _displayCurrencyError;
   Timer? _searchDebounceTimer;
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final Map<String, int> _clearActionTokens = {};
   bool _groupByContact = false;
 
@@ -191,7 +185,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   Future<void> _loadPinnedTransactions() async {
     final currentUserEmail = _currentUserEmail();
     if (currentUserEmail == null || currentUserEmail.isEmpty) return;
-    final raw = await _storage.read(key: 'quick_pins_$currentUserEmail');
+    final raw = await SessionStorage.read(key: 'quick_pins_$currentUserEmail');
     if (raw == null || raw.isEmpty) return;
     try {
       final ids = List<String>.from(jsonDecode(raw) as List<dynamic>);
@@ -205,7 +199,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   Future<void> _persistPinnedTransactions() async {
     final currentUserEmail = _currentUserEmail();
     if (currentUserEmail == null || currentUserEmail.isEmpty) return;
-    await _storage.write(
+    await SessionStorage.write(
       key: 'quick_pins_$currentUserEmail',
       value: jsonEncode(_pinnedTransactionIds.toList()),
     );
@@ -279,6 +273,40 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         options.add({
           'email': email,
           'label': name.isNotEmpty ? name : email,
+        });
+      }
+    }
+    return options;
+  }
+
+  List<Map<String, dynamic>> _counterpartyAvatarList() {
+    final seen = <String>{};
+    final options = <Map<String, dynamic>>[
+      {'email': 'all', 'label': 'All', 'avatar': null, 'external': false},
+    ];
+    for (final transaction in transactions) {
+      if (transaction['isExternalUser'] == true) {
+        final name = (transaction['counterpartyName'] ?? '').toString().trim();
+        if (name.isEmpty) continue;
+        final key = '__ext__:$name';
+        if (seen.contains(key.toLowerCase())) continue;
+        seen.add(key.toLowerCase());
+        options.add({'email': key, 'label': name, 'avatar': null, 'external': true});
+      } else {
+        final counterparty = _counterpartyForViewer(transaction);
+        final email = (counterparty?['email'] ?? '').toString().trim();
+        if (email.isEmpty || seen.contains(email.toLowerCase())) continue;
+        seen.add(email.toLowerCase());
+        final name = (counterparty?['name'] ?? '').toString().trim();
+        final userId = counterparty?['userId']?.toString();
+        final img = (userId != null && userId.isNotEmpty)
+            ? '${ApiConfig.baseUrl}/api/users/$userId/profile-image'
+            : null;
+        options.add({
+          'email': email,
+          'label': name.isNotEmpty ? name : email,
+          'avatar': img,
+          'external': false,
         });
       }
     }
@@ -608,6 +636,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       _categoryFilter = 'all';
       _showFavouritesOnly = false;
       _showAll = false;
+      _qtMinAmount = null;
+      _qtMaxAmount = null;
     });
     fetchQuickTransactions();
   }
@@ -641,6 +671,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         }
       }
       if (_categoryFilter != 'all') params['category'] = _categoryFilter;
+      if (_qtMinAmount != null) params['minAmount'] = _qtMinAmount!.toString();
+      if (_qtMaxAmount != null) params['maxAmount'] = _qtMaxAmount!.toString();
 
       final fetchPage = append ? _qtPage + 1 : 1;
       params['page'] = fetchPage.toString();
@@ -1503,14 +1535,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     final role = _roleForViewer(tx);
     final counterparty = _counterpartyForViewer(tx) ?? <String, dynamic>{};
@@ -1519,7 +1543,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     final isCleared = tx['cleared'] == true;
     final amount   = (tx['amount'] as num?)?.toDouble() ?? 0;
     final currency = (tx['currency'] ?? 'INR').toString();
-    final sym      = pdfSym(currency);
+    final sym      = txPdfSymbol(currency);
     final desc     = (tx['description'] ?? '').toString();
     final category = (tx['category'] ?? '').toString();
     final rawId    = (tx['_id'] ?? '').toString();
@@ -1656,14 +1680,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     const orange    = PdfColor.fromInt(0xFFF06322);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     pw.Widget _cell(String text, {bool bold = false, PdfColor? color}) =>
         pw.Padding(
@@ -1722,7 +1738,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           final cur = filteredTransactions.isNotEmpty
               ? (filteredTransactions.first['currency'] ?? 'INR').toString()
               : 'INR';
-          final sym = pdfSym(cur);
+          final sym = txPdfSymbol(cur);
           return pw.Container(
             margin: const pw.EdgeInsets.only(bottom: 20),
             decoration: pw.BoxDecoration(
@@ -1768,7 +1784,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
               final cp = _counterpartyForViewer(tx);
               final cpName = _sanitizeCp(cp, fallback: '—');
               final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-              final sym = pdfSym((tx['currency'] ?? 'INR').toString().toUpperCase());
+              final sym = txPdfSymbol((tx['currency'] ?? 'INR').toString().toUpperCase());
               final cleared = tx['cleared'] == true;
               final dateStr = (tx['date'] ?? '').toString().split('T').first;
               return pw.TableRow(
@@ -1871,6 +1887,27 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         );
       },
     );
+  }
+
+  Future<void> _requestPayment(Map<String, dynamic> transaction) async {
+    final txId = (transaction['_id'] ?? '').toString();
+    try {
+      final res = await ApiClient.post(
+        '/api/quick-transactions/$txId/request-payment',
+        body: {},
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() => _paymentRequestedTxIds.add(txId));
+        showSnack(context, 'Payment request sent!');
+      } else {
+        final error = jsonDecode(res.body)['error'] ?? res.body;
+        showSnack(context, error.toString(), isError: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showSnack(context, e.toString(), isError: true);
+    }
   }
 
   Future<void> _requestSettlement(Map<String, dynamic> transaction) async {
@@ -2007,31 +2044,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     );
   }
 
-  Widget _buildStatusChip(String label, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showCurrencyPicker(BuildContext ctx) {
     final currencies = currencyData?.currencies ?? kCurrencyFallbacks;
@@ -2152,6 +2164,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         _categoryFilter = (result['category'] ?? 'all').toString();
         _showFavouritesOnly = result['favourites'] == true;
         _showAll = false;
+        if (result['sort_by'] != null) sortBy = result['sort_by'].toString();
+        _qtMinAmount = result['min_amount'] as double?;
+        _qtMaxAmount = result['max_amount'] as double?;
       });
       fetchQuickTransactions();
     });
@@ -2177,17 +2192,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     );
   }
 
-  Color _getNoteColor(int index) {
-    final colors = [
-      Color(0xFFFFF4E6), // Cream
-      Color(0xFFE8F5E9), // Light green
-      Color(0xFFFCE4EC), // Light pink
-      Color(0xFFE3F2FD), // Light blue
-      Color(0xFFFFF9C4), // Light yellow
-      Color(0xFFF3E5F5), // Light purple
-    ];
-    return colors[index % colors.length];
-  }
 
   // â”€â”€â”€ Compact filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildFilterBar(String Function(String) t) {
@@ -2340,24 +2344,93 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   }
 
   Widget _buildPersonFilter(String Function(String) t, List<Map<String, String>> options) {
+    final isFiltered = _selectedCounterparty != 'all';
+    final chipColor = isFiltered ? AppColors.cyan : AppThemeColors.secondaryText(context);
+
+    String _initials(String name) {
+      final parts = name.trim().split(RegExp(r'\s+'));
+      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      return name.isNotEmpty ? name[0].toUpperCase() : '?';
+    }
+
     return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: _selectedCounterparty != 'all' ? AppColors.cyan.withValues(alpha: 0.1) : AppThemeColors.cardBg(context),
+        color: isFiltered ? AppColors.cyan.withValues(alpha: 0.10) : AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _selectedCounterparty != 'all' ? AppColors.cyan : AppThemeColors.divider(context)),
+        border: Border.all(color: isFiltered ? AppColors.cyan : AppThemeColors.divider(context), width: isFiltered ? 1.5 : 1),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCounterparty,
           isDense: true,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _selectedCounterparty != 'all' ? AppColors.cyan : AppThemeColors.secondaryText(context)),
-          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: _selectedCounterparty != 'all' ? AppColors.cyan : AppThemeColors.secondaryText(context)),
-          items: options.map((item) => DropdownMenuItem<String>(
-            value: item['email'],
-            child: Text(item['label'] ?? t('all_people_label'), style: TextStyle(fontSize: 11, color: AppThemeColors.primaryText(context))),
-          )).toList(),
+          dropdownColor: AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(16),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: chipColor),
+          // Compact display inside the chip
+          selectedItemBuilder: (ctx) => options.map((item) {
+            final isAll = item['email'] == 'all';
+            final displayName = isAll
+                ? t('all_people_label')
+                : (item['label'] ?? '').split(' (').first;
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(isAll ? Icons.people_rounded : Icons.person_rounded,
+                  size: 13, color: chipColor),
+                const SizedBox(width: 5),
+                Text(displayName,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: chipColor),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ]),
+            );
+          }).toList(),
+          // Styled dropdown menu items
+          items: options.map((item) {
+            final isAll = item['email'] == 'all';
+            final rawLabel = item['label'] ?? t('all_people_label');
+            final isExternal = rawLabel.contains('(Not on LenDen)');
+            final displayName = isExternal ? rawLabel.replaceAll(' (Not on LenDen)', '') : rawLabel;
+            final initials = isAll ? '' : _initials(displayName);
+            final isSelected = item['email'] == _selectedCounterparty;
+            return DropdownMenuItem<String>(
+              value: item['email'],
+              child: Row(children: [
+                // Avatar
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isAll
+                        ? AppColors.cyan.withValues(alpha: 0.12)
+                        : AppColors.cyan.withValues(alpha: 0.10),
+                  ),
+                  child: isAll
+                      ? const Icon(Icons.people_rounded, size: 16, color: AppColors.cyan)
+                      : Center(child: Text(initials,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(displayName,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                        color: AppThemeColors.primaryText(context)),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (isExternal)
+                      Text('Not on LenDen',
+                        style: TextStyle(fontSize: 10, color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w500)),
+                  ],
+                )),
+                if (isSelected)
+                  const Icon(Icons.check_rounded, size: 16, color: AppColors.cyan),
+              ]),
+            );
+          }).toList(),
           onChanged: (v) { if (v != null) _applyCounterpartyFilter(v); },
         ),
       ),
@@ -2410,6 +2483,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           actions: [
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert_rounded, color: AppThemeColors.primaryText(context)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 8,
               onSelected: (value) {
                 switch (value) {
                   case 'group_contact':
@@ -2439,61 +2514,67 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                 PopupMenuItem(
                   value: 'currency_mode',
                   child: Row(children: [
-                    const Icon(Icons.currency_exchange_rounded, size: 18, color: AppColors.cyan),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.currency_exchange_rounded, size: 16, color: AppColors.cyan)),
                     const SizedBox(width: 12),
-                    Text('Currency: $selectedCurrency'),
+                    Text('Currency: $selectedCurrency', style: const TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
                 PopupMenuItem(
                   value: 'group_contact',
                   child: Row(children: [
-                    Icon(_groupByContact ? Icons.calendar_today_rounded : Icons.group_rounded,
-                        size: 18, color: _groupByContact ? AppColors.cyan : null),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: Icon(_groupByContact ? Icons.calendar_today_rounded : Icons.group_rounded, size: 16, color: AppColors.cyan)),
                     const SizedBox(width: 12),
-                    Text(_groupByContact ? 'View by date' : 'Group by contact'),
+                    Text(_groupByContact ? 'View by date' : 'Group by contact', style: const TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
                 if (!loading && error == null && filteredTransactions.isNotEmpty)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'export_csv',
                     child: Row(children: [
-                      Icon(Icons.table_chart_outlined, size: 18),
-                      SizedBox(width: 12),
-                      Text('Export CSV'),
+                      Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.table_chart_outlined, size: 16, color: Colors.green)),
+                      const SizedBox(width: 12),
+                      const Text('Export CSV', style: TextStyle(fontWeight: FontWeight.w500)),
                     ]),
                   ),
                 if (!loading && error == null && filteredTransactions.isNotEmpty)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'export_pdf',
                     child: Row(children: [
-                      Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
-                      SizedBox(width: 12),
-                      Text('Export PDF'),
+                      Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red)),
+                      const SizedBox(width: 12),
+                      const Text('Export PDF', style: TextStyle(fontWeight: FontWeight.w500)),
                     ]),
                   ),
                 if (!loading && error == null && transactions.isNotEmpty)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'analytics',
                     child: Row(children: [
-                      Icon(Icons.analytics_outlined, size: 18),
-                      SizedBox(width: 12),
-                      Text('Analytics'),
+                      Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.analytics_outlined, size: 16, color: Colors.purple)),
+                      const SizedBox(width: 12),
+                      const Text('Analytics', style: TextStyle(fontWeight: FontWeight.w500)),
                     ]),
                   ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'scheduled',
                   child: Row(children: [
-                    Icon(Icons.schedule_rounded, size: 18),
-                    SizedBox(width: 12),
-                    Text('Scheduled'),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.schedule_rounded, size: 16, color: Colors.orange)),
+                    const SizedBox(width: 12),
+                    const Text('Scheduled', style: TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'recurring',
                   child: Row(children: [
-                    Icon(Icons.repeat_rounded, size: 18),
-                    SizedBox(width: 12),
-                    Text('Recurring'),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.repeat_rounded, size: 16, color: Colors.blue)),
+                    const SizedBox(width: 12),
+                    const Text('Recurring', style: TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
               ],
@@ -2517,10 +2598,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       body: SafeArea(
         child: Column(
           children: [
-            // â”€â”€ Compact filter bar â”€â”€
+            // ── Compact filter bar ──
             _buildFilterBar(t),
 
-            // â”€â”€ Budget banner + subscription badge (slim) â”€â”€
+            // ── Counterparty avatar row (tap to filter by person) ──
+            if (!loading && transactions.isNotEmpty)
+              _buildCounterpartyAvatarStrip(),
+
+            // ── Budget banner + subscription badge (slim) ──
             BudgetLimitBanner(
               type: 'quick',
               refreshTrigger: _bannerRefreshTrigger,
@@ -2759,6 +2844,88 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
+  Widget _buildCounterpartyAvatarStrip() {
+    final counterparties = _counterpartyAvatarList();
+    if (counterparties.length <= 1) return const SizedBox.shrink();
+    return SizedBox(
+      height: 78,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+        itemCount: counterparties.length,
+        itemBuilder: (context, idx) {
+          final cp = counterparties[idx];
+          final isSelected = _selectedCounterparty == cp['email'];
+          final label = cp['label'] as String;
+          final avatar = cp['avatar'] as String?;
+          final isAll = cp['email'] == 'all';
+          final isExternal = cp['external'] as bool;
+          return GestureDetector(
+            onTap: () {
+              final next = (isSelected && !isAll) ? 'all' : cp['email'] as String;
+              _applyCounterpartyFilter(next);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? AppColors.cyan : Colors.transparent,
+                        width: 2.5,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 21,
+                      backgroundColor: isSelected
+                          ? AppColors.cyan.withValues(alpha: 0.18)
+                          : isAll
+                              ? AppColors.cyan.withValues(alpha: 0.10)
+                              : AppThemeColors.cardBg(context),
+                      child: (avatar != null && avatar.isNotEmpty)
+                          ? ClipOval(child: Image.network(
+                              avatar, width: 42, height: 42, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                isExternal ? Icons.person_off_rounded : Icons.person_rounded,
+                                color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context),
+                                size: 19,
+                              ),
+                            ))
+                          : Icon(
+                              isAll ? Icons.people_alt_rounded : isExternal ? Icons.person_off_rounded : Icons.person_rounded,
+                              color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context),
+                              size: 19,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: 50,
+                    child: Text(
+                      isAll ? 'All' : label.split(' ').first,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildCompactStatsStrip(String Function(String) t) {
     final total = filteredTransactions.length;
     final pending = filteredTransactions.where((x) => x['cleared'] != true).length;
@@ -2789,7 +2956,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       if (email.isEmpty) continue;
       cpTotals[email] = (cpTotals[email] ?? 0) + _displayNumericAmount(tx).abs();
       cpNames[email] = _sanitizeCp(cp, fallback: email);
-      cpAvatars[email] ??= cp['avatar']?.toString();
+      cpAvatars[email] ??= cp['profileImage']?.toString() ?? cp['avatar']?.toString();
       cpTxCounts[email] = (cpTxCounts[email] ?? 0) + 1;
     }
     String? topEmail;
@@ -2872,11 +3039,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundImage: avatar != null && avatar.isNotEmpty ? NetworkImage(avatar) : null,
               backgroundColor: Colors.white24,
-              child: (avatar == null || avatar.isEmpty)
-                ? Text(_qtInitials(name), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white))
-                : null,
+              child: (avatar != null && avatar.isNotEmpty)
+                ? ClipOval(child: Image.network(
+                    avatar, width: 40, height: 40, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Text(_qtInitials(name), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ))
+                : Text(_qtInitials(name), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -2901,7 +3070,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     final desc = (tx['description'] ?? '').toString();
     final date = tx['date']?.toString().split('T').first ?? '';
     final cpName = _sanitizeCp(cp, fallback: '');
-    final cpAvatar = cp?['avatar']?.toString();
+    final cpAvatar = cp?['profileImage']?.toString() ?? cp?['avatar']?.toString();
 
     showModalBottomSheet(
       context: context,
@@ -2933,9 +3102,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
               Row(children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundImage: cpAvatar != null && cpAvatar.isNotEmpty ? NetworkImage(cpAvatar) : null,
                   backgroundColor: isLender ? const Color(0xFF1B58B8) : const Color(0xFFD95F02),
-                  child: (cpAvatar == null || cpAvatar.isEmpty) ? Text(_qtInitials(cpName), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)) : null,
+                  child: (cpAvatar != null && cpAvatar.isNotEmpty)
+                    ? ClipOval(child: Image.network(
+                        cpAvatar, width: 44, height: 44, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Text(_qtInitials(cpName), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ))
+                    : Text(_qtInitials(cpName), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -3044,502 +3217,428 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         (transaction['settlementRequestedBy'] ?? '').toString().toLowerCase();
     final requestedByYou = settlementRequestedBy.isNotEmpty &&
         settlementRequestedBy == _currentUserEmail();
-    final _creatorEmail =
-        (transaction['creatorEmail'] ?? '').toString().toLowerCase().trim();
-    final creatorName = (() {
-      for (final user in (transaction['users'] as List? ?? [])) {
-        if (user is Map) {
-          if ((user['email'] ?? '').toString().toLowerCase().trim() ==
-              _creatorEmail) {
-            return Map<String, dynamic>.from(user);
-          }
-        }
-      }
-      return <String, dynamic>{
-        'name': transaction['creatorEmail'] ?? t('unknown_label'),
-        'email': transaction['creatorEmail'] ?? t('unknown_label'),
-      };
-    })();
     final isPinned =
         _pinnedTransactionIds.contains((transaction['_id'] ?? '').toString());
+
+    final isLender = roleForViewer == 'lender';
+    final category = (transaction['category'] ?? 'other').toString();
+
+    final txId = (transaction['_id'] ?? '').toString();
+    final List<Color> cardColors = _QTCardTheme.colorsFor(category, isCleared);
+
+    final hasPayNow = !isCleared && roleForViewer == 'borrower';
+    final canRequestPayment = !isCleared && roleForViewer == 'lender' && transaction['isExternalUser'] != true;
+    final paymentRequestSent = _paymentRequestedTxIds.contains(txId);
+    final hasSettlementButtons = settlementStatus == 'pending' && _canRespondToSettlement(transaction);
+    final showSettlementInfo = settlementStatus == 'pending' && !hasSettlementButtons;
+    final cpName = (counterparty?['name'] ?? counterparty?['email'] ?? t('unknown_label')).toString();
+
+    // ── shared popup handler ──
+    void onMenu(String value) {
+      if (value == 'edit') createOrEditQuickTransaction(transaction: transaction);
+      else if (value == 'duplicate') _duplicateQuickTransaction(transaction);
+      else if (value == 'delete') deleteQuickTransaction(transaction['_id']);
+      else if (value == 'request_settlement') _requestSettlement(transaction);
+      else if (value == 'accept_settlement') _respondSettlement(transaction, 'accept');
+      else if (value == 'reject_settlement') _respondSettlement(transaction, 'reject');
+      else if (value == 'pay_now') _payNow(transaction);
+      else if (value == 'share') _showReceiptDialog(transaction);
+      else if (value == 'share_as_note') {
+        final desc = (transaction['description'] ?? '').toString();
+        showShareAsNoteSheet(context, title: desc.isNotEmpty ? desc : t('lenden_quick_transaction_label'), content: _buildReceiptText(transaction));
+      } else if (value == 'share_pdf') _shareQuickTransactionPdf(transaction);
+      else if (value == 'pin') _togglePinTransaction((transaction['_id'] ?? '').toString());
+    }
+
     return Slidable(
-        key: ValueKey((transaction['_id'] ?? '').toString()),
-        startActionPane: ActionPane(
-          motion: const DrawerMotion(),
-          children: [
-            if (!isCleared &&
-                (settlementStatus == 'none' ||
-                    settlementStatus == 'rejected') &&
-                roleForViewer == 'lender')
-              SlidableAction(
-                onPressed: (_) => _requestSettlement(transaction),
-                backgroundColor: Colors.teal,
-                foregroundColor: Colors.white,
-                icon: Icons.handshake_rounded,
-                label: t('settle_label'),
-              ),
-            SlidableAction(
-              onPressed: (_) => _showReceiptDialog(transaction),
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              icon: Icons.share_rounded,
-              label: t('share'),
-            ),
-          ],
-        ),
-        endActionPane: ActionPane(
-          motion: const DrawerMotion(),
-          children: [
-            if (!isCleared)
-              SlidableAction(
-                onPressed: (_) =>
-                    createOrEditQuickTransaction(transaction: transaction),
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                icon: Icons.edit,
-                label: t('edit'),
-              ),
-            if (isCleared)
-              SlidableAction(
-                onPressed: (_) => deleteQuickTransaction(transaction['_id']),
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                icon: Icons.delete,
-                label: t('delete'),
-              ),
-          ],
-        ),
+      key: ValueKey((transaction['_id'] ?? '').toString()),
+      startActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        children: [
+          if (!isCleared && (settlementStatus == 'none' || settlementStatus == 'rejected') && roleForViewer == 'lender')
+            SlidableAction(onPressed: (_) => _requestSettlement(transaction), backgroundColor: Colors.teal, foregroundColor: Colors.white, icon: Icons.handshake_rounded, label: t('settle_label')),
+          SlidableAction(onPressed: (_) => _showReceiptDialog(transaction), backgroundColor: Colors.blue, foregroundColor: Colors.white, icon: Icons.share_rounded, label: t('share')),
+        ],
+      ),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        children: [
+          if (!isCleared)
+            SlidableAction(onPressed: (_) => createOrEditQuickTransaction(transaction: transaction), backgroundColor: Colors.orange, foregroundColor: Colors.white, icon: Icons.edit, label: t('edit')),
+          if (isCleared)
+            SlidableAction(onPressed: (_) => deleteQuickTransaction(transaction['_id']), backgroundColor: Colors.red, foregroundColor: Colors.white, icon: Icons.delete, label: t('delete')),
+        ],
+      ),
+      child: GestureDetector(
+        onTap: () async {
+          final didChange = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => QuickTransactionDetailPage(transaction: transaction)));
+          if (didChange == true && mounted) fetchQuickTransactions();
+        },
         child: Container(
-          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            gradient: LinearGradient(colors: cardColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+            boxShadow: [BoxShadow(color: cardColors.last.withValues(alpha: 0.38), blurRadius: 18, offset: const Offset(0, 7))],
           ),
-          child: GestureDetector(
-            onTap: () async {
-              final didChange = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => QuickTransactionDetailPage(
-                    transaction: transaction,
-                  ),
-                ),
-              );
-              if (didChange == true && mounted) fetchQuickTransactions();
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: _getNoteColor(i),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: SingleChildScrollView(
-                // Added vertical scroll
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              children: [
+                // Category watermark icon — sole per-category visual
+                Positioned(right: -18, top: 28, child: _QTCardTheme.watermark(category)),
+                // Card content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 10, 18),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              // Added horizontal scroll for amount
-                              scrollDirection: Axis.horizontal,
-                              child: Text(
-                                _formatDisplayAmount(transaction['amount'], transaction['currency']?.toString()),
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: roleForViewer == 'lender'
-                                    ? const Color(0xFF2E7D32)
-                                    : const Color(0xFFC62828),
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => _togglePinTransaction(
-                                (transaction['_id'] ?? '').toString()),
-                            icon: Icon(
-                              isPinned ? Icons.star : Icons.star_border_rounded,
-                              color: isPinned
-                                  ? Colors.amber[700]
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () =>
-                                _toggleQuickTransactionFavourite(transaction),
-                            icon: Icon(
-                              _isQuickTransactionFavourited(transaction)
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: _isQuickTransactionFavourited(transaction)
-                                  ? Colors.redAccent
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                          if (isCleared)
-                            Text(
-                              t('cleared'),
-                              style: TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                createOrEditQuickTransaction(
-                                    transaction: transaction);
-                              } else if (value == 'duplicate') {
-                                _duplicateQuickTransaction(transaction);
-                              } else if (value == 'delete') {
-                                deleteQuickTransaction(transaction['_id']);
-                              } else if (value == 'request_settlement') {
-                                _requestSettlement(transaction);
-                              } else if (value == 'accept_settlement') {
-                                _respondSettlement(transaction, 'accept');
-                              } else if (value == 'reject_settlement') {
-                                _respondSettlement(transaction, 'reject');
-                              } else if (value == 'pay_now') {
-                                _payNow(transaction);
-                              } else if (value == 'share') {
-                                _showReceiptDialog(transaction);
-                              } else if (value == 'share_as_note') {
-                                final desc = (transaction['description'] ?? '').toString();
-                                final receiptText = _buildReceiptText(transaction);
-                                showShareAsNoteSheet(context, title: desc.isNotEmpty ? desc : t('lenden_quick_transaction_label'), content: receiptText);
-                              } else if (value == 'share_pdf') {
-                                _shareQuickTransactionPdf(transaction);
-                              } else if (value == 'pin') {
-                                _togglePinTransaction(
-                                    (transaction['_id'] ?? '').toString());
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              if (!isCleared)
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Text(t('edit')),
-                                ),
-                              if (!isCleared &&
-                                  (settlementStatus == 'none' ||
-                                      settlementStatus == 'rejected') &&
-                                  roleForViewer == 'lender')
-                                PopupMenuItem(
-                                  value: 'request_settlement',
-                                  child: Text(t('request_settlement_label')),
-                                ),
-                              if (!isCleared && roleForViewer == 'borrower')
-                                PopupMenuItem(
-                                  value: 'pay_now',
-                                  child: Row(children: [
-                                    const Icon(Icons.payment_rounded,
-                                        size: 16, color: AppColors.cyan),
-                                    const SizedBox(width: 8),
-                                    Text(t('pay_now_real_money_label'),
-                                        style: const TextStyle(
-                                            color: AppColors.cyan,
-                                            fontWeight: FontWeight.w600)),
-                                  ]),
-                                ),
-                              if (_canRespondToSettlement(transaction))
-                                PopupMenuItem(
-                                  value: 'accept_settlement',
-                                  child: Text(t('accept_settlement_label')),
-                                ),
-                              if (_canRespondToSettlement(transaction))
-                                PopupMenuItem(
-                                  value: 'reject_settlement',
-                                  child: Text(t('reject_settlement_label')),
-                                ),
-                              PopupMenuItem(
-                                value: 'duplicate',
-                                child: Text(t('duplicate_label')),
-                              ),
-                              PopupMenuItem(
-                                value: 'share',
-                                child: Text(t('share_receipt_label')),
-                              ),
-                              PopupMenuItem(
-                                value: 'share_as_note',
-                                child: Row(children: [
-                                  const Icon(Icons.note_add_rounded, size: 16, color: AppColors.tricolorGreen),
-                                  const SizedBox(width: 8),
-                                  const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
-                              const PopupMenuItem(
-                                value: 'share_pdf',
-                                child: Row(children: [
-                                  Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Share as PDF', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
-                              PopupMenuItem(
-                                value: 'pin',
-                                child: Text(isPinned
-                                    ? t('unpin_label')
-                                    : t('pin_label')),
-                              ),
-                              if (isCleared)
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text(t('delete')),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildStatusChip(
-                            isCleared
-                                ? t('cleared')
-                                : settlementStatus == 'pending'
-                                    ? t('pending_label')
-                                    : t('open_label'),
-                            isCleared
-                                ? Colors.green
-                                : settlementStatus == 'pending'
-                                    ? Colors.orange
-                                    : Colors.blueGrey,
-                            isCleared
-                                ? Icons.check_circle_outline
-                                : settlementStatus == 'pending'
-                                    ? Icons.pending_actions_rounded
-                                    : Icons.receipt_long_rounded,
-                          ),
-                          _buildStatusChip(
-                            roleForViewer == 'lender'
-                                ? t('you_lent_label')
-                                : t('you_borrowed_label'),
-                            roleForViewer == 'lender'
-                                ? const Color(0xFF1B58B8)
-                                : const Color(0xFFD95F02),
-                            roleForViewer == 'lender'
-                                ? Icons.north_east_rounded
-                                : Icons.south_west_rounded,
-                          ),
-                          if (isPinned)
-                            _buildStatusChip(
-                              t('pinned_label'),
-                              Colors.amber[800]!,
-                              Icons.star_rounded,
-                            ),
-                          if (settlementStatus != 'none')
-                            _buildStatusChip(
-                              _settlementStatusLabel(transaction),
-                              settlementStatus == 'accepted'
-                                  ? Colors.green
-                                  : settlementStatus == 'rejected'
-                                      ? Colors.red
-                                      : Colors.teal,
-                              settlementStatus == 'accepted'
-                                  ? Icons.verified_rounded
-                                  : settlementStatus == 'rejected'
-                                      ? Icons.close_rounded
-                                      : Icons.handshake_rounded,
-                            ),
-                          _buildStatusChip(
-                            _catLabel((transaction['category'] ?? 'other').toString()),
-                            Colors.deepPurple,
-                            _catIcon((transaction['category'] ?? 'other').toString()),
-                          ),
-                          if (transaction['isExternalUser'] == true)
-                            _buildStatusChip(
-                              'Not on LenDen',
-                              Colors.orange.shade700,
-                              Icons.person_off_rounded,
-                            ),
-                          if (((transaction['editHistory'] as List?)?.length ?? 0) > 0)
-                            _buildStatusChip(
-                              '${(transaction['editHistory'] as List).length} edit${(transaction['editHistory'] as List).length == 1 ? '' : 's'}',
-                              Colors.purple.shade700,
-                              Icons.history_rounded,
-                            ),
-                          if (!isCleared && (() {
-                            final created = DateTime.tryParse(transaction['createdAt']?.toString() ?? '');
-                            return created != null && DateTime.now().difference(created).inDays > 30;
-                          })())
-                            _buildStatusChip('Overdue', Colors.red.shade700, Icons.alarm_rounded),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        // Added horizontal scroll for description
-                        scrollDirection: Axis.horizontal,
-                        child: Text(
-                          transaction['description'] ?? '',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppThemeColors.primaryText(context),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        // Added horizontal scroll for user info
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              (counterparty?['name'] ??
-                                      counterparty?['email'] ??
-                                      t('unknown_label'))
-                                  .toString(),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppThemeColors.secondaryText(context),
-                              ),
-                            ),
-                            SizedBox(width: 16),
-                            Text(
-                              '${transaction['date']?.substring(0, 10)} at ${transaction['time']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppThemeColors.secondaryText(context),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _isCurrentUserCreator(transaction)
-                            ? t('created_by_you_label')
-                            : t('created_by_name_label').replaceFirst('{name}',
-                                '${creatorName['name'] ?? creatorName['email'] ?? t('unknown_label')}'),
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppThemeColors.secondaryText(context),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      if (!isCleared && roleForViewer == 'borrower') ...[
-                        const SizedBox(height: 12),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    // ── Row 1: category icon  |  label + amount  |  pin heart ⋮ ──
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Big category circle
                         Container(
-                          padding: const EdgeInsets.all(2),
+                          width: 54, height: 54,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Colors.orange,
-                                Colors.white,
-                                Colors.green
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.22),
                           ),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.cyan,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.payment_rounded,
-                                  color: Colors.white, size: 18),
-                              label: Text(t('pay_now_real_money_label'),
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold)),
-                              onPressed: () => _payNow(transaction),
-                            ),
-                          ),
+                          child: Icon(_catIcon(category), color: Colors.white, size: 28),
                         ),
-                      ],
-                      if (settlementStatus == 'pending') ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F7FB),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFF7AD7EA)),
-                          ),
+                        const SizedBox(width: 12),
+                        // "Transaction Amount" label + value
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text('Transaction Amount',
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.70), fontSize: 11, letterSpacing: 0.3)),
+                              const SizedBox(height: 2),
                               Text(
-                                requestedByYou
-                                    ? t('settlement_requested_by_you_label')
-                                    : t('settlement_requested_by_other_user_label'),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0087A8),
-                                ),
+                                _formatDisplayAmount(transaction['amount'], transaction['currency']?.toString()),
+                                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1),
                               ),
-                              if (_canRespondToSettlement(transaction)) ...[
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: () => _respondSettlement(
-                                            transaction, 'reject'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                        ),
-                                        child: Text(
-                                          t('reject_label'),
-                                          style: const TextStyle(
-                                              color: Colors.white),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: () => _respondSettlement(
-                                            transaction, 'accept'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                        ),
-                                        child: Text(
-                                          t('accept'),
-                                          style: const TextStyle(
-                                              color: Colors.white),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
                             ],
                           ),
                         ),
+                        // Pin
+                        GestureDetector(
+                          onTap: () => _togglePinTransaction((transaction['_id'] ?? '').toString()),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4, right: 2),
+                            child: Icon(isPinned ? Icons.star : Icons.star_border_rounded,
+                                color: isPinned ? Colors.amber[300] : Colors.white60, size: 20),
+                          ),
+                        ),
+                        // Fav
+                        GestureDetector(
+                          onTap: () => _toggleQuickTransactionFavourite(transaction),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4, right: 2),
+                            child: Icon(
+                              _isQuickTransactionFavourited(transaction) ? Icons.favorite : Icons.favorite_border,
+                              color: _isQuickTransactionFavourited(transaction) ? Colors.red[300] : Colors.white60,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        // ⋮ menu
+                        PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.more_vert, color: Colors.white60, size: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 8,
+                          onSelected: onMenu,
+                          itemBuilder: (_) => [
+                            if (!isCleared) PopupMenuItem(value: 'edit', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.edit_rounded, size: 16, color: Colors.blue)),
+                              const SizedBox(width: 12),
+                              Text(t('edit'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ])),
+                            if (!isCleared && (settlementStatus == 'none' || settlementStatus == 'rejected') && roleForViewer == 'lender')
+                              PopupMenuItem(value: 'request_settlement', child: Row(children: [
+                                Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                  child: const Icon(Icons.handshake_rounded, size: 16, color: Colors.orange)),
+                                const SizedBox(width: 12),
+                                Text(t('request_settlement_label'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                              ])),
+                            if (!isCleared && roleForViewer == 'borrower')
+                              PopupMenuItem(value: 'pay_now', child: Row(children: [
+                                Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                  child: const Icon(Icons.payment_rounded, size: 16, color: AppColors.cyan)),
+                                const SizedBox(width: 12),
+                                Text(t('pay_now_real_money_label'), style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                              ])),
+                            if (_canRespondToSettlement(transaction)) PopupMenuItem(value: 'accept_settlement', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.check_circle_rounded, size: 16, color: Colors.green)),
+                              const SizedBox(width: 12),
+                              Text(t('accept_settlement_label'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ])),
+                            if (_canRespondToSettlement(transaction)) PopupMenuItem(value: 'reject_settlement', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.cancel_rounded, size: 16, color: Colors.red)),
+                              const SizedBox(width: 12),
+                              Text(t('reject_settlement_label'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ])),
+                            PopupMenuItem(value: 'duplicate', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.copy_rounded, size: 16, color: Colors.purple)),
+                              const SizedBox(width: 12),
+                              Text(t('duplicate_label'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ])),
+                            PopupMenuItem(value: 'share', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.share_rounded, size: 16, color: Colors.teal)),
+                              const SizedBox(width: 12),
+                              Text(t('share_receipt_label'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ])),
+                            PopupMenuItem(value: 'share_as_note', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.tricolorGreen.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.note_add_rounded, size: 16, color: AppColors.tricolorGreen)),
+                              const SizedBox(width: 12),
+                              const Text('Share as Note', style: TextStyle(color: AppColors.tricolorGreen, fontWeight: FontWeight.w600)),
+                            ])),
+                            PopupMenuItem(value: 'share_pdf', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red)),
+                              const SizedBox(width: 12),
+                              const Text('Share as PDF', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                            ])),
+                            PopupMenuItem(value: 'pin', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined, size: 16, color: Colors.amber)),
+                              const SizedBox(width: 12),
+                              Text(isPinned ? t('unpin_label') : t('pin_label'), style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ])),
+                            if (isCleared) PopupMenuItem(value: 'delete', child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.delete_rounded, size: 16, color: Colors.red)),
+                              const SizedBox(width: 12),
+                              Text(t('delete'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                            ])),
+                          ],
+                        ),
                       ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // ── Chips — single horizontal scrollable row ──
+                    _buildChipRow([
+                      _buildWaveChip(
+                        isCleared ? t('cleared') : settlementStatus == 'pending' ? t('pending_label') : t('open_label'),
+                        icon: isCleared ? Icons.check_circle_outline : settlementStatus == 'pending' ? Icons.pending_actions_rounded : Icons.receipt_long_rounded,
+                      ),
+                      _buildWaveChip(
+                        isLender ? t('you_lent_label') : t('you_borrowed_label'),
+                        icon: isLender ? Icons.north_east_rounded : Icons.south_west_rounded,
+                      ),
+                      _buildWaveChip(_catLabel(category), icon: _catIcon(category)),
+                      if (isPinned) _buildWaveChip(t('pinned_label'), icon: Icons.star_rounded),
+                      if (settlementStatus != 'none') _buildWaveChip(_settlementStatusLabel(transaction), icon: Icons.handshake_rounded),
+                      if (transaction['isExternalUser'] == true) _buildWaveChip('Not on LenDen', icon: Icons.person_off_rounded),
+                      if (((transaction['editHistory'] as List?)?.length ?? 0) > 0)
+                        _buildWaveChip('${(transaction['editHistory'] as List).length} edit${(transaction['editHistory'] as List).length == 1 ? '' : 's'}', icon: Icons.history_rounded),
+                      if (!isCleared && (() {
+                        final c = DateTime.tryParse(transaction['createdAt']?.toString() ?? '');
+                        return c != null && DateTime.now().difference(c).inDays > 30;
+                      })()) _buildWaveChip('Overdue', icon: Icons.alarm_rounded),
+                    ]),
+
+                    const SizedBox(height: 14),
+
+                    // ── Description — max 2 lines, ellipsis on overflow ──
+                    if ((transaction['description'] ?? '').toString().isNotEmpty) ...[
+                      Text(
+                        (transaction['description'] ?? '').toString(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
                     ],
-                  ),
+
+                    // ── Counterparty row: 👤 name  |  📅 date time ──
+                    Row(
+                      children: [
+                        const Icon(Icons.person_rounded, color: Colors.white70, size: 16),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(cpName,
+                            style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.88), fontWeight: FontWeight.w500),
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today_rounded, color: Colors.white.withValues(alpha: 0.65), size: 13),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${transaction['date']?.toString().length != null && transaction['date'].toString().length >= 10 ? transaction['date'].toString().substring(0, 10) : ''}'
+                          '${transaction['time'] != null ? '\n${transaction['time']}' : ''}',
+                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.72), height: 1.3),
+                          textAlign: TextAlign.right,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 5),
+
+                    // ── Creator ──
+                    Builder(builder: (_) {
+                      String label;
+                      if (_isCurrentUserCreator(transaction)) {
+                        label = t('created_by_you_label');
+                      } else {
+                        final creatorEmail = (transaction['creatorEmail'] ?? '').toString().toLowerCase();
+                        final users = List<Map<String, dynamic>>.from(transaction['users'] ?? []);
+                        final cu = users.firstWhere((u) => (u['email'] ?? '').toString().toLowerCase() == creatorEmail, orElse: () => {});
+                        label = t('created_by_name_label').replaceFirst('{name}', (cu['name'] ?? cu['email'] ?? t('unknown_label')).toString());
+                      }
+                      return Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.58), fontStyle: FontStyle.italic));
+                    }),
+
+                    // ── Primary action footer (always visible) + Settlement ──
+                    ...[
+                      const SizedBox(height: 14),
+                      // Primary action button — state-driven
+                      SizedBox(
+                        width: double.infinity,
+                        child: isCleared
+                            ? ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 0, disabledBackgroundColor: Colors.white,
+                                ),
+                                icon: Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 18),
+                                label: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                  Text('Paid', style: TextStyle(color: Colors.green.shade600, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  Icon(Icons.verified_rounded, color: Colors.green.shade600, size: 16),
+                                ]),
+                                onPressed: null,
+                              )
+                            : hasPayNow
+                                ? ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      elevation: 0,
+                                    ),
+                                    icon: Icon(Icons.payment_rounded, color: cardColors.last, size: 18),
+                                    label: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                      Text(t('pay_now_real_money_label'), style: TextStyle(color: cardColors.last, fontWeight: FontWeight.bold, fontSize: 14)),
+                                      Icon(Icons.arrow_forward_ios_rounded, color: cardColors.last, size: 14),
+                                    ]),
+                                    onPressed: () => _payNow(transaction),
+                                  )
+                                : canRequestPayment
+                                    ? paymentRequestSent
+                                        ? ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              elevation: 0, disabledBackgroundColor: Colors.white,
+                                            ),
+                                            icon: Icon(Icons.check_circle_outline_rounded, color: Colors.orange.shade700, size: 18),
+                                            label: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                              Text('Request Sent', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
+                                              Icon(Icons.done_all_rounded, color: Colors.orange.shade700, size: 16),
+                                            ]),
+                                            onPressed: null,
+                                          )
+                                        : ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              elevation: 0,
+                                            ),
+                                            icon: Icon(Icons.send_to_mobile_rounded, color: cardColors.last, size: 18),
+                                            label: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                              Text('Request Payment', style: TextStyle(color: cardColors.last, fontWeight: FontWeight.bold, fontSize: 14)),
+                                              Icon(Icons.notifications_active_rounded, color: cardColors.last, size: 16),
+                                            ]),
+                                            onPressed: () => _requestPayment(transaction),
+                                          )
+                                    : const SizedBox.shrink(),
+                      ),
+                      if (hasSettlementButtons) ...[
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Expanded(child: ElevatedButton(
+                            onPressed: () => _respondSettlement(transaction, 'reject'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            child: Text(t('reject_label'), style: const TextStyle(color: Colors.white)),
+                          )),
+                          const SizedBox(width: 8),
+                          Expanded(child: ElevatedButton(
+                            onPressed: () => _respondSettlement(transaction, 'accept'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            child: Text(t('accept'), style: const TextStyle(color: Colors.white)),
+                          )),
+                        ]),
+                      ],
+                      if (showSettlementInfo)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                          child: Text(
+                            requestedByYou ? t('settlement_requested_by_you_label') : t('settlement_requested_by_other_user_label'),
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                    ],
+
+                  ],
                 ),
               ),
+              ],
             ),
           ),
-        ));
+        ),
+      ),
+    );
+  }
+
+  /// Lays chips in a single horizontally-scrollable row with 6px gaps.
+  Widget _buildChipRow(List<Widget> chips) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          for (int i = 0; i < chips.length; i++) ...[
+            chips[i],
+            if (i < chips.length - 1) const SizedBox(width: 6),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWaveChip(String label, {required IconData icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.28), width: 0.6),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 11, color: Colors.white70),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.2)),
+      ]),
+    );
   }
 }
+
 

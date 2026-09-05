@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../../widgets/app_colors.dart';
+import '../../../../utils/transaction_constants.dart';
 
 final _oidRe = RegExp(r'^[0-9a-f]{24}$');
 String emailOf(dynamic field) {
@@ -63,25 +64,12 @@ const kGroupExpenseCardColors = [
   Color(0xFFE3F2FD), Color(0xFFFFF9C4), Color(0xFFF3E5F5),
 ];
 
-const kGroupExpenseCategories = [
-  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
-  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
-  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
-  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
-  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
-  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
-  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
-  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
-  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
-];
+// Canonical list and icon helper now live in transaction_constants.dart.
+// Re-exported here so existing callers don't need to change their imports.
+const kGroupExpenseCategories = kTxCategories;
+const kGroupExpenseCurrencies = kTxCurrencies;
 
-IconData categoryIcon(String? key) {
-  final cat = kGroupExpenseCategories.firstWhere(
-    (c) => c['key'] == key,
-    orElse: () => kGroupExpenseCategories.last,
-  );
-  return cat['icon'] as IconData;
-}
+IconData categoryIcon(String? key) => txCatIcon(key);
 
 String categoryLabel(String? key, String Function(String) t) {
   switch (key) {
@@ -93,19 +81,10 @@ String categoryLabel(String? key, String Function(String) t) {
     case 'utilities':     return t('category_utilities_label');
     case 'medical':       return t('category_medical_label');
     case 'education':     return t('category_education_label');
+    case 'personal':      return t('personal');
+    case 'rent':          return t('rent');
+    case 'business':      return t('business');
+    case 'travel':        return t('travel');
     default:              return t('other');
   }
 }
-
-const kGroupExpenseCurrencies = [
-  {'code': 'INR', 'symbol': '₹', 'label': 'Indian Rupee'},
-  {'code': 'USD', 'symbol': '\$', 'label': 'US Dollar'},
-  {'code': 'EUR', 'symbol': '€', 'label': 'Euro'},
-  {'code': 'GBP', 'symbol': '£', 'label': 'British Pound'},
-  {'code': 'JPY', 'symbol': '¥', 'label': 'Japanese Yen'},
-  {'code': 'CNY', 'symbol': '¥', 'label': 'Chinese Yuan'},
-  {'code': 'CAD', 'symbol': '\$', 'label': 'Canadian Dollar'},
-  {'code': 'AUD', 'symbol': '\$', 'label': 'Australian Dollar'},
-  {'code': 'CHF', 'symbol': 'Fr', 'label': 'Swiss Franc'},
-  {'code': 'RUB', 'symbol': '₽', 'label': 'Russian Ruble'},
-];

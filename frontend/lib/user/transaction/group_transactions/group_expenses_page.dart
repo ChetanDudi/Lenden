@@ -59,16 +59,6 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
 
   final _searchCtrl = TextEditingController();
 
-  static const _kFallbackCurrencies = [
-    {'code': 'INR', 'symbol': '₹'},
-    {'code': 'USD', 'symbol': '\$'},
-    {'code': 'EUR', 'symbol': '€'},
-    {'code': 'GBP', 'symbol': '£'},
-    {'code': 'JPY', 'symbol': '¥'},
-    {'code': 'CAD', 'symbol': '\$'},
-    {'code': 'AUD', 'symbol': '\$'},
-    {'code': 'CHF', 'symbol': 'Fr'},
-  ];
 
   @override
   void initState() {
@@ -1155,7 +1145,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
                     color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w600),
                 iconEnabledColor: Colors.white,
                 selectedItemBuilder: (_) =>
-                    (currencyData?.currencies ?? _kFallbackCurrencies)
+                    (currencyData?.currencies ?? kCurrencyFallbacks)
                         .map((c) => Center(
                               child: Text(
                                 '${c['symbol']} ${c['code']}',
@@ -1166,7 +1156,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
                               ),
                             ))
                         .toList(),
-                items: (currencyData?.currencies ?? _kFallbackCurrencies)
+                items: (currencyData?.currencies ?? kCurrencyFallbacks)
                     .map((c) => DropdownMenuItem(
                           value: c['code'],
                           child: Text('${c['symbol']} ${c['code']}'),

@@ -3,6 +3,7 @@ import '../../../../widgets/app_colors.dart';
 import '../../../../utils/theme_helper.dart';
 import '../../../../l10n/app_localizations.dart';
 import './group_expense_helpers.dart';
+import '../../../../utils/transaction_constants.dart';
 
 class AddExpenseSheet extends StatefulWidget {
   final List<String> allEmails;
@@ -87,13 +88,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     super.dispose();
   }
 
-  String _sym(String? c) {
-    final code = (c ?? 'INR').toUpperCase();
-    for (final cur in kGroupExpenseCurrencies) {
-      if (cur['code'] == code) return cur['symbol']!;
-    }
-    return code;
-  }
+  String _sym(String? c) => txCurrencySymbol(c);
 
   Widget _chip(String label, String value, String selected,
       ValueChanged<String> onTap) {

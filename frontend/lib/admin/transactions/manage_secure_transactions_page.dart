@@ -17,6 +17,7 @@ import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/transaction_constants.dart';
 
 class ManageTransactionsPage extends StatefulWidget {
   const ManageTransactionsPage({super.key});
@@ -27,18 +28,8 @@ class ManageTransactionsPage extends StatefulWidget {
 
 class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   final TextEditingController _searchController = TextEditingController();
-  static const List<String> _supportedCurrencies = [
-    'INR',
-    'USD',
-    'EUR',
-    'GBP',
-    'JPY',
-    'CNY',
-    'CAD',
-    'AUD',
-    'CHF',
-    'RUB',
-  ];
+  static final List<String> _supportedCurrencies =
+      kTxCurrencies.map((c) => c['code']!).toList();
 
   List<Map<String, dynamic>> _transactions = [];
   bool _loading = true;

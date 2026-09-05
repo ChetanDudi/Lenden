@@ -12,34 +12,10 @@ import '../../../utils/theme_helper.dart';
 import '../../../utils/responsive.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../widgets/share_as_note_sheet.dart';
+import '../../../utils/transaction_constants.dart';
 
-const _kCategories = [
-  {'key': 'food',          'label': 'Food'},
-  {'key': 'transport',     'label': 'Transport'},
-  {'key': 'accommodation', 'label': 'Stay'},
-  {'key': 'entertainment', 'label': 'Fun'},
-  {'key': 'shopping',      'label': 'Shopping'},
-  {'key': 'utilities',     'label': 'Utilities'},
-  {'key': 'medical',       'label': 'Medical'},
-  {'key': 'education',     'label': 'Education'},
-  {'key': 'personal',      'label': 'Personal'},
-  {'key': 'rent',          'label': 'Rent'},
-  {'key': 'business',      'label': 'Business'},
-  {'key': 'travel',        'label': 'Travel'},
-  {'key': 'other',         'label': 'Other'},
-];
-
-String _catLabel(String? key) =>
-    (_kCategories.firstWhere((c) => c['key'] == key,
-            orElse: () => _kCategories.last)['label'] as String);
-
-String _sym(String code) {
-  const m = {
-    'INR': '₹', 'USD': '\$', 'EUR': '€', 'GBP': '£',
-    'JPY': '¥', 'CNY': '¥', 'CAD': '\$', 'AUD': '\$', 'CHF': 'Fr', 'RUB': '₽',
-  };
-  return m[code.toUpperCase()] ?? code;
-}
+String _catLabel(String? key) => txCatLabel(key);
+String _sym(String code) => txCurrencySymbol(code);
 
 String _fmtAmount(dynamic amount, String? currency) {
   final d = double.tryParse(amount?.toString() ?? '') ?? 0;

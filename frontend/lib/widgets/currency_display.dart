@@ -7,18 +7,11 @@ import 'app_colors.dart';
 import '../utils/theme_helper.dart';
 import '../utils/display_currency_helper.dart';
 import '../utils/currency_provider.dart';
+import '../utils/transaction_constants.dart';
 
 /// Default currency list shown before the API response arrives.
-const kCurrencyFallbacks = <Map<String, String>>[
-  {'code': 'INR', 'symbol': '₹', 'label': 'Indian Rupee'},
-  {'code': 'USD', 'symbol': '\$', 'label': 'US Dollar'},
-  {'code': 'EUR', 'symbol': '€', 'label': 'Euro'},
-  {'code': 'GBP', 'symbol': '£', 'label': 'British Pound'},
-  {'code': 'JPY', 'symbol': '¥', 'label': 'Japanese Yen'},
-  {'code': 'CAD', 'symbol': '\$', 'label': 'Canadian Dollar'},
-  {'code': 'AUD', 'symbol': '\$', 'label': 'Australian Dollar'},
-  {'code': 'CHF', 'symbol': 'Fr', 'label': 'Swiss Franc'},
-];
+/// Sourced from kTxCurrencies so all form pages and the fallback stay in sync.
+const kCurrencyFallbacks = kTxCurrencies;
 
 /// Format [amount] (in [from] currency) as a display string in [to] currency.
 /// Falls back gracefully to the original currency symbol when conversion data

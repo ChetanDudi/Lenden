@@ -17,6 +17,7 @@ module.exports = (router, { auth, otpSendLimiter, otpVerifyLimiter, budgetCheck,
   router.delete('/quick-transactions/:id', auth, quickTransactionController.deleteQuickTransaction);
   router.put('/quick-transactions/:id/clear', auth, quickTransactionController.clearQuickTransaction);
   router.post('/quick-transactions/:id/pay', auth, walletAuthMiddleware, quickTransactionController.payQuickTransaction);
+  router.post('/quick-transactions/:id/request-payment', auth, quickTransactionController.requestQuickTransactionPayment);
   router.post('/quick-transactions/:id/request-settlement', auth, quickTransactionController.requestQuickTransactionSettlement);
   router.post('/quick-transactions/:id/respond-settlement', auth, quickTransactionController.respondQuickTransactionSettlement);
   router.delete('/quick-transactions', auth, quickTransactionController.clearAllQuickTransactions);

@@ -10,6 +10,7 @@ import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/budget_exceeded_sheet.dart';
+import '../../../utils/transaction_constants.dart';
 
 class CreateEditQuickTransactionPage extends StatefulWidget {
   final Map<String, dynamic>? transaction;
@@ -66,18 +67,23 @@ class _CreateEditQuickTransactionPageState
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _suggestions = [];
 
-  final List<Map<String, String>> _currencies = [
-    {'code': 'INR', 'symbol': '₹'},
-    {'code': 'USD', 'symbol': '\$'},
-    {'code': 'EUR', 'symbol': '€'},
-    {'code': 'GBP', 'symbol': '£'},
-    {'code': 'JPY', 'symbol': '¥'},
-    {'code': 'CNY', 'symbol': '¥'},
-    {'code': 'CAD', 'symbol': '\$'},
-    {'code': 'AUD', 'symbol': '\$'},
-    {'code': 'CHF', 'symbol': 'Fr'},
-    {'code': 'RUB', 'symbol': '₽'},
-  ];
+
+  // Description suggestions keyed by category
+  static const Map<String, List<String>> _descSuggestions = {
+    'food':          ['Lunch with friends', 'Dinner at restaurant', 'Coffee', 'Groceries', 'Snacks and drinks', 'Breakfast outside', 'Ordered food online'],
+    'transport':     ['Cab fare', 'Petrol refill', 'Bus ticket', 'Train ticket', 'Auto fare', 'Fuel for bike', 'Airport taxi', 'Parking charges'],
+    'shopping':      ['Grocery shopping', 'Clothes shopping', 'Online shopping', 'Household items', 'New headphones', 'Birthday gift'],
+    'medical':       ['Doctor consultation', 'Medicine purchase', 'Medical emergency', 'Pharmacy bill', 'Health checkup'],
+    'utilities':     ['Electricity bill', 'Internet bill', 'Water bill', 'Gas cylinder', 'Monthly maintenance'],
+    'entertainment': ['Movie tickets', 'Concert tickets', 'Streaming subscription', 'Weekend outing', 'Game purchase'],
+    'education':     ['Course fee', 'Book purchase', 'Online learning', 'Exam registration', 'Study materials'],
+    'personal':      ['Personal expense', 'Personal care items', 'Monthly medicines'],
+    'rent':          ['Monthly rent', 'Home repairs', 'Kitchen supplies', 'Furniture purchase'],
+    'travel':        ['Weekend trip', 'Airport taxi', 'Travel expenses', 'Hotel stay'],
+    'accommodation': ['Hotel booking', 'Room booking', 'Hostel expenses'],
+    'business':      ['Business expense', 'Office supplies', 'Work travel', 'Software subscription'],
+    'other':         ['Borrowed money', 'Lent money', 'Shared expense', 'Settlement', 'Emergency cash', 'Quick transaction'],
+  };
 
   bool _isEditingAsCreator() {
     final creatorEmail =
@@ -93,14 +99,7 @@ class _CreateEditQuickTransactionPageState
     return selectedRole == 'lender' ? 'borrower' : 'lender';
   }
 
-  String _currencySymbol([String? code]) {
-    final selectedCode = (code ?? _currency).toUpperCase();
-    final match = _currencies.firstWhere(
-      (item) => item['code'] == selectedCode,
-      orElse: () => const {'code': 'INR', 'symbol': '₹'},
-    );
-    return match['symbol'] ?? '₹';
-  }
+  String _currencySymbol([String? code]) => txCurrencySymbol(code ?? _currency);
 
   @override
   void initState() {
@@ -177,12 +176,34 @@ class _CreateEditQuickTransactionPageState
 
   Future<void> _loadFriends() async {
     try {
-      final res = await ApiClient.get('/api/friends');
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() {
-          _friends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
-        });
+      // Load friends and counterparties in parallel, then merge deduplicated by email
+      final results = await Future.wait([
+        ApiClient.get('/api/friends'),
+        ApiClient.get('/api/counterparties/user?email=${Uri.encodeComponent(_userEmail ?? '')}'),
+      ]);
+      final friendRes = results[0];
+      final cpRes = results[1];
+
+      final seen = <String>{};
+      final merged = <Map<String, dynamic>>[];
+
+      if (friendRes.statusCode == 200) {
+        for (final f in (jsonDecode(friendRes.body)['friends'] as List? ?? [])) {
+          final m = Map<String, dynamic>.from(f as Map);
+          final email = (m['email'] ?? '').toString().toLowerCase();
+          if (email.isNotEmpty && seen.add(email)) merged.add(m);
+        }
+      }
+      if (cpRes.statusCode == 200) {
+        for (final cp in (jsonDecode(cpRes.body)['counterparties'] as List? ?? [])) {
+          final m = Map<String, dynamic>.from(cp as Map);
+          final email = (m['email'] ?? '').toString().toLowerCase();
+          if (email.isNotEmpty && seen.add(email)) merged.add(m);
+        }
+      }
+
+      if (mounted) {
+        setState(() => _friends = merged);
         _updateSuggestions();
       }
     } catch (_) {
@@ -214,17 +235,9 @@ class _CreateEditQuickTransactionPageState
       allFriends = _friends;
     } else {
       setState(() => _loadingFriends = true);
-      try {
-        final res = await ApiClient.get('/api/friends');
-        if (!mounted) return;
-        if (res.statusCode != 200) return;
-        final data = jsonDecode(res.body);
-        allFriends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
-        if (mounted) setState(() { _friends = allFriends; _loadingFriends = false; });
-      } catch (_) {
-        if (mounted) setState(() => _loadingFriends = false);
-        return;
-      }
+      await _loadFriends();
+      allFriends = _friends;
+      if (!mounted) return;
     }
     if (!mounted) return;
 
@@ -290,7 +303,7 @@ class _CreateEditQuickTransactionPageState
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  t('select_friend_title'),
+                                  'Select Person',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -298,9 +311,7 @@ class _CreateEditQuickTransactionPageState
                                   ),
                                 ),
                                 Text(
-                                  allFriends.length == 1
-                                      ? t('one_friend_label')
-                                      : '${allFriends.length} ${t('friends_count_label')}',
+                                  '${allFriends.length} ${allFriends.length == 1 ? 'person' : 'people'} (friends & counterparties)',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: AppThemeColors.secondaryText(ctx)),
@@ -692,6 +703,59 @@ class _CreateEditQuickTransactionPageState
     }
   }
 
+  Widget _buildRoleCard(String value, IconData icon, String label, Color color) {
+    final isSelected = _role == value;
+    return GestureDetector(
+      onTap: () => setState(() => _role = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.10) : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? color : AppThemeColors.border(context),
+            width: isSelected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? color.withValues(alpha: 0.15) : AppThemeColors.border(context),
+            ),
+            child: Icon(icon, size: 20, color: isSelected ? color : AppThemeColors.secondaryText(context)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                color: isSelected ? color : AppThemeColors.primaryText(context)),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          if (isSelected)
+            Icon(Icons.check_circle_rounded, size: 18, color: color),
+        ]),
+      ),
+    );
+  }
+
+  DropdownMenuItem<String> _qtCatItem(String value, String label, IconData icon, Color color) =>
+      DropdownMenuItem(
+        value: value,
+        child: Row(children: [
+          Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(7)),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 10),
+          Text(label, style: const TextStyle(fontSize: 13)),
+        ]),
+      );
+
   Widget _buildStylishField({required Widget child, IconData? icon, Color? iconColor}) {
     final resolvedIconColor = iconColor ?? AppColors.cyan;
     return Container(
@@ -885,12 +949,27 @@ class _CreateEditQuickTransactionPageState
                         icon: Icons.currency_exchange_rounded,
                         child: DropdownButtonFormField<String>(
                           value: _currency,
-                          items: _currencies
-                              .map((c) => DropdownMenuItem(
-                                    value: c['code'],
-                                    child: Text('${c['symbol']} ${c['code']}'),
-                                  ))
-                              .toList(),
+                          selectedItemBuilder: (ctx) => kTxCurrencies.map((c) => Row(children: [
+                            Container(
+                              width: 26, height: 26,
+                              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(6)),
+                              child: Center(child: Text(c['symbol']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(c['code']!, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ])).toList(),
+                          items: kTxCurrencies.map((c) => DropdownMenuItem(
+                            value: c['code'],
+                            child: Row(children: [
+                              Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(6)),
+                                child: Center(child: Text(c['symbol']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(c['code']!, style: const TextStyle(fontWeight: FontWeight.w500)),
+                            ]),
+                          )).toList(),
                           onChanged: (val) => setState(() => _currency = val ?? 'INR'),
                           decoration: InputDecoration(
                             labelText: t('currency'),
@@ -941,6 +1020,34 @@ class _CreateEditQuickTransactionPageState
                           },
                         ),
                       ),
+                      // Description suggestion chips (category-aware, only on create)
+                      if (!isEditing) Builder(builder: (_) {
+                        final suggestions = _descSuggestions[_category] ?? _descSuggestions['other']!;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: suggestions.map((s) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _descriptionController.text = s),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.cyan.withValues(alpha: 0.10),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.30)),
+                                    ),
+                                    child: Text(s, style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w500)),
+                                  ),
+                                ),
+                              )).toList(),
+                            ),
+                          ),
+                        );
+                      }),
                       const SizedBox(height: 14),
 
                       // Your email (read-only)
@@ -1070,28 +1177,27 @@ class _CreateEditQuickTransactionPageState
                       ],
                       const SizedBox(height: 16),
 
-                      // Role
-                      _buildStylishField(
-                        icon: Icons.swap_horiz_rounded,
-                        child: DropdownButtonFormField<String>(
-                          value: _role,
-                          items: [
-                            DropdownMenuItem(
-                              value: 'lender',
-                              child: Text(t('lending_you_gave_money')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'borrower',
-                              child: Text(t('borrowing_you_took_money')),
-                            ),
-                          ],
-                          onChanged: (val) => setState(() => _role = val ?? 'lender'),
-                          decoration: InputDecoration(
-                            labelText: t('your_position'),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      // Role — segmented toggle (horizontally scrollable for small screens)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2, bottom: 8),
+                            child: Text(t('your_position'),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                color: AppThemeColors.secondaryText(context), letterSpacing: 0.3)),
                           ),
-                        ),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(children: [
+                              SizedBox(width: 168, child: _buildRoleCard('lender',   Icons.north_east_rounded, t('lending_you_gave_money'),    Colors.green.shade600)),
+                              const SizedBox(width: 10),
+                              SizedBox(width: 168, child: _buildRoleCard('borrower', Icons.south_west_rounded, t('borrowing_you_took_money'), Colors.orange.shade700)),
+                              const SizedBox(width: 2),
+                            ]),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 14),
 
@@ -1100,21 +1206,12 @@ class _CreateEditQuickTransactionPageState
                         icon: Icons.label_rounded,
                         child: DropdownButtonFormField<String>(
                           value: _category,
-                          items: const [
-                            DropdownMenuItem(value: 'food', child: Text('Food & Dining')),
-                            DropdownMenuItem(value: 'transport', child: Text('Transport')),
-                            DropdownMenuItem(value: 'accommodation', child: Text('Accommodation')),
-                            DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
-                            DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
-                            DropdownMenuItem(value: 'utilities', child: Text('Utilities')),
-                            DropdownMenuItem(value: 'medical', child: Text('Medical / Healthcare')),
-                            DropdownMenuItem(value: 'education', child: Text('Education')),
-                            DropdownMenuItem(value: 'personal', child: Text('Personal')),
-                            DropdownMenuItem(value: 'rent', child: Text('Rent')),
-                            DropdownMenuItem(value: 'business', child: Text('Business')),
-                            DropdownMenuItem(value: 'travel', child: Text('Travel')),
-                            DropdownMenuItem(value: 'other', child: Text('Other')),
-                          ],
+                          items: kTxCategories.map((c) => _qtCatItem(
+                            c['key'] as String,
+                            c['label'] as String,
+                            c['icon'] as IconData,
+                            c['color'] as Color,
+                          )).toList(),
                           onChanged: (val) => setState(() => _category = val ?? 'other'),
                           decoration: InputDecoration(
                             labelText: t('category'),

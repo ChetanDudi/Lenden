@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../../utils/share_utils.dart';
-import '../../../utils/pickers.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -29,26 +28,21 @@ import '../../../widgets/search_tab_bar.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../../widgets/share_as_note_sheet.dart';
 import '../../budget/budget_planning_page.dart';
+import 'widgets/secure_transaction_filter_page.dart';
+import '../../../utils/transaction_constants.dart';
 
-const _kSecureCategories = [
-  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
-  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
-  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
-  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
-  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
-  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
-  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
-  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
-  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
-];
+IconData _secureCatIcon(String? key) => txCatIcon(key);
+String _secureCatLabel(String? key) => txCatLabel(key);
 
-IconData _secureCatIcon(String? key) {
-  final cat = _kSecureCategories.firstWhere((c) => c['key'] == key, orElse: () => _kSecureCategories.last);
-  return cat['icon'] as IconData;
-}
+class _SecureCardTheme {
+  static List<Color> colorsFor(String category, bool isFullyCleared) =>
+      isFullyCleared ? kTxClearedGradient : txCatGradient(category);
 
-String _secureCatLabel(String? key) {
-  return (_kSecureCategories.firstWhere((c) => c['key'] == key, orElse: () => _kSecureCategories.last)['label'] as String);
+  static Widget watermark(String category) => Icon(
+    txCatIcon(category),
+    size: 175,
+    color: Colors.white.withValues(alpha: 0.22),
+  );
 }
 
 class UserTransactionsPage extends StatefulWidget {
@@ -144,27 +138,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     );
   }
 
-  Widget _currentUserAvatar({double radius = 18}) {
-    final user = Provider.of<SessionProvider>(context, listen: false).user;
-    final imgUrl = user?['profileImage'];
-    ImageProvider? imageProvider;
-    if (imgUrl is String && imgUrl.isNotEmpty && imgUrl != 'null') {
-      imageProvider = NetworkImage(imgUrl);
-    } else {
-      final gender = (user?['gender'] ?? 'Other').toString();
-      imageProvider = AssetImage(gender == 'Male'
-          ? 'assets/Male.png'
-          : gender == 'Female'
-              ? 'assets/Female.png'
-              : 'assets/Other.png');
-    }
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.teal.shade100,
-      backgroundImage: imageProvider,
-    );
-  }
-
   String interestTypeFilter = 'All'; // 'All', 'simple', 'compound'
   String globalSearch = '';
   final TextEditingController _globalSearchController = TextEditingController();
@@ -176,6 +149,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
   final TextEditingController _amountController = TextEditingController();
   bool showAllTransactions = false;
   bool showFavouritesOnly = false;
+  String _selectedCounterpartyFilter = 'all';
   int _txnPage = 1;
   bool _txnHasMore = false;
   bool _loadingMore = false;
@@ -344,6 +318,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
       params['sortBy'] = sortByMap[_sortBy] ?? 'created';
       params['sortOrder'] = _sortAsc ? 'asc' : 'desc';
 
+      // Counterparty filter
+      if (_selectedCounterpartyFilter != 'all') {
+        params['counterpartyEmail'] = _selectedCounterpartyFilter;
+      }
+
       // Favourites only
       if (showFavouritesOnly) {
         params['favouritesOnly'] = 'true';
@@ -442,118 +421,99 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
     final userEmail = t['userEmail'];
-    // Determine the counterparty email based on current user's role
-    final counterpartyEmail =
-        (email == userEmail) ? t['counterpartyEmail'] : userEmail;
-    // Use creator identity — not isLending — to map cleared fields correctly.
-    // userCleared = creator's status, counterpartyCleared = other party's status.
+    final counterpartyEmail = (email == userEmail) ? t['counterpartyEmail'] : userEmail;
     final isCreator = (email != null && email == userEmail);
-    bool youCleared =
-        (isCreator ? t['userCleared'] : t['counterpartyCleared']) == true;
-    bool otherCleared =
-        (isCreator ? t['counterpartyCleared'] : t['userCleared']) == true;
-    bool fullyCleared = youCleared && otherCleared;
+    final bool youCleared = (isCreator ? t['userCleared'] : t['counterpartyCleared']) == true;
+    final bool otherCleared = (isCreator ? t['counterpartyCleared'] : t['userCleared']) == true;
+    final bool fullyCleared = youCleared && otherCleared;
     final hasPartialPayment = _hasPartialPayment(Map<String, dynamic>.from(t));
-    final expectedReturnDate =
-        DateTime.tryParse((t['expectedReturnDate'] ?? '').toString());
+    final expectedReturnDate = DateTime.tryParse((t['expectedReturnDate'] ?? '').toString());
     final now = _now;
-    final isOverdue = expectedReturnDate != null &&
-        expectedReturnDate.isBefore(now) &&
-        !fullyCleared;
-    final isDueSoon = expectedReturnDate != null &&
-        !isOverdue &&
+    final isOverdue = expectedReturnDate != null && expectedReturnDate.isBefore(now) && !fullyCleared;
+    final isDueSoon = expectedReturnDate != null && !isOverdue &&
         expectedReturnDate.difference(now).inDays >= 0 &&
-        expectedReturnDate.difference(now).inDays <= 7 &&
-        !fullyCleared;
-    String dateStr =
-        t['date'] != null ? t['date'].toString().substring(0, 10) : '';
-    String timeStr = t['time'] != null ? t['time'].toString() : '';
-    Color borderColor = fullyCleared
-        ? Colors.green
-        : hasPartialPayment
-            ? Colors.purple
-            : (youCleared || otherCleared)
-                ? Colors.orange
-                : Colors.teal;
+        expectedReturnDate.difference(now).inDays <= 7 && !fullyCleared;
+    final String dateStr = t['date'] != null ? t['date'].toString().substring(0, 10) : '';
+    final String timeStr = t['time'] != null ? t['time'].toString() : '';
+    final String category = (t['category'] ?? 'other').toString();
+    final List<Color> cardColors = _SecureCardTheme.colorsFor(category, fullyCleared);
 
-    // Tap card to open detail page
     return GestureDetector(
       onTap: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SecureTransactionDetailPage(
-              transaction: Map<String, dynamic>.from(t),
-              isLending: isLending,
-              initialCurrency: selectedCurrency,
-              currencyData: currencyData,
-            ),
+        await Navigator.push(context, MaterialPageRoute(
+          builder: (_) => SecureTransactionDetailPage(
+            transaction: Map<String, dynamic>.from(t),
+            isLending: isLending,
+            initialCurrency: selectedCurrency,
+            currencyData: currencyData,
           ),
-        );
+        ));
         if (mounted) fetchTransactions();
       },
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 10, horizontal: 0),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-        border: Border(
-          left: BorderSide(color: borderColor, width: 6),
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(colors: cardColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          boxShadow: [BoxShadow(color: cardColors.last.withValues(alpha: 0.38), blurRadius: 18, offset: const Offset(0, 7))],
         ),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: IntrinsicWidth(
-          child: Column(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Stack(
             children: [
-              // Main content (always visible)
+              // Category watermark icon — sole per-category visual
+              Positioned(right: -18, top: 28, child: _SecureCardTheme.watermark(category)),
+              // Card content
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+                padding: const EdgeInsets.fromLTRB(16, 18, 10, 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Date and time row (tap card to open full details)
+                    // Row 1: category icon | "Transaction Amount" label | ⋮ menu
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.calendar_today,
-                            color: Colors.blue, size: 18),
-                        SizedBox(width: 6),
-                        Text('${tr('date')}: $dateStr',
-                            style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
-                        SizedBox(width: 10),
-                        Icon(Icons.access_time,
-                            color: Colors.deepPurple, size: 18),
-                        SizedBox(width: 6),
-                        Text('${tr('time')}: $timeStr',
-                            style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
-                        Spacer(),
+                        Container(
+                          width: 54, height: 54,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.22),
+                          ),
+                          child: Icon(_secureCatIcon(category), color: Colors.white, size: 28),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Transaction Amount',
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.70), fontSize: 11, letterSpacing: 0.3)),
+                              const SizedBox(height: 2),
+                              Text(
+                                _formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString()),
+                                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1),
+                              ),
+                            ],
+                          ),
+                        ),
                         Builder(builder: (ctx) {
                           final isFav = _isSecureFavourited(t);
                           final tCopy = Map<String, dynamic>.from(t);
                           return PopupMenuButton<String>(
                             padding: EdgeInsets.zero,
-                            iconSize: 20,
-                            icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                            icon: const Icon(Icons.more_vert, color: Colors.white60, size: 20),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 8,
                             onSelected: (value) {
                               if (value == 'view_details') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SecureTransactionDetailPage(
-                                      transaction: tCopy,
-                                      isLending: isLending,
-                                      initialCurrency: selectedCurrency,
-                                      currencyData: currencyData,
-                                    ),
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => SecureTransactionDetailPage(
+                                    transaction: tCopy,
+                                    isLending: isLending,
+                                    initialCurrency: selectedCurrency,
+                                    currencyData: currencyData,
                                   ),
-                                ).then((_) { if (mounted) fetchTransactions(); });
+                                )).then((_) { if (mounted) fetchTransactions(); });
                               } else if (value == 'toggle_fav') {
                                 _toggleSecureFavourite(tCopy);
                               } else if (value == 'share_pdf') {
@@ -561,249 +521,111 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                               }
                             },
                             itemBuilder: (_) => [
-                              const PopupMenuItem(
-                                value: 'view_details',
-                                child: Row(children: [
-                                  Icon(Icons.open_in_new_rounded, size: 16, color: Colors.teal),
-                                  SizedBox(width: 8),
-                                  Text('View Details', style: TextStyle(fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
-                              PopupMenuItem(
-                                value: 'toggle_fav',
-                                child: Row(children: [
-                                  Icon(isFav ? Icons.favorite : Icons.favorite_border,
-                                      size: 16, color: Colors.redAccent),
-                                  const SizedBox(width: 8),
-                                  Text(isFav ? 'Remove Favourite' : 'Add Favourite',
-                                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
-                              const PopupMenuItem(
-                                value: 'share_pdf',
-                                child: Row(children: [
-                                  Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Share as PDF', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
+                              PopupMenuItem(value: 'view_details', child: Row(children: [
+                                Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                  child: const Icon(Icons.open_in_new_rounded, size: 16, color: Colors.teal)),
+                                const SizedBox(width: 12),
+                                const Text('View Details', style: TextStyle(fontWeight: FontWeight.w500)),
+                              ])),
+                              PopupMenuItem(value: 'toggle_fav', child: Row(children: [
+                                Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                  child: Icon(isFav ? Icons.favorite : Icons.favorite_border, size: 16, color: Colors.redAccent)),
+                                const SizedBox(width: 12),
+                                Text(isFav ? 'Remove Favourite' : 'Add Favourite', style: const TextStyle(fontWeight: FontWeight.w500)),
+                              ])),
+                              PopupMenuItem(value: 'share_pdf', child: Row(children: [
+                                Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                  child: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red)),
+                                const SizedBox(width: 12),
+                                const Text('Share as PDF', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                              ])),
                             ],
                           );
                         }),
                       ],
                     ),
-                    SizedBox(height: 10),
-                    // Header with expand/collapse arrow
-                    Row(
-                      children: [
-                        Icon(
-                            isLending
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: isLending ? Colors.green : Colors.orange,
-                            size: 28),
+
+                    const SizedBox(height: 14),
+
+                    // Chips row
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(children: [
+                        _buildSecureChip(
+                          fullyCleared ? tr('fully_cleared_label')
+                            : hasPartialPayment ? tr('partially_paid_or_cleared_label')
+                            : (youCleared && !otherCleared) ? tr('you_cleared_label')
+                            : (!youCleared && otherCleared) ? tr('other_cleared_label')
+                            : tr('uncleared_label'),
+                          icon: fullyCleared ? Icons.verified
+                            : hasPartialPayment ? Icons.account_balance_wallet_outlined
+                            : (youCleared || otherCleared) ? Icons.check_circle_outline
+                            : Icons.hourglass_empty,
+                        ),
+                        const SizedBox(width: 6),
+                        _buildSecureChip(
+                          isLending ? tr('you_lent_label') : tr('you_borrowed_label'),
+                          icon: isLending ? Icons.north_east_rounded : Icons.south_west_rounded,
+                        ),
+                        const SizedBox(width: 6),
+                        _buildSecureChip(_secureCatLabel(category), icon: _secureCatIcon(category)),
                         if (t['isPartiallyPaid'] == true) ...[
-                          SizedBox(width: 4),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.purple,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              tr('partial_label'),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          const SizedBox(width: 6),
+                          _buildSecureChip(tr('partial_label'), icon: Icons.account_balance_wallet_outlined),
                         ],
-                        SizedBox(width: 10),
-                        _currentUserAvatar(radius: 18),
-                        SizedBox(width: 10),
-                        Text(
-                          isLending
-                              ? tr('lending_you_gave_money_label')
-                              : tr('borrowing_you_took_money_label'),
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isLending ? Colors.green : Colors.orange,
-                              fontSize: 16),
-                        ),
-                      ],
+                        if (isOverdue) ...[
+                          const SizedBox(width: 6),
+                          _buildSecureChip('Overdue', icon: Icons.warning_amber_rounded),
+                        ] else if (isDueSoon) ...[
+                          const SizedBox(width: 6),
+                          _buildSecureChip('Due Soon', icon: Icons.schedule_rounded),
+                        ],
+                      ]),
                     ),
-                    SizedBox(height: 10),
-                    // Counterparty info (always visible)
+
+                    const SizedBox(height: 14),
+
+                    // Counterparty row | date+time
                     Row(
                       children: [
-                        _counterpartyAvatar(counterpartyEmail?.toString() ?? '',
-                            radius: 14),
-                        SizedBox(width: 8),
+                        _counterpartyAvatar(counterpartyEmail?.toString() ?? '', radius: 14),
+                        const SizedBox(width: 8),
                         Expanded(
-                          child: Text('${tr('counterparty_label')}: $counterpartyEmail',
-                              style:
-                                  TextStyle(fontSize: 15, color: AppThemeColors.primaryText(context)),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            '${tr('counterparty_label')}: $counterpartyEmail',
+                            style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.88), fontWeight: FontWeight.w500),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 6),
-                    // Amount (always visible - most important)
-                    Row(
-                      children: [
-                        Icon(Icons.payments_rounded,
-                            color: isLending ? Colors.green : Colors.red.shade700, size: 20),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today_rounded, color: Colors.white.withValues(alpha: 0.65), size: 13),
+                        const SizedBox(width: 4),
                         Text(
-                          '${tr('amount')}: ${_formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString())}',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isLending ? Colors.green[700] : Colors.red.shade700),
+                          '$dateStr${timeStr.isNotEmpty ? '\n$timeStr' : ''}',
+                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.72), height: 1.3),
+                          textAlign: TextAlign.right,
                         ),
                       ],
                     ),
-                        if (expectedReturnDate != null && !fullyCleared) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isOverdue
-                                  ? Colors.red.withValues(alpha: 0.10)
-                                  : isDueSoon
-                                      ? Colors.amber.withValues(alpha: 0.14)
-                                      : Colors.teal.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isOverdue
-                                    ? Colors.red.withValues(alpha: 0.24)
-                                    : isDueSoon
-                                        ? Colors.amber.withValues(alpha: 0.28)
-                                        : Colors.teal.withValues(alpha: 0.22),
-                              ),
-                            ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isOverdue
-                                  ? Icons.warning_amber_rounded
-                                  : Icons.schedule_rounded,
-                                  size: 16,
-                                  color: isOverdue
-                                      ? Colors.red.shade700
-                                      : isDueSoon
-                                          ? Colors.orange.shade800
-                                          : Colors.teal.shade700,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _remainingTimeLabel(expectedReturnDate),
-                                  style: TextStyle(
-                                    color: isOverdue
-                                        ? Colors.red.shade700
-                                        : isDueSoon
-                                            ? Colors.orange.shade800
-                                            : Colors.teal.shade700,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                          ],
+
+                    // Due date
+                    if (expectedReturnDate != null && !fullyCleared) ...[
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Icon(isOverdue ? Icons.warning_amber_rounded : Icons.schedule_rounded,
+                          size: 14, color: Colors.white70),
+                        const SizedBox(width: 5),
+                        Text(
+                          _remainingTimeLabel(expectedReturnDate),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
-                      ),
+                      ]),
                     ],
-                    SizedBox(height: 6),
-                    // Status indicator (always visible)
-                    SizedBox(height: 8),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: fullyCleared
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : hasPartialPayment
-                                ? Colors.purple.withValues(alpha: 0.1)
-                                : (youCleared || otherCleared)
-                                    ? Colors.orange.withValues(alpha: 0.1)
-                                    : Colors.grey.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border(
-                          left: BorderSide(color: borderColor, width: 6),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            fullyCleared
-                                ? Icons.verified
-                                : hasPartialPayment
-                                    ? Icons.account_balance_wallet_outlined
-                                    : (youCleared || otherCleared)
-                                        ? Icons.check
-                                        : Icons.hourglass_empty,
-                            color: fullyCleared
-                                ? Colors.green
-                                : hasPartialPayment
-                                    ? Colors.purple
-                                    : (youCleared || otherCleared)
-                                        ? Colors.orange
-                                        : Colors.grey,
-                            size: 16,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            fullyCleared
-                                ? tr('fully_cleared_label')
-                                : hasPartialPayment
-                                    ? tr('partially_paid_or_cleared_label')
-                                    : (youCleared && !otherCleared)
-                                        ? tr('you_cleared_label')
-                                        : (!youCleared && otherCleared)
-                                            ? tr('other_cleared_label')
-                                            : tr('uncleared_label'),
-                            style: TextStyle(
-                              color: fullyCleared
-                                  ? Colors.green
-                                  : hasPartialPayment
-                                      ? Colors.purple
-                                      : (youCleared || otherCleared)
-                                          ? Colors.orange
-                                          : Colors.grey,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.22)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(_secureCatIcon((t['category'] ?? 'other').toString()), size: 14, color: Colors.deepPurple),
-                          const SizedBox(width: 5),
-                          Text(
-                            _secureCatLabel((t['category'] ?? 'other').toString()),
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.deepPurple),
-                          ),
-                        ],
-                      ),
-                    ),
+
+                    // Pay Now button (borrower & not fully cleared)
                     if (!fullyCleared && !isLending) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 14),
                       Builder(builder: (context) {
                         final double dueAmt = _calculateRemainingWithInterest(t);
                         final bool hasInterest = t['interestType'] != null && t['interestRate'] != null;
@@ -811,79 +633,94 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.payments_outlined, size: 14,
-                                    color: hasInterest ? Colors.deepOrange : Colors.teal),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${tr('amount_due_label')}: $displayDue',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: hasInterest ? Colors.deepOrange : Colors.teal,
-                                  ),
+                            if (hasInterest)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Text(
+                                  '${tr('amount_due_label')}: $displayDue (${t['interestType']} ${t['interestRate']}% ${tr('interest_label').toLowerCase()})',
+                                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.75)),
                                 ),
-                                if (hasInterest) ...[
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '(${t['interestType']} ${t['interestRate']}% ${tr('interest_label').toLowerCase()})',
-                                    style: const TextStyle(fontSize: 11, color: Colors.deepOrange),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 6),
+                              ),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                icon: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Colors.white),
-                                label: Text(
-                                  '${tr('pay_now_label')}  •  $displayDue',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
+                                icon: Icon(Icons.account_balance_wallet_rounded, size: 18, color: cardColors.last),
+                                label: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                  Text('${tr('pay_now_label')}  •  $displayDue',
+                                    style: TextStyle(color: cardColors.last, fontWeight: FontWeight.bold, fontSize: 13)),
+                                  Icon(Icons.arrow_forward_ios_rounded, color: cardColors.last, size: 14),
+                                ]),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.cyan,
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   elevation: 0,
                                 ),
                                 onPressed: () async {
                                   final double remaining = _calculateRemainingWithInterest(t);
                                   if (remaining <= 0) return;
-                            // "Pay Now" is the same two-sided-OTP, real-wallet-transfer
-                            // flow as Partial Payment — pre-filled with the full
-                            // remaining amount — so there's exactly one payment path.
-                            final result = await Navigator.push<bool>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PartialPaymentPage(
-                                  transaction: Map<String, dynamic>.from(t),
-                                  isFullPayment: true,
-                                ),
+                                  final result = await Navigator.push<bool>(context, MaterialPageRoute(
+                                    builder: (_) => PartialPaymentPage(
+                                      transaction: Map<String, dynamic>.from(t),
+                                      isFullPayment: true,
+                                    ),
+                                  ));
+                                  if (result == true) fetchTransactions();
+                                },
                               ),
-                            );
-                            if (result == true) fetchTransactions();
-                          },
-                        ),
-                      ),
-                          ],     // Column.children
-                        );     // return Column(...)
-                      }),      // Builder
-                    ],         // if spread
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
                   ],
                 ),
               ),
-
             ],
           ),
         ),
       ),
-    ),  // closes Container
-    );  // closes GestureDetector
+    );
+  }
+
+  Widget _buildSecureChip(String label, {required IconData icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.28), width: 0.6),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 11, color: Colors.white70),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+      ]),
+    );
   }
 
 
+
+  List<Map<String, String>> _counterpartyOptions() {
+    final userEmail = Provider.of<SessionProvider>(context, listen: false).user?['email'];
+    final seen = <String>{};
+    final opts = <Map<String, String>>[{'email': 'all', 'label': 'All People'}];
+    for (final tx in lending) {
+      final cp = (tx['counterpartyEmail'] ?? '').toString();
+      if (cp.isNotEmpty && cp != userEmail && !seen.contains(cp)) {
+        seen.add(cp);
+        opts.add({'email': cp, 'label': cp});
+      }
+    }
+    for (final tx in borrowing) {
+      final cp = (tx['userEmail'] ?? '').toString();
+      if (cp.isNotEmpty && cp != userEmail && !seen.contains(cp)) {
+        seen.add(cp);
+        opts.add({'email': cp, 'label': cp});
+      }
+    }
+    return opts;
+  }
 
   int _activeFilterCount() {
     int count = 0;
@@ -893,57 +730,135 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     if (interestTypeFilter != 'All') count++;
     if (_startDate != null || _endDate != null) count++;
     if (_minAmount != null || _maxAmount != null) count++;
+    if (_selectedCounterpartyFilter != 'all') count++;
     return count;
+  }
+
+  Future<void> _showFilterPage() async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => SecureTransactionFilterPage(counterpartyOptions: _counterpartyOptions()),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      if (result['role'] != null) filter = result['role'].toString();
+      if (result['clearance'] != null) clearanceFilter = result['clearance'].toString();
+      if (result['interestType'] != null) interestTypeFilter = result['interestType'].toString();
+      showFavouritesOnly = result['favourites'] == true;
+      if (result['sort_by'] != null) _sortBy = result['sort_by'].toString();
+      _sortAsc = result['sort_asc'] == true;
+      _startDate = result['start_date'] as DateTime?;
+      _endDate = result['end_date'] as DateTime?;
+      _minAmount = result['min_amount'] as double?;
+      _maxAmount = result['max_amount'] as double?;
+      if (result['counterparty'] != null) {
+        _selectedCounterpartyFilter = result['counterparty'].toString();
+      }
+    });
+    fetchTransactions();
   }
 
   Widget _buildFilterToolbar() {
     final t = AppLocalizations.of(context).t;
     final activeCount = _activeFilterCount();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildMiniFilterChip(
-              label: t('all'),
-              selected: filter == 'All',
-              accentColor: AppColors.cyan,
-              onTap: () { setState(() => filter = 'All'); fetchTransactions(); },
-            ),
-            const SizedBox(width: 6),
-            _buildMiniFilterChip(
-              label: t('lending_label'),
-              selected: filter == 'Lending',
-              accentColor: Colors.green,
-              onTap: () { setState(() => filter = 'Lending'); fetchTransactions(); },
-            ),
-            const SizedBox(width: 6),
-            _buildMiniFilterChip(
-              label: t('borrowing_label'),
-              selected: filter == 'Borrowing',
-              accentColor: Colors.orange,
-              onTap: () { setState(() => filter = 'Borrowing'); fetchTransactions(); },
-            ),
-            const SizedBox(width: 6),
-            _buildMiniFilterChip(
-              icon: showFavouritesOnly ? Icons.favorite : Icons.favorite_border,
-              label: t('fav_label'),
-              selected: showFavouritesOnly,
-              accentColor: Colors.red,
-              onTap: () { setState(() => showFavouritesOnly = !showFavouritesOnly); fetchTransactions(); },
-            ),
-            const SizedBox(width: 6),
-            _buildMiniFilterChip(
-              icon: Icons.tune_rounded,
-              label: activeCount > 0 ? t('filters_count_label').replaceFirst('{count}', '$activeCount') : t('filters_label'),
-              selected: activeCount > 0,
-              accentColor: AppColors.cyan,
-              onTap: _showFiltersBottomSheet,
-            ),
-          ],
+    final cpOptions = _counterpartyOptions().where((o) => o['email'] != 'all').toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Quick role/fav chips ──────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              _buildMiniFilterChip(label: t('all'), selected: filter == 'All', accentColor: AppColors.cyan,
+                onTap: () { setState(() => filter = 'All'); fetchTransactions(); }),
+              const SizedBox(width: 6),
+              _buildMiniFilterChip(label: t('lending_label'), selected: filter == 'Lending', accentColor: Colors.green,
+                onTap: () { setState(() => filter = 'Lending'); fetchTransactions(); }),
+              const SizedBox(width: 6),
+              _buildMiniFilterChip(label: t('borrowing_label'), selected: filter == 'Borrowing', accentColor: Colors.orange,
+                onTap: () { setState(() => filter = 'Borrowing'); fetchTransactions(); }),
+              const SizedBox(width: 6),
+              _buildMiniFilterChip(icon: showFavouritesOnly ? Icons.favorite : Icons.favorite_border, label: t('fav_label'),
+                selected: showFavouritesOnly, accentColor: Colors.red,
+                onTap: () { setState(() => showFavouritesOnly = !showFavouritesOnly); fetchTransactions(); }),
+              const SizedBox(width: 6),
+              _buildMiniFilterChip(icon: Icons.tune_rounded,
+                label: activeCount > 0 ? t('filters_count_label').replaceFirst('{count}', '$activeCount') : t('filters_label'),
+                selected: activeCount > 0, accentColor: AppColors.cyan,
+                onTap: _showFilterPage),
+            ]),
+          ),
         ),
-      ),
+
+        // ── Counterparty avatar strip ─────────────────────────────────────
+        if (cpOptions.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: cpOptions.length + 1,
+              itemBuilder: (ctx, i) {
+                if (i == 0) {
+                  final allSelected = _selectedCounterpartyFilter == 'all';
+                  return GestureDetector(
+                    onTap: () { setState(() => _selectedCounterpartyFilter = 'all'); },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Container(
+                          width: 38, height: 38,
+                          decoration: BoxDecoration(
+                            color: allSelected ? AppColors.cyan.withValues(alpha: 0.15) : AppThemeColors.surfaceBg(ctx),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: allSelected ? AppColors.cyan : AppThemeColors.border(ctx), width: allSelected ? 2 : 1),
+                          ),
+                          child: Icon(Icons.groups_rounded, size: 18, color: allSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx)),
+                        ),
+                        const SizedBox(height: 3),
+                        Text('All', style: TextStyle(fontSize: 10, fontWeight: allSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: allSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx))),
+                      ]),
+                    ),
+                  );
+                }
+                final opt = cpOptions[i - 1];
+                final email = opt['email'] ?? '';
+                final isSelected = _selectedCounterpartyFilter == email;
+                return GestureDetector(
+                  onTap: () { setState(() => _selectedCounterpartyFilter = isSelected ? 'all' : email); },
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Container(
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: isSelected ? AppColors.cyan : Colors.transparent, width: 2),
+                        ),
+                        child: _counterpartyAvatar(email, radius: 19),
+                      ),
+                      const SizedBox(height: 3),
+                      SizedBox(
+                        width: 50,
+                        child: Text(email.split('@').first, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(ctx))),
+                      ),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -988,644 +903,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
   }
 
 
-  Future<DateTime?> _showStyledDatePicker({
-    required DateTime initialDate,
-  }) => showAppDatePicker(
-    context: context,
-    initialDate: initialDate,
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
-  );
-
-  Future<void> _showFiltersBottomSheet() async {
-    final t = AppLocalizations.of(context).t;
-    String tempClearanceFilter = 'All';
-    String tempInterestTypeFilter = 'All';
-    String tempSortBy = 'Created';
-    bool tempSortAsc = false;
-    DateTime? tempStartDate;
-    DateTime? tempEndDate;
-    double? tempMinAmount;
-    double? tempMaxAmount;
-
-    final minAmountController = TextEditingController();
-    final maxAmountController = TextEditingController();
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, modalSetState) {
-            Future<void> pickDate(bool isStart) async {
-              final picked = await _showStyledDatePicker(
-                initialDate: isStart
-                    ? (tempStartDate ?? DateTime.now())
-                    : (tempEndDate ?? DateTime.now()),
-              );
-              if (picked == null) return;
-              modalSetState(() {
-                if (isStart) {
-                  tempStartDate = picked;
-                } else {
-                  tempEndDate = picked;
-                }
-              });
-            }
-
-            Widget sectionTitle(String title, String subtitle) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppThemeColors.primaryText(context),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: AppThemeColors.mutedText(context),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            String clearanceFilterLabel(String value) {
-              switch (value) {
-                case 'Totally Cleared':
-                  return t('totally_cleared_label');
-                case 'Totally Uncleared':
-                  return t('totally_uncleared_label');
-                case 'Partially Cleared':
-                  return t('partially_cleared_label');
-                default:
-                  return t('all');
-              }
-            }
-
-            String sortByLabel(String value) {
-              switch (value) {
-                case 'Transaction Date':
-                  return t('transaction_date_label');
-                case 'Amount':
-                  return t('amount');
-                case 'Status':
-                  return t('status_label');
-                default:
-                  return t('created_label');
-              }
-            }
-
-            Widget tricolorSection({
-              required Widget child,
-              required Color backgroundColor,
-            }) {
-              return Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  gradient: const LinearGradient(
-                    colors: [Colors.orange, Colors.white, Colors.green],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: backgroundColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: child,
-                ),
-              );
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 16,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(26),
-                    gradient: const LinearGradient(
-                      colors: [Colors.orange, Colors.white, Colors.green],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppThemeColors.cardBg(context),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF4FBFE),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cyan
-                                        .withValues(alpha: 0.10),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(Icons.tune_rounded,
-                                      color: AppColors.cyan),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        t('refine_transactions_title'),
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppThemeColors.primaryText(context),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        t('refine_transactions_subtitle_message'),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppThemeColors.mutedText(context),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          tricolorSection(
-                            backgroundColor: const Color(0xFFF8FBFD),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                sectionTitle(
-                                  t('clearance_status_label'),
-                                  t('clearance_status_subtitle_message'),
-                                ),
-                                const SizedBox(height: 10),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      'All',
-                                      'Totally Cleared',
-                                      'Totally Uncleared',
-                                      'Partially Cleared',
-                                    ]
-                                        .map(
-                                          (value) => Padding(
-                                            padding:
-                                                const EdgeInsets.only(right: 8),
-                                            child: ChoiceChip(
-                                              label: Text(clearanceFilterLabel(value)),
-                                              selected:
-                                                  tempClearanceFilter == value,
-                                              onSelected: (_) {
-                                                modalSetState(() {
-                                                  tempClearanceFilter = value;
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          tricolorSection(
-                            backgroundColor: const Color(0xFFFFFCF7),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                sectionTitle(
-                                  t('interest_type_label'),
-                                  t('interest_type_subtitle_message'),
-                                ),
-                                const SizedBox(height: 10),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      {'label': t('all'), 'value': 'All'},
-                                      {
-                                        'label': t('simple_interest_label'),
-                                        'value': 'simple'
-                                      },
-                                      {
-                                        'label': t('compound_interest_label'),
-                                        'value': 'compound'
-                                      },
-                                      {
-                                        'label': t('with_interest_label'),
-                                        'value': 'with_interest'
-                                      },
-                                    ]
-                                        .map(
-                                          (item) => Padding(
-                                            padding:
-                                                const EdgeInsets.only(right: 8),
-                                            child: ChoiceChip(
-                                              label: Text(item['label']!),
-                                              selected:
-                                                  tempInterestTypeFilter ==
-                                                      item['value'],
-                                              onSelected: (_) {
-                                                modalSetState(() {
-                                                  tempInterestTypeFilter =
-                                                      item['value']!;
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          tricolorSection(
-                            backgroundColor: const Color(0xFFF7F9FD),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                sectionTitle(
-                                  t('sort_transactions_label'),
-                                  t('sort_transactions_subtitle_message'),
-                                ),
-                                const SizedBox(height: 10),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      'Created',
-                                      'Transaction Date',
-                                      'Amount',
-                                      'Status',
-                                    ]
-                                        .map(
-                                          (value) => Padding(
-                                            padding:
-                                                const EdgeInsets.only(right: 8),
-                                            child: ChoiceChip(
-                                              label: Text(sortByLabel(value)),
-                                              selected: tempSortBy == value,
-                                              onSelected: (_) {
-                                                modalSetState(() {
-                                                  tempSortBy = value;
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      {
-                                        'label': t('newest_first_label'),
-                                        'value': false,
-                                      },
-                                      {
-                                        'label': t('oldest_first_label'),
-                                        'value': true,
-                                      },
-                                    ]
-                                        .map(
-                                          (item) => Padding(
-                                            padding:
-                                                const EdgeInsets.only(right: 8),
-                                            child: ChoiceChip(
-                                              label: Text(
-                                                  item['label'].toString()),
-                                              selected: tempSortAsc ==
-                                                  item['value'] as bool,
-                                              onSelected: (_) {
-                                                modalSetState(() {
-                                                  tempSortAsc =
-                                                      item['value'] as bool;
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          tricolorSection(
-                            backgroundColor: const Color(0xFFF7FBF8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                sectionTitle(
-                                  t('date_range_label'),
-                                  t('date_range_subtitle_message'),
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: InkWell(
-                                        onTap: () => pickDate(true),
-                                        child: InputDecorator(
-                                          decoration: InputDecoration(
-                                            labelText: t('start_date_label'),
-                                            border: InputBorder.none,
-                                            isDense: true,
-                                            prefixIcon: const Icon(
-                                              Icons.calendar_today,
-                                              color: AppColors.cyan,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                tempStartDate == null
-                                                    ? t('any_label')
-                                                    : DateFormat('yyyy-MM-dd')
-                                                        .format(tempStartDate!),
-                                              ),
-                                              const Icon(Icons.calendar_today,
-                                                  color: Colors.teal),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: InkWell(
-                                        onTap: () => pickDate(false),
-                                        child: InputDecorator(
-                                          decoration: InputDecoration(
-                                            labelText: t('end_date_label'),
-                                            border: InputBorder.none,
-                                            isDense: true,
-                                            prefixIcon: const Icon(
-                                              Icons.calendar_today,
-                                              color: AppColors.cyan,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                tempEndDate == null
-                                                    ? t('any_label')
-                                                    : DateFormat('yyyy-MM-dd')
-                                                        .format(tempEndDate!),
-                                              ),
-                                              const Icon(Icons.calendar_today,
-                                                  color: Colors.teal),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          tricolorSection(
-                            backgroundColor: const Color(0xFFF9F7FC),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                sectionTitle(
-                                  t('amount_range_label'),
-                                  t('amount_range_subtitle_message'),
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: minAmountController,
-                                        decoration: InputDecoration(
-                                          labelText: t('min_amount_label'),
-                                          filled: true,
-                                          fillColor: AppThemeColors.cardBg(context),
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(14),
-                                          ),
-                                          isDense: true,
-                                        ),
-                                        keyboardType: const TextInputType
-                                            .numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                        onChanged: (val) {
-                                          tempMinAmount = double.tryParse(val);
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: maxAmountController,
-                                        decoration: InputDecoration(
-                                          labelText: t('max_amount_label'),
-                                          filled: true,
-                                          fillColor: AppThemeColors.cardBg(context),
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(14),
-                                          ),
-                                          isDense: true,
-                                        ),
-                                        keyboardType: const TextInputType
-                                            .numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                        onChanged: (val) {
-                                          tempMaxAmount = double.tryParse(val);
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Colors.orange,
-                                        Colors.white,
-                                        Colors.green
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                  ),
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      modalSetState(() {
-                                        tempClearanceFilter = 'All';
-                                        tempInterestTypeFilter = 'All';
-                                        tempSortBy = 'Created';
-                                        tempSortAsc = false;
-                                        tempStartDate = null;
-                                        tempEndDate = null;
-                                        tempMinAmount = null;
-                                        tempMaxAmount = null;
-                                        minAmountController.clear();
-                                        maxAmountController.clear();
-                                      });
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: AppThemeColors.cardBg(context),
-                                      side: BorderSide.none,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 14),
-                                    ),
-                                    child: Text(
-                                      t('clear_sheet_label'),
-                                      style: const TextStyle(
-                                        color: Color(0xFF0077B6),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Colors.orange,
-                                        Colors.white,
-                                        Colors.green
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        clearanceFilter = tempClearanceFilter;
-                                        interestTypeFilter =
-                                            tempInterestTypeFilter;
-                                        _sortBy = tempSortBy;
-                                        _sortAsc = tempSortAsc;
-                                        _startDate = tempStartDate;
-                                        _endDate = tempEndDate;
-                                        _minAmount = tempMinAmount;
-                                        _maxAmount = tempMaxAmount;
-                                      });
-                                      Navigator.pop(context);
-                                      fetchTransactions();
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.cyan,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 14),
-                                    ),
-                                    child: Text(
-                                      t('apply_filters_label'),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   Widget _buildActiveFilterSummary() {
     final t = AppLocalizations.of(context).t;
@@ -2235,14 +1512,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final myEmail  = (user?['email'] ?? '').toString();
@@ -2252,7 +1521,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
 
     final amount   = (t['amount'] as num?)?.toDouble() ?? 0;
     final currency = (t['currency'] ?? 'INR').toString();
-    final sym      = pdfSym(currency);
+    final sym      = txPdfSymbol(currency);
     final desc     = (t['description'] ?? '').toString();
     final category = (t['category'] ?? '').toString();
     final rawId    = (t['_id'] ?? '').toString();
@@ -2473,14 +1742,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     const orange    = PdfColor.fromInt(0xFFF06322);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     pw.Widget cell(String text, {bool bold = false, PdfColor? color}) =>
         pw.Padding(
@@ -2493,7 +1754,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
     final lendingCount = lending.length;
     final borrowingCount = borrowing.length;
-    final summarySym = pdfSym((allTxns.isNotEmpty ? (allTxns.first['currency'] ?? 'INR') : 'INR').toString().toUpperCase());
+    final summarySym = txPdfSymbol((allTxns.isNotEmpty ? (allTxns.first['currency'] ?? 'INR') : 'INR').toString().toUpperCase());
 
     final doc = pw.Document();
     doc.addPage(pw.MultiPage(
@@ -2567,7 +1828,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
               final fullyCleared = youCleared && otherCleared;
               final counterparty = (isCreator ? tx['counterpartyEmail'] : tx['userEmail'])?.toString() ?? '—';
               final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-              final sym = pdfSym((tx['currency'] ?? 'INR').toString().toUpperCase());
+              final sym = txPdfSymbol((tx['currency'] ?? 'INR').toString().toUpperCase());
               final dateStr = (tx['date'] ?? '').toString().split('T').first;
               final expectedDt = DateTime.tryParse((tx['expectedReturnDate'] ?? '').toString());
               final isOverdue = expectedDt != null && expectedDt.isBefore(DateTime.now()) && !fullyCleared;
@@ -2628,6 +1889,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
         actions: [
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert_rounded, color: AppThemeColors.primaryText(context)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
             onSelected: (value) {
               if (value == 'export_csv') _exportCsv();
               if (value == 'export_pdf') _exportPdf();
@@ -2638,34 +1901,38 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
               PopupMenuItem(
                 value: 'currency_mode',
                 child: Row(children: [
-                  const Icon(Icons.currency_exchange_rounded, size: 18, color: AppColors.cyan),
+                  Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.currency_exchange_rounded, size: 16, color: AppColors.cyan)),
                   const SizedBox(width: 12),
-                  Text('Currency: $selectedCurrency'),
+                  Text('Currency: $selectedCurrency', style: const TextStyle(fontWeight: FontWeight.w500)),
                 ]),
               ),
               if (lending.isNotEmpty || borrowing.isNotEmpty) ...[
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'export_csv',
                   child: Row(children: [
-                    Icon(Icons.table_chart_outlined, size: 18),
-                    SizedBox(width: 12),
-                    Text('Export CSV'),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.table_chart_outlined, size: 16, color: Colors.green)),
+                    const SizedBox(width: 12),
+                    const Text('Export CSV', style: TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'export_pdf',
                   child: Row(children: [
-                    Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Export PDF'),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red)),
+                    const SizedBox(width: 12),
+                    const Text('Export PDF', style: TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'share_as_note',
                   child: Row(children: [
-                    Icon(Icons.note_add_rounded, size: 18, color: AppColors.tricolorGreen),
-                    SizedBox(width: 12),
-                    Text('Share as Note'),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.tricolorGreen.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.note_add_rounded, size: 16, color: AppColors.tricolorGreen)),
+                    const SizedBox(width: 12),
+                    const Text('Share as Note', style: TextStyle(fontWeight: FontWeight.w500)),
                   ]),
                 ),
               ],

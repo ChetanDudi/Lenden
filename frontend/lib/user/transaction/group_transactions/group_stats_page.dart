@@ -49,7 +49,7 @@ class _GroupStatsPageState extends State<GroupStatsPage> {
     'transport': Color(0xFF42A5F5),
     'entertainment': Color(0xFFAB47BC),
     'shopping': Color(0xFFFFCA28),
-    'healthcare': Color(0xFF26A69A),
+    'medical': Color(0xFF26A69A),
     'education': Color(0xFF5C6BC0),
     'utilities': Color(0xFF78909C),
     'rent': Color(0xFF8D6E63),

@@ -4,6 +4,8 @@ import '../widgets/app_widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
+import 'package:lottie/lottie.dart';
 import '../otp_input.dart';
 import '../utils/api_client.dart';
 import '../utils/responsive.dart';
@@ -14,7 +16,6 @@ import '../session.dart';
 import '../login/google_auth_service.dart';
 import '../widgets/google_logo_icon.dart';
 import '../widgets/wave_widget.dart' show ScaledDeepTopWaveClipper;
-import '../widgets/login_illustration.dart';
 
 class UserRegisterPage extends StatefulWidget {
   const UserRegisterPage({super.key});
@@ -60,9 +61,24 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       _passwordController.text.length >= 8 &&
       _passwordController.text.length <= 30;
 
+  static const _animations = [
+    'assets/animations/Digital Finance Animation.json',
+    'assets/animations/Dollar Coins Chest.json',
+    'assets/animations/Finance app blue color.json',
+    'assets/animations/Finance.json',
+    'assets/animations/Isometric data analysis.json',
+    'assets/animations/Money.json',
+    'assets/animations/Revenue.json',
+    'assets/animations/Saving the Money.json',
+    'assets/animations/Trade.json',
+    'assets/animations/login success.json',
+  ];
+  late final int _animIndex;
+
   @override
   void initState() {
     super.initState();
+    _animIndex = Random().nextInt(_animations.length);
     // Fire-and-forget ping to wake Render before user finishes filling the form
     ApiClient.get('/', timeout: const Duration(seconds: 90)).then<void>((_) {}, onError: (_) {});
   }
@@ -857,7 +873,13 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                             color: AppThemeColors.primaryText(context)),
                         textAlign: TextAlign.center),
                     SizedBox(height: context.sh(28)),
-                    LoginIllustration(height: context.sh(160)),
+                    Lottie.asset(
+                      _animations[_animIndex],
+                      height: context.sh(160),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          SizedBox(height: context.sh(160)),
+                    ),
                     const SizedBox(height: 24),
                     _profileStyleField(
                       icon: Icons.person,

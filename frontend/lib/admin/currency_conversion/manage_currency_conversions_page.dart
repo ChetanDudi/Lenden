@@ -7,6 +7,7 @@ import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/transaction_constants.dart';
 
 class ManageCurrencyConversionsPage extends StatefulWidget {
   const ManageCurrencyConversionsPage({super.key});
@@ -30,7 +31,8 @@ class _ManageCurrencyConversionsPageState
   String? _error;
   String _baseCurrency = 'INR';
   String _quoteCurrency = 'USD';
-  List<String> _supportedCurrencies = const ['INR', 'USD', 'EUR'];
+  List<String> _supportedCurrencies =
+      kTxCurrencies.map((c) => c['code']!).toList();
   List<Map<String, dynamic>> _currencyDefinitions = [];
   List<Map<String, dynamic>> _matrix = [];
   String? _lastUpdatedAt;

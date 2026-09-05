@@ -116,7 +116,8 @@ class _WalletAuthStepState extends State<WalletAuthStep> {
       setState(() => _error = t('please_enter_valid_6_digit_otp'));
       return;
     }
-    _timer?.cancel();
+    // Don't cancel the timer here — if auth fails the sheet stays open and
+    // the timer must keep counting down. Timer is cancelled on success via dispose().
     widget.onAuthenticated(_usePinMode ? 'authPin' : 'authOtp', _code);
   }
 

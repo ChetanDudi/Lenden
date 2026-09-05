@@ -6,6 +6,7 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/transaction_constants.dart';
 
 class RequestMoneyPage extends StatefulWidget {
   final String? prefillEmail;
@@ -27,19 +28,7 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _suggestions = [];
 
-  static const _currencies = [
-    {'code': 'INR', 'symbol': '₹'},
-    {'code': 'USD', 'symbol': '\$'},
-    {'code': 'EUR', 'symbol': '€'},
-    {'code': 'GBP', 'symbol': '£'},
-    {'code': 'JPY', 'symbol': '¥'},
-    {'code': 'CAD', 'symbol': '\$'},
-    {'code': 'AUD', 'symbol': '\$'},
-    {'code': 'CHF', 'symbol': 'Fr'},
-  ];
-
-  String get _symbol =>
-      _currencies.firstWhere((c) => c['code'] == _currency, orElse: () => {'symbol': '₹'})['symbol']!;
+  String get _symbol => txCurrencySymbol(_currency);
 
   @override
   void initState() {
@@ -197,7 +186,7 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                       _field(
                         child: DropdownButtonFormField<String>(
                           value: _currency,
-                          items: _currencies.map((c) => DropdownMenuItem(
+                          items: kTxCurrencies.map((c) => DropdownMenuItem(
                             value: c['code'], child: Text('${c['symbol']} ${c['code']}'),
                           )).toList(),
                           onChanged: (v) => setState(() => _currency = v ?? 'INR'),

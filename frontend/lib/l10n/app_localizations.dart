@@ -3434,6 +3434,10 @@ class AppLocalizations {
       'category_utilities_label': 'Utilities',
       'category_medical_label': 'Medical',
       'category_education_label': 'Education',
+      'personal': 'Personal',
+      'rent': 'Rent',
+      'business': 'Business',
+      'travel': 'Travel',
       'enter_a_description_message': 'Please enter a description',
       'select_at_least_one_member_message': 'Please select at least one member',
       'split_total_must_equal_amount_message':
@@ -7986,6 +7990,10 @@ class AppLocalizations {
       'category_utilities_label': 'यूटिलिटीज़',
       'category_medical_label': 'मेडिकल',
       'category_education_label': 'शिक्षा',
+      'personal': 'व्यक्तिगत',
+      'rent': 'किराया',
+      'business': 'व्यवसाय',
+      'travel': 'पर्यटन',
       'enter_a_description_message': 'कृपया विवरण दर्ज करें',
       'select_at_least_one_member_message': 'कृपया कम से कम एक सदस्य चुनें',
       'split_total_must_equal_amount_message':

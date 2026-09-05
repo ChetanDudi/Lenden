@@ -419,7 +419,7 @@ exports.getQuickTransactions = async (req, res) => {
       ...t,
       users: t.users.map(email => {
         const u = userByEmail[email];
-        return u ? { name: u.name, email: u.email, phone: u.phone ?? null } : { email };
+        return u ? { name: u.name, email: u.email, phone: u.phone ?? null, userId: u._id.toString() } : { email };
       }),
     }));
 
@@ -778,6 +778,73 @@ exports.respondQuickTransactionSettlement = async (req, res) => {
       message: 'Settlement rejected successfully',
       quickTransaction,
     });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+exports.requestQuickTransactionPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const callerEmail = (req.user.email || '').toLowerCase().trim();
+
+    const quickTransaction = await QuickTransaction.findById(id);
+    if (!quickTransaction) return res.status(404).json({ error: 'Quick transaction not found' });
+
+    if (!quickTransaction.users.some(u => u.toLowerCase() === callerEmail)) {
+      return res.status(403).json({ error: 'User not authorized for this transaction' });
+    }
+    if (quickTransaction.cleared) {
+      return res.status(400).json({ error: 'This quick transaction is already settled' });
+    }
+    if (quickTransaction.isExternalUser) {
+      return res.status(400).json({ error: 'Cannot request payment from an external (non-LenDen) user' });
+    }
+
+    // Determine caller's effective role
+    const isCreator = quickTransaction.creatorEmail.toLowerCase() === callerEmail;
+    const storedRole = quickTransaction.role;
+    const callerRole = isCreator ? storedRole : (storedRole === 'lender' ? 'borrower' : 'lender');
+
+    if (callerRole !== 'lender') {
+      return res.status(403).json({ error: 'Only the lender can request payment' });
+    }
+
+    // Borrower is the other party
+    const borrowerEmail = quickTransaction.users.find(u => u.toLowerCase() !== callerEmail);
+    if (!borrowerEmail) return res.status(400).json({ error: 'Could not determine the borrower' });
+
+    const borrower = await User.findOne({ email: borrowerEmail }).select('_id name notificationSettings');
+    if (!borrower) return res.status(404).json({ error: 'Borrower account not found' });
+
+    const lenderUser = await User.findById(req.user._id).select('name email');
+    const lenderName = lenderUser?.name || callerEmail;
+    const amount = quickTransaction.amount;
+    const currency = quickTransaction.currency || 'INR';
+    const description = quickTransaction.description || '';
+
+    const notifTitle = 'Payment Requested 💸';
+    const notifBody = `${lenderName} is requesting ₹${amount} ${currency !== 'INR' ? currency : ''} from you${description ? ` for "${description}"` : ''}.`;
+
+    // In-app notification (fire-and-forget)
+    if (borrower.notificationSettings?.transactionNotifications !== false) {
+      Notification.create({
+        sender: req.user._id, senderModel: 'User',
+        recipientType: 'specific-users', recipients: [borrower._id], recipientModel: 'User',
+        category: 'transaction',
+        title: notifTitle,
+        message: notifBody,
+      }).catch(() => {});
+    }
+
+    // Firebase push (fire-and-forget)
+    sendToUser(User, borrower._id, {
+      title: notifTitle,
+      body: notifBody,
+      data: { type: 'payment_request', transactionId: id },
+    });
+
+    return res.status(200).json({ message: 'Payment request sent successfully' });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }

@@ -17,31 +17,13 @@ import './quick_transaction_history_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/share_as_note_sheet.dart';
+import '../../../utils/transaction_constants.dart';
 
-const _kQtCategories = [
-  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
-  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
-  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
-  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
-  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
-  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
-  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
-  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
-  {'key': 'personal',      'label': 'Personal',      'icon': Icons.person_rounded},
-  {'key': 'rent',          'label': 'Rent',          'icon': Icons.home_rounded},
-  {'key': 'business',      'label': 'Business',      'icon': Icons.business_center_rounded},
-  {'key': 'travel',        'label': 'Travel',        'icon': Icons.flight_rounded},
-  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
-];
+IconData _categoryIcon(String? key) => txCatIcon(key);
+String _categoryLabel(String? key) => txCatLabel(key);
 
-IconData _categoryIcon(String? key) {
-  final cat = _kQtCategories.firstWhere((c) => c['key'] == key, orElse: () => _kQtCategories.last);
-  return cat['icon'] as IconData;
-}
-
-String _categoryLabel(String? key) {
-  return (_kQtCategories.firstWhere((c) => c['key'] == key, orElse: () => _kQtCategories.last)['label'] as String);
-}
+List<Color> _detailColors(String category, bool isCleared) =>
+    isCleared ? kTxClearedGradient : txCatGradient(category);
 
 class QuickTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -446,17 +428,9 @@ class _QuickTransactionDetailPageState
     const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     final isLender = _myRole == 'lender';
-    final sym      = pdfSym(_currency);
+    final sym      = txPdfSymbol(_currency);
     final rawId    = _id;
     final shortId  = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.toUpperCase();
     final rawDate  = _tx['createdAt']?.toString() ?? _tx['date']?.toString() ?? '';
@@ -723,6 +697,8 @@ class _QuickTransactionDetailPageState
   Widget _buildSliverAppBar() {
     final t = AppLocalizations.of(context).t;
     final isLender = _myRole == 'lender';
+    final category = (_tx['category'] ?? 'other').toString();
+    final cardColors = _detailColors(category, _cleared);
     return SliverAppBar(
       expandedHeight: 200,
       pinned: true,
@@ -730,45 +706,48 @@ class _QuickTransactionDetailPageState
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context, _didMutate),
       ),
-      backgroundColor: isLender ? AppColors.cyan : Colors.orange[700],
+      backgroundColor: cardColors.first,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: isLender
-                  ? [AppColors.cyan, const Color(0xFF48CAE4)]
-                  : [Colors.orange[700]!, Colors.orange[400]!],
+              colors: cardColors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              const SizedBox(height: 40),
-              Text(
-                _formatAmount(),
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isLender ? t('you_lent_money_label') : t('you_borrowed_money_label'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+              // Watermark icon
+              Positioned(right: -20, bottom: -20,
+                child: Icon(_categoryIcon(category), size: 200,
+                  color: Colors.white.withValues(alpha: 0.22))),
+              // Content
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 40),
+                  Text(
+                    _formatAmount(),
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isLender ? t('you_lent_money_label') : t('you_borrowed_money_label'),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

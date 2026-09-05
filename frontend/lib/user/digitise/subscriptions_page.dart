@@ -626,6 +626,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     bool paying = false;
+    String? sheetError;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -674,7 +675,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                   paying: paying,
                   otpEndpoint: '/api/wallet/auth/send-subscription-otp',
                   onAuthenticated: (authField, credential) async {
-                    setSheet(() => paying = true);
+                    setSheet(() { paying = true; sheetError = null; });
                     try {
                       final res = await ApiClient.post(
                           '/api/wallet/pay-subscription',
@@ -693,25 +694,37 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                         _showSuccessDialog();
                       } else {
                         final err = json.decode(res.body);
-                        setSheet(() => paying = false);
-                        if (mounted) {
-                          showSnack(
-                              context,
-                              err['error'] ?? t('wallet_payment_failed_message'),
-                              isError: true);
-                        }
+                        setSheet(() {
+                          paying = false;
+                          sheetError = err['error'] ?? t('wallet_payment_failed_message');
+                        });
                       }
                     } catch (e) {
-                      setSheet(() => paying = false);
-                      if (mounted) {
-                        showSnack(context,
-                            t('error_colon_label').replaceFirst('{error}', '$e'),
-                            isError: true);
-                      }
+                      setSheet(() {
+                        paying = false;
+                        sheetError = t('error_colon_label').replaceFirst('{error}', '$e');
+                      });
                     }
                   },
                   onBack: () => Navigator.pop(sheetCtx),
                 ),
+                if (sheetError != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                      const SizedBox(width: 8),
+                      Flexible(child: Text(sheetError!,
+                          style: const TextStyle(color: Colors.red, fontSize: 13))),
+                    ]),
+                  ),
+                ],
               ],
             ),
           );

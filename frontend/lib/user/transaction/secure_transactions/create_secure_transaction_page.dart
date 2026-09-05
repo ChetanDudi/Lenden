@@ -28,6 +28,7 @@ import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/wave_widget.dart'
     show DeeperTopWaveClipper, TopWaveClipper;
+import '../../../utils/transaction_constants.dart';
 
 class TransactionPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
@@ -95,27 +96,8 @@ class _TransactionPageState extends State<TransactionPage> {
   // Computed property to check if both users are verified
   bool get _bothUsersVerified => _counterpartyVerified && _userVerified;
 
-  final List<Map<String, String>> _currencies = [
-    {'code': 'INR', 'symbol': '₹'},
-    {'code': 'USD', 'symbol': '\$'},
-    {'code': 'EUR', 'symbol': '€'},
-    {'code': 'GBP', 'symbol': '£'},
-    {'code': 'JPY', 'symbol': '¥'},
-    {'code': 'CNY', 'symbol': '¥'},
-    {'code': 'CAD', 'symbol': '\$'},
-    {'code': 'AUD', 'symbol': '\$'},
-    {'code': 'CHF', 'symbol': 'Fr'},
-    {'code': 'RUB', 'symbol': '₽'},
-  ];
 
-  String _currencySymbol([String? code]) {
-    final selectedCode = (code ?? _currency).toUpperCase();
-    final match = _currencies.firstWhere(
-      (item) => item['code'] == selectedCode,
-      orElse: () => const {'code': 'INR', 'symbol': '₹'},
-    );
-    return match['symbol'] ?? '₹';
-  }
+  String _currencySymbol([String? code]) => txCurrencySymbol(code ?? _currency);
 
   double? _parsedPrincipalAmount() {
     return double.tryParse(_amountController.text.trim());
@@ -1173,16 +1155,37 @@ class _TransactionPageState extends State<TransactionPage> {
   Future<void> _pickFriendForCounterparty() async {
     final t = AppLocalizations.of(context).t;
     try {
-      final res = await ApiClient.get('/api/friends');
-      if (res.statusCode != 200) return;
-      final data = jsonDecode(res.body);
-      final friends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
-      final blocked =
-          List<Map<String, dynamic>>.from(data['blockedUsers'] ?? []);
+      final userEmail =
+          Provider.of<SessionProvider>(context, listen: false).user?['email']?.toString() ?? '';
+
+      final results = await Future.wait([
+        ApiClient.get('/api/friends'),
+        if (userEmail.isNotEmpty)
+          ApiClient.get('/api/counterparties/user?email=${Uri.encodeComponent(userEmail)}'),
+      ]);
+
+      final friendsRes = results[0];
+      if (friendsRes.statusCode != 200) return;
+      final friendsData = jsonDecode(friendsRes.body);
+      final friends = List<Map<String, dynamic>>.from(friendsData['friends'] ?? []);
+      final blocked = List<Map<String, dynamic>>.from(friendsData['blockedUsers'] ?? []);
       _blockedEmails = blocked
           .map((u) => (u['email'] ?? '').toString().toLowerCase().trim())
           .where((e) => e.isNotEmpty)
           .toSet();
+
+      final friendEmails = friends.map((f) => (f['email'] ?? '').toString().toLowerCase()).toSet();
+
+      List<Map<String, dynamic>> pastCounterparties = [];
+      if (results.length > 1 && results[1].statusCode == 200) {
+        final cpData = jsonDecode(results[1].body);
+        final all = List<Map<String, dynamic>>.from(cpData['counterparties'] ?? []);
+        // Only show counterparties who are NOT already friends
+        pastCounterparties = all
+            .where((c) => !friendEmails.contains((c['email'] ?? '').toString().toLowerCase()))
+            .toList();
+      }
+
       if (!mounted) return;
 
       String searchQuery = '';
@@ -1198,152 +1201,154 @@ class _TransactionPageState extends State<TransactionPage> {
           expand: false,
           builder: (_, scrollController) => StatefulBuilder(
             builder: (ctx2, setSheetState) {
-              final filtered = friends.where((f) {
-                final name =
-                    (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
+              final q = searchQuery.toLowerCase();
+              final filteredFriends = friends.where((f) {
+                final name = (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
                 final email = (f['email'] ?? '').toString().toLowerCase();
-                final q = searchQuery.toLowerCase();
+                return name.contains(q) || email.contains(q);
+              }).toList();
+              final filteredCp = pastCounterparties.where((c) {
+                final name = (c['name'] ?? '').toString().toLowerCase();
+                final email = (c['email'] ?? '').toString().toLowerCase();
                 return name.contains(q) || email.contains(q);
               }).toList();
 
+              Widget _personTile(Map<String, dynamic> f, {bool isCounterparty = false}) {
+                final email = (f['email'] ?? '').toString();
+                final name = (f['name'] ?? f['username'] ?? email).toString();
+                final isBlocked = _blockedEmails.contains(email.toLowerCase().trim());
+                final initials = name.isNotEmpty
+                    ? name.trim().split(' ').where((p) => p.isNotEmpty).take(2).map((p) => p[0].toUpperCase()).join()
+                    : '?';
+                final avatarColor = Colors.primaries[name.hashCode.abs() % Colors.primaries.length];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: avatarColor.withValues(alpha: 0.2),
+                      child: Text(initials, style: TextStyle(color: avatarColor, fontWeight: FontWeight.bold, fontSize: 15)),
+                    ),
+                    title: Text(name,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx2))),
+                    subtitle: Text(email,
+                        style: TextStyle(color: AppThemeColors.secondaryText(ctx2), fontSize: 12)),
+                    trailing: isBlocked
+                        ? Text(t('blocked_label'),
+                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 12))
+                        : Row(mainAxisSize: MainAxisSize.min, children: [
+                            if (isCounterparty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                margin: const EdgeInsets.only(right: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.indigo.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.indigo.withValues(alpha: 0.3)),
+                                ),
+                                child: Text('Past', style: TextStyle(fontSize: 10, color: Colors.indigo, fontWeight: FontWeight.w600)),
+                              ),
+                            Icon(Icons.chevron_right, color: AppThemeColors.mutedText(ctx2)),
+                          ]),
+                    onTap: () {
+                      if (isBlocked) {
+                        Navigator.pop(ctx);
+                        showBlockedUserDialog(context);
+                        return;
+                      }
+                      setState(() => _counterpartyEmailController.text = email);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                );
+              }
+
+              Widget _sectionHeader(String label, int count, Color color, IconData icon) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Row(children: [
+                    Container(
+                      width: 28, height: 28,
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: Icon(icon, size: 15, color: color),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                      child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+                    ),
+                  ]),
+                );
+              }
+
+              final totalCount = filteredFriends.length + filteredCp.length;
+
               return Container(
                 decoration: BoxDecoration(
-                  color: AppThemeColors.cardBg(context),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  color: AppThemeColors.cardBg(ctx2),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
                   children: [
                     Container(
                       margin: const EdgeInsets.only(top: 10, bottom: 4),
-                      width: 40,
-                      height: 4,
+                      width: 40, height: 4,
                       decoration: BoxDecoration(
-                        color: AppThemeColors.border(context),
+                        color: AppThemeColors.border(ctx2),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: Row(
-                        children: [
-                          Text(t('select_friend_label'),
-                              style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppThemeColors.primaryText(context))),
-                          const Spacer(),
-                          Text(
-                              filtered.length == 1
-                                  ? t('friend_count_singular_label')
-                                  : t('friend_count_plural_label').replaceFirst(
-                                      '{count}', '${filtered.length}'),
-                              style: TextStyle(
-                                  color: AppThemeColors.secondaryText(context),
-                                  fontSize: 13)),
-                        ],
-                      ),
+                      child: Row(children: [
+                        Text('Select Person',
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
+                                color: AppThemeColors.primaryText(ctx2))),
+                        const Spacer(),
+                        Text('$totalCount found',
+                            style: TextStyle(color: AppThemeColors.secondaryText(ctx2), fontSize: 13)),
+                      ]),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: TextField(
                         autofocus: false,
-                        style: TextStyle(
-                            color: AppThemeColors.primaryText(context)),
+                        style: TextStyle(color: AppThemeColors.primaryText(ctx2)),
                         decoration: InputDecoration(
                           hintText: t('search_by_name_or_email_hint'),
                           prefixIcon: const Icon(Icons.search, size: 20),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 14),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           filled: true,
-                          fillColor: AppThemeColors.surfaceBg(context),
+                          fillColor: AppThemeColors.surfaceBg(ctx2),
                         ),
                         onChanged: (v) => setSheetState(() => searchQuery = v),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Expanded(
-                      child: filtered.isEmpty
+                      child: totalCount == 0
                           ? Center(
-                              child: Text(t('no_friends_found_label'),
-                                  style: TextStyle(
-                                      color:
-                                          AppThemeColors.mutedText(context))))
-                          : ListView.builder(
+                              child: Text('No people found',
+                                  style: TextStyle(color: AppThemeColors.mutedText(ctx2))))
+                          : ListView(
                               controller: scrollController,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              itemCount: filtered.length,
-                              itemBuilder: (_, i) {
-                                final f = filtered[i];
-                                final email = (f['email'] ?? '').toString();
-                                final name =
-                                    (f['name'] ?? f['username'] ?? email)
-                                        .toString();
-                                final isBlocked = _blockedEmails
-                                    .contains(email.toLowerCase().trim());
-                                final initials = name.isNotEmpty
-                                    ? name
-                                        .trim()
-                                        .split(' ')
-                                        .where((p) => p.isNotEmpty)
-                                        .take(2)
-                                        .map((p) => p[0].toUpperCase())
-                                        .join()
-                                    : '?';
-                                final avatarColor = Colors.primaries[
-                                    name.hashCode.abs() %
-                                        Colors.primaries.length];
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  elevation: 1,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor:
-                                          avatarColor.withValues(alpha: 0.2),
-                                      child: Text(initials,
-                                          style: TextStyle(
-                                              color: avatarColor,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15)),
-                                    ),
-                                    title: Text(name,
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: AppThemeColors.primaryText(
-                                                context))),
-                                    subtitle: Text(email,
-                                        style: TextStyle(
-                                            color: AppThemeColors.secondaryText(
-                                                context),
-                                            fontSize: 12)),
-                                    trailing: isBlocked
-                                        ? Text(t('blocked_label'),
-                                            style: const TextStyle(
-                                                color: Colors.red,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 12))
-                                        : Icon(Icons.chevron_right,
-                                            color: AppThemeColors.mutedText(
-                                                context)),
-                                    onTap: () {
-                                      if (isBlocked) {
-                                        Navigator.pop(ctx);
-                                        showBlockedUserDialog(context);
-                                        return;
-                                      }
-                                      setState(() {
-                                        _counterpartyEmailController.text =
-                                            email;
-                                      });
-                                      Navigator.pop(ctx);
-                                    },
-                                  ),
-                                );
-                              },
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              children: [
+                                if (filteredFriends.isNotEmpty) ...[
+                                  _sectionHeader('Friends', filteredFriends.length, Colors.teal, Icons.people_rounded),
+                                  ...filteredFriends.map((f) => _personTile(f)),
+                                ],
+                                if (filteredCp.isNotEmpty) ...[
+                                  _sectionHeader('Past Counterparties', filteredCp.length, Colors.indigo, Icons.history_rounded),
+                                  ...filteredCp.map((c) => _personTile(c, isCounterparty: true)),
+                                ],
+                                const SizedBox(height: 12),
+                              ],
                             ),
                     ),
                   ],
@@ -3324,54 +3329,80 @@ class _TransactionPageState extends State<TransactionPage> {
             ]),
           ),
           _buildSectionHeader(title: t('basic_details_title'), subtitle: t('basic_details_subtitle_message'), icon: Icons.edit_note_rounded),
-          _buildStylishField(
-            child: DropdownButtonFormField<String>(
-              value: _role,
-              items: [
-                DropdownMenuItem(value: 'lender', child: Text(t('lender_giving_money_label'))),
-                DropdownMenuItem(value: 'borrower', child: Text(t('borrower_taking_money_label'))),
-              ],
-              onChanged: _bothUsersVerified ? null : (val) => setState(() { _role = val ?? 'lender'; _saveDraft(); }),
-              decoration: InputDecoration(labelText: t('your_role_label'), prefixIcon: Icon(Icons.people, color: AppColors.cyan), border: InputBorder.none,
-                helperText: _bothUsersVerified ? t('details_locked_label') : null),
-            ),
-          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(t('your_role_label'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: _buildRoleCard('lender', Icons.trending_up_rounded, t('lender_giving_money_label'), Colors.green)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildRoleCard('borrower', Icons.trending_down_rounded, t('borrower_taking_money_label'), Colors.orange)),
+            ]),
+            if (_bothUsersVerified)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(t('details_locked_label'), style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
+              ),
+          ]),
           const SizedBox(height: 16),
           _buildStylishField(
+            icon: Icons.currency_exchange_rounded,
             child: DropdownButtonFormField<String>(
               value: _currency,
-              items: _currencies.map((c) => DropdownMenuItem(value: c['code'], child: Text('${c['symbol']} ${c['code']}'))) .toList(),
+              selectedItemBuilder: (ctx) => kTxCurrencies.map((c) => Row(children: [
+                Container(
+                  width: 26, height: 26,
+                  decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(6)),
+                  child: Center(child: Text(c['symbol']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                ),
+                const SizedBox(width: 6),
+                Text(c['code']!, style: const TextStyle(fontWeight: FontWeight.w600)),
+              ])).toList(),
+              items: kTxCurrencies.map((c) => DropdownMenuItem(
+                value: c['code'],
+                child: Row(children: [
+                  Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(6)),
+                    child: Center(child: Text(c['symbol']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(c['code']!, style: const TextStyle(fontWeight: FontWeight.w500)),
+                ]),
+              )).toList(),
               onChanged: _bothUsersVerified ? null : (val) => setState(() { _currency = val ?? 'INR'; _saveDraft(); }),
-              decoration: InputDecoration(labelText: t('currency_label'), prefixIcon: Icon(Icons.currency_exchange, color: AppColors.cyan), border: InputBorder.none),
+              decoration: InputDecoration(labelText: t('currency_label'), border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14)),
             ),
           ),
           const SizedBox(height: 16),
           _buildStylishField(
+            icon: Icons.payments_rounded,
             child: TextFormField(
               controller: _amountController,
               enabled: !_bothUsersVerified,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                labelText: t('amount_label'),
-                prefixIcon: Padding(padding: const EdgeInsets.all(14), child: Text(_currencySymbol(), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                labelText: '${t('amount_label')} (${_currencySymbol()})',
                 border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),
           const SizedBox(height: 16),
-          _buildStylishField(child: _buildDatePickerField()),
+          _buildStylishField(icon: Icons.calendar_today_rounded, child: _buildDatePickerField()),
           const SizedBox(height: 16),
-          _buildStylishField(child: _buildTimePickerField()),
+          _buildStylishField(icon: Icons.access_time_rounded, child: _buildTimePickerField()),
           const SizedBox(height: 16),
           _buildStylishField(
+            icon: Icons.location_on_rounded,
             child: TextFormField(
               controller: _placeController,
               enabled: !_bothUsersVerified,
               decoration: InputDecoration(
                 labelText: t('place_label'),
-                prefixIcon: Icon(Icons.location_on, color: AppColors.cyan),
                 border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : null,
               ),
             ),
@@ -3419,12 +3450,28 @@ class _TransactionPageState extends State<TransactionPage> {
         children: [
           _buildSectionHeader(title: t('interest_label'), subtitle: t('interest_subtitle_message'), icon: Icons.percent_rounded),
           _buildStylishField(
+            icon: Icons.percent_rounded,
             child: DropdownButtonFormField<String>(
               value: _interestType,
               items: [
-                DropdownMenuItem(value: 'none', child: Text(t('no_interest_default_label'))),
-                DropdownMenuItem(value: 'simple', child: Text(t('simple_interest_label'))),
-                DropdownMenuItem(value: 'compound', child: Text(t('compound_interest_label'))),
+                DropdownMenuItem(value: 'none', child: Row(children: [
+                  Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                    child: const Icon(Icons.block_rounded, size: 15, color: Colors.grey)),
+                  const SizedBox(width: 10),
+                  Text(t('no_interest_default_label')),
+                ])),
+                DropdownMenuItem(value: 'simple', child: Row(children: [
+                  Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                    child: const Icon(Icons.functions_rounded, size: 15, color: Colors.blue)),
+                  const SizedBox(width: 10),
+                  Text(t('simple_interest_label')),
+                ])),
+                DropdownMenuItem(value: 'compound', child: Row(children: [
+                  Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                    child: const Icon(Icons.trending_up_rounded, size: 15, color: Colors.orange)),
+                  const SizedBox(width: 10),
+                  Text(t('compound_interest_label')),
+                ])),
               ],
               onChanged: _bothUsersVerified ? null : (val) { setState(() { _interestType = val ?? 'none'; if (_interestType == 'none') _interestRateController.clear(); _saveDraft(); }); },
               decoration: InputDecoration(labelText: t('interest_type_optional_label'), border: InputBorder.none,
@@ -3436,12 +3483,15 @@ class _TransactionPageState extends State<TransactionPage> {
             _buildInterestGuidanceCard(),
             const SizedBox(height: 12),
             _buildStylishField(
+              icon: Icons.trending_up_rounded,
+              iconColor: Colors.orange,
               child: TextFormField(
                 controller: _interestRateController,
                 enabled: !_bothUsersVerified,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(labelText: t('interest_rate_percent_label'), border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : null),
               ),
             ),
@@ -3449,13 +3499,35 @@ class _TransactionPageState extends State<TransactionPage> {
           if (_interestType == 'compound') ...[
             const SizedBox(height: 12),
             _buildStylishField(
+              icon: Icons.repeat_rounded,
+              iconColor: Colors.indigo,
               child: DropdownButtonFormField<int>(
                 value: _compoundingFrequency,
                 items: [
-                  DropdownMenuItem(value: 1, child: Text(t('annually_label'))),
-                  DropdownMenuItem(value: 2, child: Text(t('semi_annually_label'))),
-                  DropdownMenuItem(value: 4, child: Text(t('quarterly_label'))),
-                  DropdownMenuItem(value: 12, child: Text(t('monthly_label'))),
+                  DropdownMenuItem(value: 1, child: Row(children: [
+                    Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.indigo.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                      child: const Icon(Icons.event_repeat_rounded, size: 15, color: Colors.indigo)),
+                    const SizedBox(width: 10),
+                    Text(t('annually_label')),
+                  ])),
+                  DropdownMenuItem(value: 2, child: Row(children: [
+                    Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                      child: const Icon(Icons.event_available_rounded, size: 15, color: Colors.teal)),
+                    const SizedBox(width: 10),
+                    Text(t('semi_annually_label')),
+                  ])),
+                  DropdownMenuItem(value: 4, child: Row(children: [
+                    Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                      child: const Icon(Icons.date_range_rounded, size: 15, color: Colors.purple)),
+                    const SizedBox(width: 10),
+                    Text(t('quarterly_label')),
+                  ])),
+                  DropdownMenuItem(value: 12, child: Row(children: [
+                    Container(width: 28, height: 28, decoration: BoxDecoration(color: Colors.pink.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                      child: const Icon(Icons.calendar_today_rounded, size: 15, color: Colors.pink)),
+                    const SizedBox(width: 10),
+                    Text(t('monthly_label')),
+                  ])),
                 ],
                 onChanged: _bothUsersVerified ? null : (val) => setState(() { _compoundingFrequency = val ?? 1; _saveDraft(); }),
                 decoration: InputDecoration(labelText: t('compounding_frequency_label'), border: InputBorder.none,
@@ -3623,32 +3695,23 @@ class _TransactionPageState extends State<TransactionPage> {
           _buildSectionHeader(title: t('verification_title'), subtitle: t('verification_subtitle_message'), icon: Icons.verified_user_rounded),
           const SizedBox(height: 8),
           _buildStylishField(
+            icon: Icons.label_rounded,
             child: DropdownButtonFormField<String>(
               value: _category,
-              items: const [
-                DropdownMenuItem(value: 'other', child: Text('Other')),
-                DropdownMenuItem(value: 'personal', child: Text('Personal')),
-                DropdownMenuItem(value: 'food', child: Text('Food & Dining')),
-                DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
-                DropdownMenuItem(value: 'transport', child: Text('Transport')),
-                DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
-                DropdownMenuItem(value: 'healthcare', child: Text('Healthcare')),
-                DropdownMenuItem(value: 'education', child: Text('Education')),
-                DropdownMenuItem(value: 'utilities', child: Text('Utilities')),
-                DropdownMenuItem(value: 'rent', child: Text('Rent')),
-                DropdownMenuItem(value: 'business', child: Text('Business')),
-                DropdownMenuItem(value: 'travel', child: Text('Travel')),
-              ],
+              items: kTxCategories.map((c) => _stCatItem(
+                c['key'] as String,
+                c['label'] as String,
+                c['icon'] as IconData,
+                c['color'] as Color,
+              )).toList(),
               onChanged: _bothUsersVerified ? null : (v) => setState(() => _category = v ?? 'other'),
-              decoration: InputDecoration(
-                labelText: t('category'),
-                prefixIcon: const Icon(Icons.label_outline_rounded),
-                border: InputBorder.none,
-              ),
+              decoration: const InputDecoration(labelText: 'Category', border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 14)),
             ),
           ),
           const SizedBox(height: 12),
           _buildStylishField(
+            icon: Icons.notes_rounded,
             child: TextFormField(
               controller: _descriptionController,
               enabled: !_bothUsersVerified,
@@ -3656,6 +3719,7 @@ class _TransactionPageState extends State<TransactionPage> {
               decoration: InputDecoration(
                 labelText: t('description_optional_label'),
                 border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 hintText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : t('add_note_or_description_hint'),
               ),
             ),
@@ -3874,25 +3938,86 @@ class _TransactionPageState extends State<TransactionPage> {
     );
   }
 
-  Widget _buildStylishField({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+  Widget _buildRoleCard(String value, IconData icon, String label, Color color) {
+    final isSelected = _role == value;
+    final disabled = _bothUsersVerified;
+    return GestureDetector(
+      onTap: disabled ? null : () => setState(() { _role = value; _saveDraft(); }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected && !disabled ? color.withValues(alpha: 0.10) : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected && !disabled ? color : AppThemeColors.border(context),
+            width: isSelected && !disabled ? 2.0 : 1.0,
+          ),
         ),
-        child: child,
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected && !disabled ? color.withValues(alpha: 0.15) : AppThemeColors.border(context),
+            ),
+            child: Icon(icon, size: 20, color: isSelected && !disabled ? color : AppThemeColors.secondaryText(context)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                color: isSelected && !disabled ? color : AppThemeColors.primaryText(context)),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
+          if (isSelected && !disabled) Icon(Icons.check_circle_rounded, size: 18, color: color),
+        ]),
       ),
+    );
+  }
+
+  DropdownMenuItem<String> _stCatItem(String value, String label, IconData icon, Color color) =>
+      DropdownMenuItem(
+        value: value,
+        child: Row(children: [
+          Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(7)),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 10),
+          Text(label, style: const TextStyle(fontSize: 13)),
+        ]),
+      );
+
+  Widget _buildStylishField({required Widget child, IconData? icon, Color? iconColor}) {
+    final resolvedIconColor = iconColor ?? AppColors.cyan;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppThemeColors.border(context)),
+      ),
+      child: icon != null
+          ? Row(children: [
+              const SizedBox(width: 14),
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: resolvedIconColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: resolvedIconColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: child),
+              const SizedBox(width: 4),
+            ])
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: child,
+            ),
     );
   }
 

@@ -2456,11 +2456,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                               CircleAvatar(
                                                 radius: 22,
                                                 backgroundColor: avatarColor,
-                                                backgroundImage: avatar != null && avatar.isNotEmpty
-                                                    ? NetworkImage('${ApiConfig.baseUrl}$avatar') : null,
-                                                child: (avatar == null || avatar.isEmpty)
-                                                    ? Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
-                                                    : null,
+                                                child: (avatar != null && avatar.isNotEmpty)
+                                                    ? ClipOval(child: Image.network(
+                                                        '${ApiConfig.baseUrl}$avatar', width: 44, height: 44, fit: BoxFit.cover,
+                                                        errorBuilder: (_, __, ___) => Text(initials,
+                                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                                      ))
+                                                    : Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                                               ),
                                               const SizedBox(width: 12),
                                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

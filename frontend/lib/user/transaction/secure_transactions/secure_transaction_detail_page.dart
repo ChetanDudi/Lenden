@@ -27,27 +27,13 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/share_as_note_sheet.dart';
+import '../../../utils/transaction_constants.dart';
 
-const _kStCategories = [
-  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
-  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
-  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
-  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
-  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
-  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
-  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
-  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
-  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
-];
+IconData _stCatIcon(String? key) => txCatIcon(key);
+String _stCatLabel(String? key) => txCatLabel(key);
 
-IconData _stCatIcon(String? key) {
-  final cat = _kStCategories.firstWhere((c) => c['key'] == key, orElse: () => _kStCategories.last);
-  return cat['icon'] as IconData;
-}
-
-String _stCatLabel(String? key) {
-  return (_kStCategories.firstWhere((c) => c['key'] == key, orElse: () => _kStCategories.last)['label'] as String);
-}
+List<Color> _stDetailColors(String category, bool isFullyCleared) =>
+    isFullyCleared ? kTxClearedGradient : txCatGradient(category);
 
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -1032,19 +1018,11 @@ class _SecureTransactionDetailPageState
     const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
-    String pdfSym(String code) {
-      const safe = <String, String>{
-        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
-        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
-        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
-      };
-      return safe[code.toUpperCase()] ?? code.toUpperCase();
-    }
 
     final t        = _t;
     final isLend   = widget.isLending;
     final currency = (t['currency'] ?? 'INR').toString();
-    final sym      = pdfSym(currency);
+    final sym      = txPdfSymbol(currency);
     final amount   = (t['amount'] as num?)?.toDouble() ?? 0;
     final desc     = (t['description'] ?? '').toString();
     final category = (t['category'] ?? '').toString();
@@ -1309,6 +1287,8 @@ class _SecureTransactionDetailPageState
     final fullyCleared = youCleared && otherCleared;
     final hasPartialPayment = _hasPartialPayment(t);
     final isBorrower = !isLending;
+    final String _category = (t['category'] ?? 'other').toString();
+    final List<Color> cardColors = _stDetailColors(_category, fullyCleared);
     final isFav = (t['favourite'] as List<dynamic>).contains(email);
 
     List<Map<String, dynamic>> attachments = [];
@@ -1365,11 +1345,17 @@ class _SecureTransactionDetailPageState
                   height: context.sh(156),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: isLending
-                          ? [Colors.teal, Colors.teal.shade700]
-                          : [Colors.orange, Colors.orange.shade700],
+                      colors: cardColors,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(_stCatIcon(_category), size: 110,
+                        color: Colors.white.withValues(alpha: 0.22)),
                     ),
                   ),
                 ),
@@ -1388,18 +1374,14 @@ class _SecureTransactionDetailPageState
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: isLending
-                        ? [Colors.teal, Colors.teal.shade700]
-                        : [Colors.orange, Colors.orange.shade700],
+                    colors: cardColors,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, 4))
+                  boxShadow: [
+                    BoxShadow(color: cardColors.last.withValues(alpha: 0.38),
+                        blurRadius: 14, offset: const Offset(0, 5))
                   ],
                 ),
                 child: Column(
