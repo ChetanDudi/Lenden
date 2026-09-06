@@ -60,6 +60,8 @@ const groupTransactionSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     paidAt: { type: Date, default: Date.now },
   }],
+  category: { type: String, default: 'other' },
+  description: { type: String, default: '' },
   joinCode: { type: String },
   pendingInvites: [pendingGroupInviteSchema],
   declinedInvites: [declinedGroupInviteSchema],

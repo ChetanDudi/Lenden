@@ -416,6 +416,44 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     } catch (_) {}
   }
 
+  Future<void> _requestSecurePayment(Map t) async {
+    final id = t['_id']?.toString();
+    if (id == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Request Payment'),
+        content: const Text('Send a payment reminder to the borrower?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Send Request')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final res = await ApiClient.post('/api/transactions/$id/request-payment', body: {});
+      if (!mounted) return;
+      final body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment request sent!'), backgroundColor: Colors.green),
+        );
+        fetchTransactions();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body['error'] ?? 'Failed to send request'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Widget _buildTransactionCard(Map t, bool isLending) {
     final tr = AppLocalizations.of(context).t;
     final user = Provider.of<SessionProvider>(context, listen: false).user;
@@ -437,6 +475,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final String timeStr = t['time'] != null ? t['time'].toString() : '';
     final String category = (t['category'] ?? 'other').toString();
     final List<Color> cardColors = _SecureCardTheme.colorsFor(category, fullyCleared);
+    final bool canRequestPayment = isLending && !fullyCleared &&
+        (expectedReturnDate == null || isOverdue);
 
     return GestureDetector(
       onTap: () async {
@@ -518,6 +558,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                                 _toggleSecureFavourite(tCopy);
                               } else if (value == 'share_pdf') {
                                 _shareSecureTransactionPdf(tCopy, isLending);
+                              } else if (value == 'request_payment') {
+                                _requestSecurePayment(tCopy);
                               }
                             },
                             itemBuilder: (_) => [
@@ -533,6 +575,13 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                                 const SizedBox(width: 12),
                                 Text(isFav ? 'Remove Favourite' : 'Add Favourite', style: const TextStyle(fontWeight: FontWeight.w500)),
                               ])),
+                              if (canRequestPayment)
+                                PopupMenuItem(value: 'request_payment', child: Row(children: [
+                                  Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                                    child: const Icon(Icons.notifications_active_rounded, size: 16, color: Colors.orange)),
+                                  const SizedBox(width: 12),
+                                  const Text('Request Payment', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
+                                ])),
                               PopupMenuItem(value: 'share_pdf', child: Row(children: [
                                 Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
                                   child: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.red)),
@@ -621,6 +670,31 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                           style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ]),
+                    ],
+
+                    // Request Payment button (lender, not cleared, overdue or no due date)
+                    if (canRequestPayment) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: Icon(Icons.notifications_active_rounded, size: 18, color: cardColors.last),
+                          label: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                            Text(
+                              'Request Payment  •  ${_formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString())}',
+                              style: TextStyle(color: cardColors.last, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Icon(Icons.arrow_forward_ios_rounded, color: cardColors.last, size: 14),
+                          ]),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          onPressed: () => _requestSecurePayment(Map<String, dynamic>.from(t)),
+                        ),
+                      ),
                     ],
 
                     // Pay Now button (borrower & not fully cleared)

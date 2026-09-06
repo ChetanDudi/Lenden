@@ -1900,7 +1900,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                                             ),
                                                                             overflow: TextOverflow.ellipsis,
                                                                           ),
-                                                                          const SizedBox(height: 5),
+                                                                          const SizedBox(height: 4),
+                                                                          Builder(builder: (_) {
+                                                                            final catKey = (group['category'] ?? 'other').toString();
+                                                                            return Row(mainAxisSize: MainAxisSize.min, children: [
+                                                                              Icon(txCatIcon(catKey), size: 11, color: Colors.white70),
+                                                                              const SizedBox(width: 3),
+                                                                              Text(txCatLabel(catKey), style: const TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.w500)),
+                                                                            ]);
+                                                                          }),
+                                                                          const SizedBox(height: 3),
                                                                           Row(
                                                                             children: [
                                                                               // Show unique member avatars (no creator duplication)

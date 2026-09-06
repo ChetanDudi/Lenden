@@ -1238,6 +1238,9 @@ class _QrPaymentPageState extends State<_QrPaymentPage> {
         TextField(
           controller: _noteCtrl,
           style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)),
+          maxLength: 300,
+          buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+              buildDescCounter(ctx, currentLength, maxLength),
           decoration: _inputDeco('e.g. Lunch split'),
         )),
     const SizedBox(height: 16),

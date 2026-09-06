@@ -692,6 +692,9 @@ class _SecureTransactionDetailPageState
                 TextField(
                   controller: descriptionController,
                   maxLines: 4,
+                  maxLength: 300,
+                  buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                      buildDescCounter(ctx, currentLength, maxLength),
                   decoration: InputDecoration(
                     labelText: tr('describe_what_happened_label'),
                     border: const OutlineInputBorder(),

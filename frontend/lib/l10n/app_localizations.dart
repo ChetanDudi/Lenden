@@ -3447,6 +3447,8 @@ class AppLocalizations {
           '{count} member(s) who left the group have had their balances auto-settled',
       'description_hint_dinner_hotel_message': 'e.g. Dinner, Hotel, Cab',
       'amount_hint': 'Amount',
+      'select_currency_label': 'Select Currency',
+      'search_currency_hint': 'Search currency...',
       'currency_cannot_be_changed_editing_message':
           'Currency cannot be changed while editing',
       'currency_fixed_for_group_message':
@@ -4582,6 +4584,14 @@ class AppLocalizations {
       'chat_label': 'Chat',
       'join_by_code_menu_label': 'Join by Code',
       'creator_badge_label': 'Creator',
+
+      // Source picker — member adding sheets
+      'add_initial_members_label': 'ADD INITIAL MEMBERS',
+      'all_sources_label': 'All Sources',
+      'no_people_available_label': 'No people available',
+      'no_new_members_to_add_label': 'No new members to add',
+      'pick_a_group_title': 'Pick a Group',
+      'description_too_long_label': 'Description too long (max 300 chars)',
     },
     'hi': {
       'settings': 'सेटिंग्स',
@@ -8003,6 +8013,8 @@ class AppLocalizations {
           'समूह छोड़ने वाले {count} सदस्य(ओं) का बैलेंस स्वतः निपटाया गया',
       'description_hint_dinner_hotel_message': 'जैसे डिनर, होटल, कैब',
       'amount_hint': 'राशि',
+      'select_currency_label': 'मुद्रा चुनें',
+      'search_currency_hint': 'मुद्रा खोजें...',
       'currency_cannot_be_changed_editing_message':
           'संपादन के दौरान करेंसी नहीं बदली जा सकती',
       'currency_fixed_for_group_message':
@@ -9192,6 +9204,14 @@ class AppLocalizations {
       'chat_label': 'चैट',
       'join_by_code_menu_label': 'कोड से जॉइन',
       'creator_badge_label': 'क्रिएटर',
+
+      // Source picker — member adding sheets
+      'add_initial_members_label': 'प्रारंभिक सदस्य जोड़ें',
+      'all_sources_label': 'सभी स्रोत',
+      'no_people_available_label': 'कोई व्यक्ति उपलब्ध नहीं',
+      'no_new_members_to_add_label': 'जोड़ने के लिए कोई नए सदस्य नहीं',
+      'pick_a_group_title': 'ग्रुप चुनें',
+      'description_too_long_label': 'विवरण बहुत लंबा (अधिकतम 300 अक्षर)',
     },
   };
 

@@ -10,6 +10,7 @@ import '../../utils/responsive.dart';
 import '../../api_config.dart';
 import '../../session.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/transaction_constants.dart';
 import 'create_community_page.dart';
 import 'community_detail_page.dart';
 
@@ -1180,7 +1181,16 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 children: [
                   Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold,
                     shadows: [Shadow(color: Colors.black54, blurRadius: 6)])),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
+                  Builder(builder: (_) {
+                    final catKey = (c['category'] ?? 'other').toString();
+                    return Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(txCatIcon(catKey), size: 11, color: Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(txCatLabel(catKey), style: const TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.w500)),
+                    ]);
+                  }),
+                  const SizedBox(height: 3),
                   if ((c['description'] ?? '').toString().isNotEmpty) ...[
                     Text(
                       (c['description'] ?? '').toString(),

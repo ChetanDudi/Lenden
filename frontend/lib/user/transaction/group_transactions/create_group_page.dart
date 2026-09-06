@@ -14,6 +14,7 @@ import '../../../widgets/stylish_dialog.dart';
 import '../../digitise/gift_card_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/transaction_constants.dart';
 import 'dart:typed_data';
 import '../../../utils/image_picker_utils.dart';
 import '../../../utils/avatar_helpers.dart' as ah;
@@ -42,12 +43,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final List<String> _selectedCommunityIds = [];
   final Map<String, String> _selectedCommunityNames = {};
   bool _creatingGroup = false;
+  String _category = 'other';
   String? _error;
   String? _memberAddError;
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _friendSuggestions = [];
   Set<String> _blockedEmails = {};
   bool _loadingFriends = false;
+  List<Map<String, dynamic>> _counterparties = [];
+  bool _loadingCounterparties = false;
   Uint8List? _selectedImageBytes;
   Color? _selectedColor;
   int? _dailyGroupRemaining;
@@ -260,6 +264,143 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     } catch (_) {}
   }
 
+  Future<void> _loadCounterparties() async {
+    if (_loadingCounterparties || _counterparties.isNotEmpty) return;
+    setState(() => _loadingCounterparties = true);
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final email = Uri.encodeComponent(session.user?['email']?.toString() ?? '');
+      final res = await ApiClient.get('/api/counterparties/user?email=$email');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _counterparties = List<Map<String, dynamic>>.from(data['counterparties'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingCounterparties = false);
+  }
+
+  Future<void> _addMembersFromCounterparties() async {
+    await _loadCounterparties();
+    if (!mounted) return;
+
+    final myEmail = Provider.of<SessionProvider>(context, listen: false)
+        .user?['email']?.toString().toLowerCase() ?? '';
+    final available = _counterparties.where((c) {
+      final e = (c['email'] ?? '').toString().toLowerCase();
+      return e.isNotEmpty && e != myEmail && !_memberEmails.map((x) => x.toLowerCase()).contains(e);
+    }).toList();
+
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No new counterparties to add')));
+      return;
+    }
+
+    final List<String> tempSelected = [];
+    String search = '';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final filtered = available.where((c) {
+            if (search.isEmpty) return true;
+            final e = (c['email'] ?? '').toString().toLowerCase();
+            final n = (c['name'] ?? c['username'] ?? '').toString().toLowerCase();
+            return e.contains(search.toLowerCase()) || n.contains(search.toLowerCase());
+          }).toList();
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82, minChildSize: 0.5, maxChildSize: 0.95,
+            builder: (_, sc) => Container(
+              decoration: BoxDecoration(color: AppThemeColors.cardBg(ctx), borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Row(children: [
+                  Container(padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF9C27B0)]), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.swap_horiz_rounded, color: Colors.white, size: 20)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Add from Counterparties', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                    Text('${available.length} available', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                  ])),
+                  if (tempSelected.isNotEmpty)
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: const Color(0xFF7B1FA2).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                      child: Text('${tempSelected.length} selected', style: const TextStyle(color: Color(0xFF7B1FA2), fontSize: 13, fontWeight: FontWeight.w600))),
+                  const SizedBox(width: 4),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                ])),
+                Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 8), child: TextField(
+                  onChanged: (v) => setSheet(() => search = v),
+                  decoration: InputDecoration(
+                    hintText: 'Search counterparties...',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    filled: true, fillColor: AppThemeColors.surfaceBg(ctx),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                )),
+                Expanded(
+                  child: filtered.isEmpty
+                    ? Center(child: Text('No counterparties found', style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                    : ListView.separated(
+                        controller: sc,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                        itemBuilder: (_, i) {
+                          final c = filtered[i];
+                          final email = (c['email'] ?? '').toString();
+                          final name = (c['name'] ?? c['username'] ?? '').toString();
+                          final isSel = tempSelected.contains(email);
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF7B1FA2).withValues(alpha: 0.15),
+                              child: Text(name.isNotEmpty ? name[0].toUpperCase() : email[0].toUpperCase(),
+                                style: const TextStyle(color: Color(0xFF7B1FA2), fontWeight: FontWeight.bold))),
+                            title: Text(name.isNotEmpty ? name : email, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+                            subtitle: name.isNotEmpty ? Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
+                            trailing: Checkbox(value: isSel, activeColor: const Color(0xFF7B1FA2),
+                              onChanged: (_) => setSheet(() { if (isSel) tempSelected.remove(email); else tempSelected.add(email); })),
+                            onTap: () => setSheet(() { if (isSel) tempSelected.remove(email); else tempSelected.add(email); }),
+                          );
+                        },
+                      ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B1FA2), minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 4),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(tempSelected.isEmpty ? 'Done' : 'Add ${tempSelected.length} Member${tempSelected.length == 1 ? '' : 's'}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (!mounted) return;
+    for (final email in tempSelected) {
+      if (!_memberEmails.map((e) => e.toLowerCase()).contains(email.toLowerCase())) {
+        _memberEmails.add(email);
+        // Try to get name from counterparties list
+        final cp = _counterparties.firstWhere((c) => (c['email'] ?? '').toString().toLowerCase() == email.toLowerCase(), orElse: () => {});
+        if (cp.isNotEmpty) _memberUsers[email.toLowerCase()] = cp;
+      }
+    }
+    if (tempSelected.isNotEmpty) setState(() {});
+  }
+
   Future<void> _loadDailyLimits() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (session.hasFeature('group_creation')) return;
@@ -386,7 +527,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
     if (!mounted) return;
 
-    final tempSelected = Set<String>.from(_memberEmails);
+    // Only pre-check friends who are already in _memberEmails; non-friend sources must not be clobbered.
+    final friendEmails = allFriends.map((f) => (f['email'] ?? '').toString().toLowerCase()).toSet();
+    final tempSelected = Set<String>.from(
+      _memberEmails.where((e) => friendEmails.contains(e.toLowerCase())),
+    );
 
     await showModalBottomSheet(
       context: context,
@@ -739,8 +884,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           };
         }
       }
+      // Merge: keep members added from other sources; apply friends selections on top.
+      final nonFriendMembers = _memberEmails.where((e) => !friendEmails.contains(e.toLowerCase())).toList();
+      final merged = [...nonFriendMembers];
+      for (final e in tempSelected) {
+        if (!merged.any((x) => x.toLowerCase() == e.toLowerCase())) merged.add(e);
+      }
       setState(() {
-        _memberEmails = tempSelected.toList();
+        _memberEmails = merged;
         _memberUsers = newMemberUsers;
       });
     }
@@ -1951,6 +2102,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       final res = await ApiClient.post('/api/group-transactions/with-coins', body: {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
+        'category': _category,
         'memberEmails': _memberEmails,
         'color': _colorHex(),
       });
@@ -2060,6 +2212,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       final res = await ApiClient.post('/api/group-transactions', body: {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
+        'category': _category,
         'memberEmails': _memberEmails,
         'color': _colorHex(),
         if (_selectedCommunityIds.isNotEmpty) 'communityIds': _selectedCommunityIds,
@@ -2180,24 +2333,23 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   ]);
 
   Widget _sourceBtn(IconData icon, String label, VoidCallback? onTap, {bool loading = false}) =>
-    Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.cyan.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
-          ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            loading
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
-              : Icon(icon, color: AppColors.cyan, size: 20),
-            const SizedBox(height: 3),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w600)),
-          ]),
+    GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.cyan.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
         ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          loading
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+            : Icon(icon, color: AppColors.cyan, size: 20),
+          const SizedBox(height: 3),
+          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w600), textAlign: TextAlign.center, maxLines: 2),
+        ]),
       ),
     );
 
@@ -2356,6 +2508,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       controller: _descriptionController,
                       style: TextStyle(color: AppThemeColors.primaryText(context)),
                       maxLines: 2,
+                      maxLength: 300,
+                      buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                          buildDescCounter(ctx, currentLength, maxLength),
                       decoration: InputDecoration(
                         labelText: t('description_optional_label'),
                         hintText: t('group_description_hint'),
@@ -2366,6 +2521,37 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       ),
                     )),
                   ])),
+
+                  // ── Category ─────────────────────────────────────────────
+                  _sectionLabel('CATEGORY'),
+                  _card(child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: kTxCategories.map((cat) {
+                      final key = cat['key'] as String;
+                      final label = cat['label'] as String;
+                      final icon = cat['icon'] as IconData;
+                      final color = cat['color'] as Color;
+                      final selected = _category == key;
+                      return GestureDetector(
+                        onTap: () => setState(() => _category = key),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: selected ? color : color.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: selected ? color : color.withValues(alpha: 0.30), width: 1.5),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(icon, size: 14, color: selected ? Colors.white : color),
+                            const SizedBox(width: 5),
+                            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : color)),
+                          ]),
+                        ),
+                      );
+                    }).toList(),
+                  )),
 
                   // ── Color ────────────────────────────────────────────────
                   _sectionLabel('COLOR'),
@@ -2494,14 +2680,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     ],
 
                     const SizedBox(height: 14),
-                    // Add from sources
-                    Row(children: [
-                      _sourceBtn(Icons.people_rounded, 'Friends', _loadingFriends ? null : _addMembersFromFriends, loading: _loadingFriends),
-                      const SizedBox(width: 8),
-                      _sourceBtn(Icons.group_work_rounded, 'Groups', _loadingGroups ? null : _addMembersFromGroups, loading: _loadingGroups),
-                      const SizedBox(width: 8),
-                      _sourceBtn(Icons.hub_rounded, 'Hubs', _addMembersFromCommunities),
-                    ]),
+                    // Add from sources (scrollable to prevent overflow)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(children: [
+                        _sourceBtn(Icons.people_rounded, 'Friends', _loadingFriends ? null : _addMembersFromFriends, loading: _loadingFriends),
+                        const SizedBox(width: 8),
+                        _sourceBtn(Icons.swap_horiz_rounded, 'Counter-\nparties', _loadingCounterparties ? null : _addMembersFromCounterparties, loading: _loadingCounterparties),
+                        const SizedBox(width: 8),
+                        _sourceBtn(Icons.group_work_rounded, 'Groups', _loadingGroups ? null : _addMembersFromGroups, loading: _loadingGroups),
+                        const SizedBox(width: 8),
+                        _sourceBtn(Icons.hub_rounded, 'Hubs', _addMembersFromCommunities),
+                      ]),
+                    ),
 
                     // Member chips
                     const SizedBox(height: 14),

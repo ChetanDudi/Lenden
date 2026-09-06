@@ -336,6 +336,9 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: descriptionController,
+                    maxLength: 300,
+                    buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                        buildDescCounter(ctx, currentLength, maxLength),
                     decoration: InputDecoration(
                       labelText: 'Description',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

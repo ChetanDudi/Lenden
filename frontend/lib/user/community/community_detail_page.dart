@@ -10,6 +10,7 @@ import '../../utils/community_helpers.dart';
 import '../../api_config.dart';
 import '../../session.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/transaction_constants.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/share_utils.dart';
 import '../transaction/group_transactions/group_detail_page.dart';
@@ -37,6 +38,14 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
   // Members selection (bulk remove)
   bool _memberSelectMode = false;
   final Set<String> _selectedMemberIds = {};
+
+  // Member sources for picker
+  List<Map<String, dynamic>> _friends = [];
+  bool _loadingFriends = false;
+  List<Map<String, dynamic>> _counterparties = [];
+  bool _loadingCounterparties = false;
+  List<Map<String, dynamic>> _userGroups = [];
+  bool _loadingGroups = false;
 
   // Feed
   List<Map<String, dynamic>> _posts = [];
@@ -976,10 +985,74 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     }
   }
 
+  void _showCommunityDescriptionSheet() {
+    final desc = (_community['description'] ?? '').toString();
+    final catKey = (_community['category'] ?? 'other').toString();
+    final communityColor = _communityColor;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2))),
+            )),
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [communityColor, communityColor.withValues(alpha: 0.6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(txCatIcon(catKey), color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Community Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Row(children: [
+                    Text(txCatLabel(catKey), style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                    const Text('  ·  ', style: TextStyle(color: Colors.white38)),
+                    Text(_name, style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                  ]),
+                ])),
+              ]),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                child: Text(
+                  desc.isNotEmpty ? desc : 'No description set.',
+                  style: TextStyle(fontSize: 15, height: 1.6, color: desc.isNotEmpty ? AppThemeColors.primaryText(ctx) : AppThemeColors.mutedText(ctx)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showEditCommunity() {
     final nameCtrl = TextEditingController(text: _name);
     final descCtrl = TextEditingController(text: (_community['description'] ?? '').toString());
     Color tempColor = _communityColor;
+    String tempCategory = (_community['category'] ?? 'other').toString();
     bool saving = false;
 
     showModalBottomSheet(
@@ -1040,6 +1113,9 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                 child: TextField(
                   controller: descCtrl,
                   minLines: 2, maxLines: 3,
+                  maxLength: 300,
+                  buildCounter: (bCtx, {required currentLength, required isFocused, maxLength}) =>
+                      buildDescCounter(bCtx, currentLength, maxLength),
                   style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(ctx).t('description_optional_label'),
@@ -1052,6 +1128,38 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
+              ),
+              const SizedBox(height: 14),
+
+              // Category picker
+              Text('CATEGORY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppThemeColors.mutedText(ctx), letterSpacing: 1.2)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: kTxCategories.map((cat) {
+                  final key = cat['key'] as String;
+                  final label = cat['label'] as String;
+                  final icon = cat['icon'] as IconData;
+                  final color = cat['color'] as Color;
+                  final selected = tempCategory == key;
+                  return GestureDetector(
+                    onTap: () => setSheet(() => tempCategory = key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: selected ? color : color.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: selected ? color : color.withValues(alpha: 0.30), width: 1.5),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(icon, size: 14, color: selected ? Colors.white : color),
+                        const SizedBox(width: 5),
+                        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : color)),
+                      ]),
+                    ),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 14),
 
@@ -1109,7 +1217,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     try {
                       final res = await ApiClient.patch(
                         '/api/communities/${widget.communityId}',
-                        body: {'name': name, 'description': descCtrl.text.trim(), 'color': hexColor},
+                        body: {'name': name, 'description': descCtrl.text.trim(), 'category': tempCategory, 'color': hexColor},
                       );
                       if (res.statusCode == 200) {
                         Navigator.pop(ctx);
@@ -1667,6 +1775,11 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
+                  if ((_community['description'] ?? '').toString().isNotEmpty)
+                    IconButton(
+                      icon: Icon(Icons.info_outline_rounded, color: AppThemeColors.primaryText(context)),
+                      onPressed: _showCommunityDescriptionSheet,
+                    ),
                   if (_isMember)
                     IconButton(
                       icon: Icon(Icons.settings_rounded, color: AppThemeColors.primaryText(context)),
@@ -1771,6 +1884,15 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_name, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
                     color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 2),
+                Builder(builder: (_) {
+                  final catKey = (_community['category'] ?? 'other').toString();
+                  return Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(txCatIcon(catKey), size: 12, color: AppThemeColors.secondaryText(context)),
+                    const SizedBox(width: 4),
+                    Text(txCatLabel(catKey), style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w500)),
+                  ]);
+                }),
                 if ((_community['description'] ?? '').toString().isNotEmpty)
                   Text((_community['description'] ?? '').toString(),
                     style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), height: 1.4)),
@@ -2156,6 +2278,491 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     );
   }
 
+  // ── Source loaders ──────────────────────────────────────────────────────────
+
+  Future<void> _loadFriends() async {
+    if (_loadingFriends) return;
+    setState(() => _loadingFriends = true);
+    try {
+      final res = await ApiClient.get('/api/friends');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _friends = List<Map<String, dynamic>>.from(data['friends'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingFriends = false);
+  }
+
+  Future<void> _loadCounterparties() async {
+    if (_loadingCounterparties) return;
+    setState(() => _loadingCounterparties = true);
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final email = Uri.encodeComponent(session.user?['email']?.toString() ?? '');
+      final res = await ApiClient.get('/api/counterparties/user?email=$email');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _counterparties = List<Map<String, dynamic>>.from(data['counterparties'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingCounterparties = false);
+  }
+
+  Future<void> _loadGroups() async {
+    if (_loadingGroups || _userGroups.isNotEmpty) return;
+    setState(() => _loadingGroups = true);
+    try {
+      final res = await ApiClient.get('/api/group-transactions/user-groups');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _userGroups = List<Map<String, dynamic>>.from(data['groups'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingGroups = false);
+  }
+
+  // Returns current member emails (lowercased) to exclude from pickers.
+  Set<String> get _currentMemberEmails {
+    return _members.map((m) {
+      final u = m['user'];
+      if (u is Map) return (u['email'] ?? '').toString().toLowerCase();
+      return '';
+    }).where((e) => e.isNotEmpty).toSet()
+      ..add((Provider.of<SessionProvider>(context, listen: false).user?['email'] ?? '').toString().toLowerCase());
+  }
+
+  // Add one member via the community API; handles both direct-add and invite.
+  Future<void> _addCommunityMemberSilent(String email) async {
+    try {
+      await ApiClient.post('/api/communities/${widget.communityId}/members', body: {'email': email});
+    } catch (_) {}
+  }
+
+  // Generic flat people picker. Returns selected emails.
+  Future<List<String>> _showCommunityPeoplePicker({
+    required String title,
+    required IconData icon,
+    required List<Map<String, dynamic>> people,
+    required Color color,
+    String subtitle = '',
+  }) async {
+    final excluded = _currentMemberEmails;
+    final available = people.where((p) {
+      final e = (p['email'] ?? '').toString().toLowerCase();
+      return e.isNotEmpty && !excluded.contains(e);
+    }).toList();
+
+    final List<String> picked = [];
+    String search = '';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final filtered = available.where((p) {
+            if (search.isEmpty) return true;
+            final e = (p['email'] ?? '').toString().toLowerCase();
+            final n = (p['name'] ?? p['username'] ?? '').toString().toLowerCase();
+            return e.contains(search.toLowerCase()) || n.contains(search.toLowerCase());
+          }).toList();
+          final allSel = filtered.isNotEmpty && filtered.every((p) => picked.contains((p['email'] ?? '').toString()));
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82, minChildSize: 0.5, maxChildSize: 0.95,
+            builder: (_, sc) => Container(
+              decoration: BoxDecoration(color: AppThemeColors.cardBg(ctx), borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Row(children: [
+                  Container(padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]), borderRadius: BorderRadius.circular(12)),
+                    child: Icon(icon, color: Colors.white, size: 20)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                    if (subtitle.isNotEmpty) Text(subtitle, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                  ])),
+                  if (picked.isNotEmpty)
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                      child: Text('${picked.length} selected', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600))),
+                  const SizedBox(width: 4),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                ])),
+                Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 8), child: TextField(
+                  onChanged: (v) => setSheet(() => search = v),
+                  style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or email...',
+                    hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                    prefixIcon: Icon(Icons.search_rounded, color: AppThemeColors.mutedText(ctx)),
+                    filled: true, fillColor: AppThemeColors.surfaceBg(ctx),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                )),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: [
+                  Text('${filtered.length} available', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                  const Spacer(),
+                  if (filtered.isNotEmpty)
+                    TextButton(
+                      onPressed: () => setSheet(() {
+                        if (allSel) { for (final p in filtered) picked.remove((p['email'] ?? '').toString()); }
+                        else { for (final p in filtered) { final e = (p['email'] ?? '').toString(); if (e.isNotEmpty && !picked.contains(e)) picked.add(e); } }
+                      }),
+                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                      child: Text(allSel ? 'Deselect All' : 'Select All', style: TextStyle(color: color, fontSize: 12)),
+                    ),
+                ])),
+                Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                Expanded(
+                  child: filtered.isEmpty
+                    ? Center(child: Padding(padding: const EdgeInsets.all(32), child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.person_search_rounded, size: 48, color: AppThemeColors.mutedText(ctx)),
+                        const SizedBox(height: 12),
+                        Text(search.isEmpty ? 'No people available' : 'No match for "$search"',
+                          style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14), textAlign: TextAlign.center),
+                      ])))
+                    : ListView.separated(
+                        controller: sc,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                        itemBuilder: (_, i) {
+                          final p = filtered[i];
+                          final email = (p['email'] ?? '').toString();
+                          final name = (p['name'] ?? p['username'] ?? '').toString();
+                          final isSel = picked.contains(email);
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            leading: CircleAvatar(
+                              backgroundColor: color.withValues(alpha: 0.15),
+                              child: Text(name.isNotEmpty ? name[0].toUpperCase() : (email.isNotEmpty ? email[0].toUpperCase() : '?'),
+                                style: TextStyle(color: color, fontWeight: FontWeight.bold))),
+                            title: Text(name.isNotEmpty ? name : email, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+                            subtitle: name.isNotEmpty ? Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
+                            trailing: Checkbox(value: isSel, activeColor: color,
+                              onChanged: (_) => setSheet(() { if (isSel) picked.remove(email); else picked.add(email); })),
+                            onTap: () => setSheet(() { if (isSel) picked.remove(email); else picked.add(email); }),
+                          );
+                        },
+                      ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), minimumSize: const Size.fromHeight(50)),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(picked.isEmpty ? 'Done' : 'Add ${picked.length} Member${picked.length == 1 ? '' : 's'}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+    return picked;
+  }
+
+  // Group member picker — two tabs: Choose Group / Pick Members.
+  Future<void> _showCommGroupMemberPicker(Color color) async {
+    if (_userGroups.isEmpty) {
+      await _loadGroups();
+      if (!mounted) return;
+    }
+    if (_userGroups.isEmpty) {
+      _showSnack('No groups found. Join or create a group first.', isError: true);
+      return;
+    }
+
+    final excluded = _currentMemberEmails;
+    final List<String> picked = [];
+    int modeTab = 0;
+
+    String gMemberEmail(dynamic m) {
+      if (m is Map) {
+        final u = m['user'];
+        if (u is Map) return (u['email'] ?? '').toString().toLowerCase();
+        return (m['email'] ?? '').toString().toLowerCase();
+      }
+      return '';
+    }
+    String gMemberName(dynamic m) {
+      if (m is Map) {
+        final u = m['user'];
+        if (u is Map) return (u['name'] ?? u['username'] ?? '').toString();
+        return (m['name'] ?? '').toString();
+      }
+      return '';
+    }
+    List<Map<String, dynamic>> getGroupMembers(Map<String, dynamic> g) {
+      final raw = g['members'];
+      if (raw is! List) return [];
+      return raw.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).where((m) {
+        final e = gMemberEmail(m);
+        return e.isNotEmpty && !excluded.contains(e) && m['leftAt'] == null;
+      }).toList();
+    }
+    Color gColor(dynamic v) {
+      try { if (v is String && v.startsWith('#')) return Color(int.parse('FF${v.replaceFirst('#', '')}', radix: 16)); } catch (_) {}
+      return color;
+    }
+
+    await showModalBottomSheet(
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final allPickMembers = <Map<String, dynamic>>[];
+          if (modeTab == 1) {
+            final seen = <String>{};
+            for (final g in _userGroups) {
+              for (final m in getGroupMembers(g)) {
+                final e = gMemberEmail(m);
+                if (e.isNotEmpty && seen.add(e)) allPickMembers.add(m);
+              }
+            }
+          }
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82, minChildSize: 0.5, maxChildSize: 0.95,
+            builder: (_, sc) => Container(
+              decoration: BoxDecoration(color: AppThemeColors.cardBg(ctx), borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Row(children: [
+                  Container(padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.group_work_rounded, color: Colors.white, size: 20)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Add from Groups', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                    Text('${_userGroups.length} group${_userGroups.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                  ])),
+                  if (picked.isNotEmpty)
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                      child: Text('${picked.length} selected', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600))),
+                  const SizedBox(width: 4),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                ])),
+                const SizedBox(height: 10),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(14)),
+                  child: Row(children: [
+                    Expanded(child: GestureDetector(
+                      onTap: () => setSheet(() => modeTab = 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: modeTab == 0 ? LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]) : null,
+                          borderRadius: BorderRadius.circular(10)),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.group_work_rounded, size: 16, color: modeTab == 0 ? Colors.white : AppThemeColors.secondaryText(ctx)),
+                          const SizedBox(width: 6),
+                          Text('Choose Group', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: modeTab == 0 ? Colors.white : AppThemeColors.secondaryText(ctx))),
+                        ]),
+                      ),
+                    )),
+                    Expanded(child: GestureDetector(
+                      onTap: () => setSheet(() => modeTab = 1),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: modeTab == 1 ? LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]) : null,
+                          borderRadius: BorderRadius.circular(10)),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.person_search_rounded, size: 16, color: modeTab == 1 ? Colors.white : AppThemeColors.secondaryText(ctx)),
+                          const SizedBox(width: 6),
+                          Text('Pick Members', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: modeTab == 1 ? Colors.white : AppThemeColors.secondaryText(ctx))),
+                        ]),
+                      ),
+                    )),
+                  ]),
+                )),
+                Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                Expanded(
+                  child: modeTab == 0
+                    ? (_userGroups.isEmpty
+                      ? Center(child: Text('No groups found', style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          controller: sc,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                          itemCount: _userGroups.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (_, gi) {
+                            final g = _userGroups[gi];
+                            final gName = (g['title'] ?? 'Group').toString();
+                            final gMembers = getGroupMembers(g);
+                            final gc = gColor(g['color']);
+                            final allAdded = gMembers.isNotEmpty && gMembers.every((m) => picked.contains(gMemberEmail(m)));
+                            return Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppThemeColors.border(ctx))),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Container(width: 44, height: 44,
+                                    decoration: BoxDecoration(gradient: LinearGradient(colors: [gc.withValues(alpha: 0.8), gc], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(13)),
+                                    child: Center(child: Text(gName.isNotEmpty ? gName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)))),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text(gName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                                    Text('${gMembers.length} addable member${gMembers.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                                  ])),
+                                  TextButton.icon(
+                                    onPressed: gMembers.isEmpty ? null : () => setSheet(() {
+                                      if (allAdded) { for (final m in gMembers) picked.remove(gMemberEmail(m)); }
+                                      else { for (final m in gMembers) { final e = gMemberEmail(m); if (e.isNotEmpty && !picked.contains(e)) picked.add(e); } }
+                                    }),
+                                    icon: Icon(allAdded ? Icons.remove_circle_outline : Icons.group_add, size: 16, color: allAdded ? Colors.orange : color),
+                                    label: Text(allAdded ? 'Deselect All' : 'Add All', style: TextStyle(fontSize: 12, color: allAdded ? Colors.orange : color)),
+                                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                                  ),
+                                ]),
+                                if (gMembers.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(spacing: 8, runSpacing: 6, children: gMembers.map((m) {
+                                    final e = gMemberEmail(m);
+                                    final n = gMemberName(m);
+                                    final isSel = picked.contains(e);
+                                    return GestureDetector(
+                                      onTap: () => setSheet(() { if (isSel) picked.remove(e); else picked.add(e); }),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: isSel ? color.withValues(alpha: 0.15) : AppThemeColors.cardBg(ctx),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: isSel ? color : AppThemeColors.border(ctx)),
+                                        ),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          if (isSel) ...[Icon(Icons.check, size: 12, color: color), const SizedBox(width: 4)],
+                                          Text(n.isNotEmpty ? n.split(' ')[0] : e.split('@')[0],
+                                            style: TextStyle(fontSize: 12, color: isSel ? color : AppThemeColors.primaryText(ctx), fontWeight: isSel ? FontWeight.w600 : FontWeight.normal)),
+                                        ]),
+                                      ),
+                                    );
+                                  }).toList()),
+                                ],
+                              ]),
+                            );
+                          },
+                        ))
+                    : (allPickMembers.isEmpty
+                      ? Center(child: Text('No members available', style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          controller: sc,
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                          itemCount: allPickMembers.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                          itemBuilder: (_, i) {
+                            final m = allPickMembers[i];
+                            final e = gMemberEmail(m);
+                            final n = gMemberName(m);
+                            final isSel = picked.contains(e);
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.15),
+                                child: Text(n.isNotEmpty ? n[0].toUpperCase() : '?', style: TextStyle(color: color, fontWeight: FontWeight.bold))),
+                              title: Text(n.isNotEmpty ? n : e, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(ctx))),
+                              subtitle: n.isNotEmpty ? Text(e, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
+                              trailing: Checkbox(value: isSel, activeColor: color,
+                                onChanged: (_) => setSheet(() { if (isSel) picked.remove(e); else picked.add(e); })),
+                              onTap: () => setSheet(() { if (isSel) picked.remove(e); else picked.add(e); }),
+                            );
+                          },
+                        )),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, Color.lerp(color, AppColors.blue, 0.5)!]), borderRadius: BorderRadius.circular(14)),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), minimumSize: const Size.fromHeight(50)),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(picked.isEmpty ? 'Done' : 'Add ${picked.length} Member${picked.length == 1 ? '' : 's'}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+
+    for (final email in picked) {
+      if (!mounted) break;
+      await _addCommunityMemberSilent(email);
+    }
+    if (mounted && picked.isNotEmpty) {
+      _load();
+      _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', icon: Icons.person_add_rounded);
+    }
+  }
+
+  // All-sources picker: friends + counterparties + group members combined.
+  Future<void> _showAllSourcesPicker(Color color) async {
+    await Future.wait([
+      if (_friends.isEmpty) _loadFriends(),
+      if (_counterparties.isEmpty) _loadCounterparties(),
+      if (_userGroups.isEmpty) _loadGroups(),
+    ]);
+    if (!mounted) return;
+
+    final excluded = _currentMemberEmails;
+    final Map<String, Map<String, dynamic>> allPeople = {};
+    void addPerson(String email, String name) {
+      final e = email.toLowerCase().trim();
+      if (e.isEmpty || excluded.contains(e)) return;
+      allPeople.putIfAbsent(e, () => {'email': e, 'name': name});
+    }
+    for (final f in _friends) addPerson((f['email'] ?? '').toString(), (f['name'] ?? f['username'] ?? '').toString());
+    for (final c in _counterparties) addPerson((c['email'] ?? '').toString(), (c['name'] ?? c['username'] ?? '').toString());
+    for (final g in _userGroups) {
+      for (final m in List<dynamic>.from(g['members'] ?? [])) {
+        if (m is Map && m['leftAt'] == null) {
+          final u = m['user'];
+          final e = (u is Map ? u['email'] : m['email'] ?? '').toString();
+          final n = (u is Map ? (u['name'] ?? u['username'] ?? '') : m['name'] ?? '').toString();
+          addPerson(e, n);
+        }
+      }
+    }
+
+    final picked = await _showCommunityPeoplePicker(
+      title: 'All Sources',
+      icon: Icons.people_alt_rounded,
+      people: allPeople.values.toList(),
+      color: color,
+      subtitle: '${allPeople.length} people from friends, groups & communities',
+    );
+    for (final email in picked) {
+      if (!mounted) break;
+      await _addCommunityMemberSilent(email);
+    }
+    if (mounted && picked.isNotEmpty) {
+      _load();
+      _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', icon: Icons.person_add_rounded);
+    }
+  }
+
   void _showRestrictedAddSheet(String email, String serverMsg) {
     final color = _communityColor;
     showModalBottomSheet(
@@ -2264,6 +2871,26 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
     final emailCtrl = TextEditingController();
     bool sending = false;
     final allowDirect = (_community['settings'] as Map?)?['allowDirectAdd'] as bool? ?? true;
+    final t = AppLocalizations.of(context).t;
+
+    Widget srcBtn({required IconData icon, required String label, required Color btnColor, required VoidCallback onTap}) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 72,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: btnColor.withValues(alpha: 0.25)),
+            borderRadius: BorderRadius.circular(12),
+            color: btnColor.withValues(alpha: 0.07),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: btnColor, size: 22),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: btnColor, fontWeight: FontWeight.w600), textAlign: TextAlign.center, maxLines: 2),
+          ]),
+        ),
+      );
 
     await showModalBottomSheet(
       context: context,
@@ -2277,7 +2904,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
               color: AppThemeColors.cardBg(ctx),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Center(child: Container(width: 40, height: 4,
                 decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
@@ -2288,13 +2915,64 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   child: Icon(allowDirect ? Icons.person_add_rounded : Icons.mail_rounded, color: Colors.white, size: 20)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(allowDirect ? AppLocalizations.of(ctx).t('add_member_title') : AppLocalizations.of(ctx).t('send_invite_title'),
+                  Text(allowDirect ? t('add_member_title') : t('send_invite_title'),
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
-                  Text(allowDirect ? AppLocalizations.of(ctx).t('direct_add_mode_desc') : AppLocalizations.of(ctx).t('invite_mode_desc'),
+                  Text(allowDirect ? t('direct_add_mode_desc') : t('invite_mode_desc'),
                     style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
                 ])),
               ]),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              // ── Source buttons (scrollable to prevent overflow) ──────────────
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                srcBtn(icon: Icons.people_rounded, label: 'Friends', btnColor: AppColors.cyan,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _loadFriends();
+                    if (!mounted) return;
+                    final picked = await _showCommunityPeoplePicker(
+                      title: 'Add from Friends', icon: Icons.people_rounded, people: _friends,
+                      color: AppColors.cyan, subtitle: '${_friends.length} friend${_friends.length == 1 ? '' : 's'}');
+                    for (final e in picked) { if (!mounted) break; await _addCommunityMemberSilent(e); }
+                    if (mounted && picked.isNotEmpty) { _load(); _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', icon: Icons.person_add_rounded); }
+                  }),
+                const SizedBox(width: 8),
+                srcBtn(icon: Icons.swap_horiz_rounded, label: 'Counter-\nparties', btnColor: AppColors.cyan,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _loadCounterparties();
+                    if (!mounted) return;
+                    final people = _counterparties.map((c) => <String, dynamic>{
+                      'email': (c['email'] ?? '').toString(),
+                      'name': (c['name'] ?? c['username'] ?? '').toString(),
+                    }).toList();
+                    final picked = await _showCommunityPeoplePicker(
+                      title: 'Add from Counterparties', icon: Icons.swap_horiz_rounded, people: people,
+                      color: AppColors.cyan, subtitle: '${people.length} counterpart${people.length == 1 ? 'y' : 'ies'}');
+                    for (final e in picked) { if (!mounted) break; await _addCommunityMemberSilent(e); }
+                    if (mounted && picked.isNotEmpty) { _load(); _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', icon: Icons.person_add_rounded); }
+                  }),
+                const SizedBox(width: 8),
+                srcBtn(icon: Icons.group_work_rounded, label: 'Groups', btnColor: AppColors.cyan,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showCommGroupMemberPicker(AppColors.cyan);
+                  }),
+                const SizedBox(width: 8),
+                srcBtn(icon: Icons.people_alt_rounded, label: 'All\nSources', btnColor: AppColors.cyan,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showAllSourcesPicker(AppColors.cyan);
+                  }),
+              ])),
+              const SizedBox(height: 14),
+              const Row(children: [
+                Expanded(child: Divider()),
+                Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('or enter email', style: TextStyle(fontSize: 12))),
+                Expanded(child: Divider()),
+              ]),
+              const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
                   color: AppThemeColors.surfaceBg(ctx),
@@ -2306,7 +2984,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   keyboardType: TextInputType.emailAddress,
                   style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.of(ctx).t('enter_email_hint'),
+                    hintText: t('enter_email_hint'),
                     hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
                     prefixIcon: Icon(Icons.email_outlined, color: color, size: 20),
                     border: InputBorder.none,
@@ -2314,7 +2992,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -2354,7 +3032,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> with SingleTi
                   },
                   child: sending
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(allowDirect ? AppLocalizations.of(ctx).t('add_member_title') : AppLocalizations.of(ctx).t('send_invite_title'),
+                      : Text(allowDirect ? t('add_member_title') : t('send_invite_title'),
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ),

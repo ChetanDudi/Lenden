@@ -86,7 +86,10 @@ exports.createGroupWithCoins = async (req, res) => {
   const GROUP_COST = pricing.groupCreationCost;
   const GROUP_DAILY_LIMIT = 1;
   try {
-    const { title, memberEmails, color, communityIds } = req.body;
+    const { title, memberEmails, color, communityIds, category, description } = req.body;
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
     const validCommunityIds = Array.isArray(communityIds) ? communityIds.filter(Boolean) : (communityIds ? [communityIds] : []);
     const creator = await User.findById(req.user._id).select(
       'email blockedUsers lenDenCoins freeGroupsRemaining'
@@ -186,7 +189,7 @@ exports.createGroupWithCoins = async (req, res) => {
     const members = memberIds.map(id => ({ user: id }));
     const balances = memberIds.map(id => ({ user: id, balance: 0 }));
     const pendingInvites = skippedUsers.map(u => ({ email: u.email.toLowerCase(), invitedBy: creator._id }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds, pendingInvites });
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds, pendingInvites, category: category || 'other', description: (description || '').trim() });
     if (validCommunityIds.length > 0) {
       try {
         const Community = require('../models/community');
@@ -244,7 +247,10 @@ exports.createGroupWithCoins = async (req, res) => {
 
 exports.createGroup = async (req, res) => {
   try {
-    const { title, memberEmails, color, communityIds } = req.body;
+    const { title, memberEmails, color, communityIds, category, description } = req.body;
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
     const validCommunityIds = Array.isArray(communityIds) ? communityIds.filter(Boolean) : (communityIds ? [communityIds] : []);
     const creator = await User.findById(req.user._id).select(
       'email blockedUsers'
@@ -316,7 +322,7 @@ exports.createGroup = async (req, res) => {
 
     const members = memberIds.map(id => ({ user: id }));
     const balances = memberIds.map(id => ({ user: id, balance: 0 }));
-    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds });
+    const group = await GroupTransaction.create({ title, creator: creator._id, members, balances, color, communityIds: validCommunityIds, category: category || 'other', description: (description || '').trim() });
     if (validCommunityIds.length > 0) {
       try {
         const Community = require('../models/community');
@@ -1046,6 +1052,7 @@ exports.otpVerifySettle = async (req, res) => {
     const { userId, otp } = req.body;
     const group = await GroupTransaction.findById(groupId);
     if (!group || !group._pendingOtp) return res.status(400).json({ error: 'No pending OTP' });
+    if (group.creator.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Only the group creator can verify OTP' });
     const OTP_EXPIRY_MS = 10 * 60 * 1000;
     if (Date.now() - new Date(group._pendingOtp.createdAt).getTime() > OTP_EXPIRY_MS) {
       group._pendingOtp = undefined;
@@ -1329,11 +1336,7 @@ exports.getGroupById = async (req, res) => {
 exports.toggleGroupFavourite = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const email = (req.body.email || '').toLowerCase().trim();
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
+    const email = req.user.email.toLowerCase().trim();
 
     const group = await GroupTransaction.findById(groupId);
 
@@ -1341,10 +1344,7 @@ exports.toggleGroupFavourite = async (req, res) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const user = req.user;
 
     // Check if user is a member of the group
     const isMember = group.members.some(member => member.user.toString() === user._id.toString() && !member.leftAt);
@@ -2039,6 +2039,78 @@ exports.settleMemberExpenses = async (req, res) => {
         error: 'This group was updated by someone else at the same time. Please try again.',
       });
     }
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Send a payment-reminder notification to specific group members who owe the caller.
+// The frontend computes pairwise debts and sends the resolved {email, amount} targets.
+// Backend validates they are active members, then fires in-app + push notifications.
+exports.requestGroupPayment = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { targets } = req.body; // [{ email, amount }]
+
+    if (!targets || !Array.isArray(targets) || targets.length === 0) {
+      return res.status(400).json({ error: 'targets array is required' });
+    }
+
+    const group = await GroupTransaction.findById(groupId)
+      .populate('members.user', 'email name')
+      .populate('creator', 'email name');
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const callerEmail = (req.user.email || '').toLowerCase().trim();
+    const isMember = group.members.some(m => (m.user.email || '').toLowerCase() === callerEmail && !m.leftAt);
+    const isCreator = (group.creator.email || '').toLowerCase() === callerEmail;
+    if (!isMember && !isCreator) {
+      return res.status(403).json({ error: 'You are not an active member of this group' });
+    }
+
+    const activeMemberEmails = new Set([
+      ...group.members.filter(m => !m.leftAt).map(m => (m.user.email || '').toLowerCase()),
+      (group.creator.email || '').toLowerCase(),
+    ]);
+
+    const notified = [];
+    const promises = [];
+
+    for (const target of targets) {
+      const targetEmail = (target.email || '').toLowerCase().trim();
+      const amount = parseFloat(target.amount) || 0;
+      if (!targetEmail || targetEmail === callerEmail || amount <= 0) continue;
+      if (!activeMemberEmails.has(targetEmail)) continue;
+
+      const debtor = await User.findOne({ email: targetEmail }).select('_id email name notificationSettings');
+      if (!debtor) continue;
+
+      notified.push({ email: targetEmail, amount });
+      const callerName = req.user.name || req.user.email;
+
+      promises.push(
+        Notification.create({
+          sender: req.user._id, senderModel: 'User',
+          recipientType: 'specific-users',
+          recipients: [debtor._id], recipientModel: 'User',
+          category: 'transaction',
+          message: `Payment reminder from ${callerName}: You owe Rs.${amount.toFixed(2)} for group "${group.title}". Please settle your balance.`,
+        }),
+        sendToUser(User, debtor._id, {
+          title: 'Payment Reminder',
+          body: `${callerName} is requesting Rs.${amount.toFixed(2)} for group "${group.title}".`,
+          data: { type: 'group_payment_request', groupId: group._id.toString() },
+        }, { settingKey: 'groupNotifications' })
+      );
+    }
+
+    await Promise.all(promises);
+
+    if (notified.length === 0) {
+      return res.status(400).json({ error: 'No valid members to notify' });
+    }
+
+    res.json({ notified, message: `Payment request sent to ${notified.length} member(s)` });
+  } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 };

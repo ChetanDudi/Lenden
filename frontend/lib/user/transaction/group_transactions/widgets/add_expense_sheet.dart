@@ -297,6 +297,9 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
 
             TextField(
               controller: descCtrl,
+              maxLength: 300,
+              buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                  buildDescCounter(ctx, currentLength, maxLength),
               decoration: InputDecoration(
                 hintText: t('description_hint_dinner_hotel_message'),
                 prefixIcon: const Icon(Icons.description_outlined),
@@ -424,27 +427,146 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             ],
                           ),
                         )
-                      : Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: AppThemeColors.surfaceBg(context),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: currency,
-                              isExpanded: true,
-                              items: kGroupExpenseCurrencies
-                                  .map((cur) => DropdownMenuItem(
-                                        value: cur['code'],
-                                        child: Text(
-                                            '${cur['symbol']} ${cur['code']}'),
-                                      ))
-                                  .toList(),
-                              onChanged: (v) =>
-                                  setState(() => currency = v ?? 'INR'),
+                      : GestureDetector(
+                          onTap: () async {
+                            final picked = await showModalBottomSheet<String>(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (ctx) {
+                                String search = '';
+                                return StatefulBuilder(
+                                  builder: (ctx, setSheet) {
+                                    final tl = AppLocalizations.of(ctx).t;
+                                    final filtered = kGroupExpenseCurrencies.where((c) {
+                                      if (search.isEmpty) return true;
+                                      final q = search.toLowerCase();
+                                      return (c['code'] ?? '').toString().toLowerCase().contains(q)
+                                          || (c['label'] ?? '').toString().toLowerCase().contains(q)
+                                          || (c['symbol'] ?? '').toString().toLowerCase().contains(q);
+                                    }).toList();
+                                    return DraggableScrollableSheet(
+                                      initialChildSize: 0.65,
+                                      minChildSize: 0.4,
+                                      maxChildSize: 0.92,
+                                      builder: (_, sc) => Container(
+                                        decoration: BoxDecoration(
+                                          color: AppThemeColors.cardBg(ctx),
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                                        ),
+                                        child: Column(children: [
+                                          const SizedBox(height: 12),
+                                          Center(child: Container(width: 40, height: 4,
+                                            decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                                          const SizedBox(height: 14),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                                            child: Row(children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.cyan.withValues(alpha: 0.12),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: const Icon(Icons.currency_exchange_rounded, color: AppColors.cyan, size: 20),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Text(tl('select_currency_label'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                                              const Spacer(),
+                                              IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                                            ]),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                                            child: TextField(
+                                              onChanged: (v) => setSheet(() => search = v),
+                                              decoration: InputDecoration(
+                                                hintText: tl('search_currency_hint'),
+                                                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                                                filled: true,
+                                                fillColor: AppThemeColors.surfaceBg(ctx),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                              ),
+                                            ),
+                                          ),
+                                          Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                                          Expanded(
+                                            child: ListView.builder(
+                                              controller: sc,
+                                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                                              itemCount: filtered.length,
+                                              itemBuilder: (_, i) {
+                                                final cur = filtered[i];
+                                                final code = (cur['code'] ?? '').toString();
+                                                final sym = (cur['symbol'] ?? '').toString();
+                                                final name = (cur['label'] ?? code).toString();
+                                                final isSelected = code == currency;
+                                                return Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    borderRadius: BorderRadius.circular(14),
+                                                    onTap: () => Navigator.pop(ctx, code),
+                                                    child: Container(
+                                                      margin: const EdgeInsets.only(bottom: 4),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                                      decoration: BoxDecoration(
+                                                        color: isSelected ? AppColors.cyan.withValues(alpha: 0.10) : Colors.transparent,
+                                                        borderRadius: BorderRadius.circular(14),
+                                                        border: isSelected ? Border.all(color: AppColors.cyan.withValues(alpha: 0.35)) : null,
+                                                      ),
+                                                      child: Row(children: [
+                                                        Container(
+                                                          width: 44, height: 44,
+                                                          decoration: BoxDecoration(
+                                                            color: isSelected ? AppColors.cyan.withValues(alpha: 0.15) : AppThemeColors.surfaceBg(ctx),
+                                                            borderRadius: BorderRadius.circular(12),
+                                                          ),
+                                                          child: Center(child: Text(sym,
+                                                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                                                              color: isSelected ? AppColors.cyan : AppThemeColors.primaryText(ctx)))),
+                                                        ),
+                                                        const SizedBox(width: 12),
+                                                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                                          Text(code, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                                                            color: isSelected ? AppColors.cyan : AppThemeColors.primaryText(ctx))),
+                                                          Text(name, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                                                        ])),
+                                                        if (isSelected)
+                                                          const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 20),
+                                                      ]),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ]),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                            if (picked != null) setState(() => currency = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.surfaceBg(context),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
                             ),
+                            child: Row(children: [
+                              Text(_sym(currency),
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan)),
+                              const SizedBox(width: 6),
+                              Expanded(child: Text(currency,
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                                  color: AppThemeColors.primaryText(context)),
+                                overflow: TextOverflow.ellipsis)),
+                              Icon(Icons.expand_more_rounded, size: 18, color: AppThemeColors.secondaryText(context)),
+                            ]),
                           ),
                         ),
                 ),

@@ -50,8 +50,11 @@ function defaultCommunityImageUrl(name, id) {
 
 exports.createCommunity = async (req, res) => {
   try {
-    const { name, description, color } = req.body;
+    const { name, description, color, category } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Community name is required' });
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
 
     // ── Limit check ───────────────────────────────────────────────────────────
     const settings = await AdminSettings.getOrCreate();
@@ -86,6 +89,7 @@ exports.createCommunity = async (req, res) => {
     const community = new Community({
       name: name.trim(),
       description: (description || '').trim(),
+      category: category || 'other',
       color: color || '#00B4D8',
       creator: req.user._id,
       members: [{ user: req.user._id, role: 'admin' }],
@@ -198,9 +202,13 @@ exports.updateCommunity = async (req, res) => {
     const isAdmin = community.members.some(m => m.user.toString() === req.user._id.toString() && m.role === 'admin');
     if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
 
-    const { name, description, color, settings } = req.body;
+    const { name, description, color, settings, category } = req.body;
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
     if (name?.trim()) community.name = name.trim();
     if (description !== undefined) community.description = description.trim();
+    if (category) community.category = category;
     if (color) community.color = color;
     if (settings) community.settings = { ...community.settings.toObject?.() ?? community.settings, ...settings };
     await community.save();
@@ -462,9 +470,12 @@ exports.removeMembersBulk = async (req, res) => {
     const userIds = Array.isArray(req.body.userIds) ? req.body.userIds.map(String) : [];
     if (!userIds.length) return res.status(400).json({ error: 'No users specified' });
 
-    // Cannot remove self this way; cannot remove other admins unless there's another
+    // Cannot remove self; cannot remove other admins
     const selfId = req.user._id.toString();
-    const filtered = userIds.filter(uid => uid !== selfId);
+    const adminIds = new Set(
+      community.members.filter(m => m.role === 'admin').map(m => m.user.toString())
+    );
+    const filtered = userIds.filter(uid => uid !== selfId && !adminIds.has(uid));
 
     community.members = community.members.filter(m => !filtered.includes(m.user.toString()));
     await community.save();
@@ -661,6 +672,9 @@ exports.sendCommunityInvite = async (req, res) => {
     const { emails } = req.body;
     if (!Array.isArray(emails) || emails.length === 0) {
       return res.status(400).json({ error: 'emails array required' });
+    }
+    if (emails.length > 100) {
+      return res.status(400).json({ error: 'Cannot invite more than 100 users at once' });
     }
 
     const { sendToUser } = require('../services/notificationService');
@@ -912,14 +926,13 @@ exports.votePoll = async (req, res) => {
     }
 
     await post.save();
-    const uid2 = uid;
     const totalVotes = post.poll.options.reduce((s, o) => s + o.votes.length, 0);
     res.json({
       totalVotes,
       options: post.poll.options.map(opt => ({
         _id: opt._id,
         voteCount: opt.votes.length,
-        votedByMe: opt.votes.some(v => v.toString() === uid2),
+        votedByMe: opt.votes.some(v => v.toString() === uid),
       })),
     });
   } catch (e) {

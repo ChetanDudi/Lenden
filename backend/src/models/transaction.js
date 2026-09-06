@@ -117,6 +117,14 @@ const transactionSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  paymentRequested: {
+    type: Boolean,
+    default: false
+  },
+  paymentRequestedAt: {
+    type: Date,
+    default: null
+  },
   favourite: {
     type: [String],
     default: []

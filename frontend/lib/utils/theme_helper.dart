@@ -1,6 +1,40 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 
+/// Stylish character counter for description/note fields (limit 300).
+/// Pass into TextField's buildCounter parameter — ctx is the BuildContext
+/// provided by the callback so colors adapt to the current theme.
+Widget? buildDescCounter(BuildContext ctx, int currentLength, int? maxLength) {
+  final limit = maxLength ?? 300;
+  if (currentLength == 0) return null;
+  final isAtLimit = currentLength >= limit;
+  final isNear = currentLength >= limit - 30;
+  final isDark = Theme.of(ctx).brightness == Brightness.dark;
+  return Padding(
+    padding: const EdgeInsets.only(top: 2),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      if (isAtLimit)
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Icon(Icons.warning_amber_rounded, size: 12,
+              color: isDark ? Colors.red.shade400 : Colors.red.shade600),
+        ),
+      Text(
+        '$currentLength / $limit',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: isAtLimit ? FontWeight.w700 : FontWeight.w500,
+          color: isAtLimit
+              ? (isDark ? Colors.red.shade400 : Colors.red.shade600)
+              : isNear
+                  ? (isDark ? Colors.orange.shade400 : Colors.orange.shade700)
+                  : (isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+        ),
+      ),
+    ]),
+  );
+}
+
 /// Central dark-mode color lookup. Every screen should read colors through
 /// these helpers (instead of hardcoding hex literals) so toggling the app's
 /// theme actually changes how the screen looks.

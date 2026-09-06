@@ -11,6 +11,9 @@ exports.createTemplate = async (req, res) => {
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
       return res.status(400).json({ error: 'Valid counterpartyEmail is required' });

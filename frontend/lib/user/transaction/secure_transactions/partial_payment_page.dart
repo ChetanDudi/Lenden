@@ -937,6 +937,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                           : null,
                     ),
                     maxLines: 2,
+                    maxLength: 300,
+                    buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                        (lenderOtpVerified && borrowerOtpVerified) ? null : buildDescCounter(ctx, currentLength, maxLength),
                     enabled: !(lenderOtpVerified && borrowerOtpVerified),
                   ),
                   const SizedBox(height: 20),

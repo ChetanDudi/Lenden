@@ -3716,6 +3716,9 @@ class _TransactionPageState extends State<TransactionPage> {
               controller: _descriptionController,
               enabled: !_bothUsersVerified,
               maxLines: 3,
+              maxLength: 300,
+              buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                  _bothUsersVerified ? null : buildDescCounter(ctx, currentLength, maxLength),
               decoration: InputDecoration(
                 labelText: t('description_optional_label'),
                 border: InputBorder.none,

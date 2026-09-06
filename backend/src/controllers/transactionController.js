@@ -1283,6 +1283,9 @@ exports.processPartialPayment = async (req, res) => {
     if (!['lender', 'borrower'].includes(paidBy)) {
       return res.status(400).json({ error: 'paidBy must be lender or borrower' });
     }
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
 
     const transaction = await Transaction.findOne({ transactionId });
     if (!transaction) {
@@ -1578,6 +1581,75 @@ exports.toggleFavourite = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: 'Failed to toggle favourite status' });
+  }
+};
+
+exports.requestPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const callerEmail = (req.user.email || '').toLowerCase().trim();
+
+    const transaction = await Transaction.findById(id);
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+
+    const isParty = transaction.userEmail === callerEmail || transaction.counterpartyEmail === callerEmail;
+    if (!isParty) return res.status(403).json({ error: 'Not a party to this transaction' });
+
+    if (transaction.userCleared && transaction.counterpartyCleared) {
+      return res.status(400).json({ error: 'Transaction is already cleared' });
+    }
+
+    // Determine caller's role
+    const isCreator = transaction.userEmail === callerEmail;
+    const callerRole = isCreator ? transaction.role : (transaction.role === 'lender' ? 'borrower' : 'lender');
+    if (callerRole !== 'lender') {
+      return res.status(403).json({ error: 'Only the lender can request payment' });
+    }
+
+    // If expected return date exists it must have passed
+    if (transaction.expectedReturnDate) {
+      if (new Date(transaction.expectedReturnDate) > new Date()) {
+        return res.status(400).json({ error: 'Expected return date has not passed yet' });
+      }
+    }
+
+    // Borrower is the counterparty
+    const borrowerEmail = isCreator ? transaction.counterpartyEmail : transaction.userEmail;
+    const borrower = await User.findOne({ email: borrowerEmail }).select('_id name notificationSettings');
+    if (!borrower) return res.status(404).json({ error: 'Borrower account not found' });
+
+    const lenderUser = await User.findById(req.user._id).select('name email');
+    const lenderName = lenderUser?.name || callerEmail;
+    const remaining = transaction.remainingAmount ?? transaction.amount;
+    const currency = transaction.currency || 'INR';
+    const description = transaction.description || '';
+
+    transaction.paymentRequested = true;
+    transaction.paymentRequestedAt = new Date();
+    await transaction.save();
+
+    const notifTitle = 'Payment Requested 💸';
+    const notifBody = `${lenderName} is requesting ${currency} ${remaining}${description ? ` for "${description}"` : ''} — due now.`;
+
+    if (borrower.notificationSettings?.transactionNotifications !== false) {
+      Notification.create({
+        sender: req.user._id, senderModel: 'User',
+        recipientType: 'specific-users', recipients: [borrower._id], recipientModel: 'User',
+        category: 'transaction',
+        title: notifTitle,
+        message: notifBody,
+      }).catch(() => {});
+    }
+
+    sendToUser(User, borrower._id, {
+      title: notifTitle,
+      body: notifBody,
+      data: { type: 'secure_payment_request', transactionId: id },
+    });
+
+    return res.status(200).json({ message: 'Payment request sent successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 };
 

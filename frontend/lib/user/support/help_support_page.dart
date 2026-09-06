@@ -200,13 +200,16 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
               TextField(
                 controller: _descriptionController,
                 style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                maxLines: 3,
+                maxLength: 300,
+                buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                    buildDescCounter(ctx, currentLength, maxLength),
                 decoration: InputDecoration(
                   labelText: t('description_label'),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.description, color: _cyan),
                 ),
-                maxLines: 3,
               ),
               const SizedBox(height: 24),
               Row(
@@ -490,6 +493,9 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                           TextField(
                             controller: _descriptionController,
                             maxLines: 4,
+                            maxLength: 300,
+                            buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                                buildDescCounter(ctx, currentLength, maxLength),
                             style: TextStyle(color: AppThemeColors.primaryText(context)),
                             decoration: InputDecoration(
                               labelText: t('description_label'),

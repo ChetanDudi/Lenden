@@ -88,6 +88,9 @@ module.exports = (io) => {
     try {
       await deleteOldQueries(io);
       const { topic, description } = req.body;
+      if (description && description.length > 300) {
+        return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+      }
       const userId = req.user._id; // Assuming user ID is available from auth middleware
 
       const newQuery = new SupportQuery({
@@ -140,6 +143,9 @@ module.exports = (io) => {
       await deleteOldQueries(io);
       const { queryId } = req.params;
       const { topic, description } = req.body;
+      if (description && description.length > 300) {
+        return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+      }
       const userId = req.user._id;
 
       const query = await SupportQuery.findOne({ _id: queryId, user: userId });

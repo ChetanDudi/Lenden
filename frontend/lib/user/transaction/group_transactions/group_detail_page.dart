@@ -14,6 +14,8 @@ import '../../../utils/share_utils.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 import 'group_stats_page.dart';
+import 'group_request_payment_page.dart';
+import 'group_process_payment_page.dart';
 import '../../wallet/widgets/payment_sheet.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
@@ -562,27 +564,37 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
   String _resolveEmail(dynamic userField) {
     if (userField == null) return 'Deleted Account';
+    // Fast path: already an email string
+    if (userField is String && userField.contains('@')) return userField;
     final direct = _emailOf(userField);
-    if (direct == 'Deleted Account') return 'Deleted Account';
     if (direct.contains('@')) return direct;
-    // direct is a raw ObjectId string — try to look up in members
-    for (final m in List<dynamic>.from(_group['members'] ?? [])) {
-      final memberId = (m['_id'] ?? '').toString();
-      if (memberId.isNotEmpty && memberId == direct) {
-        final email = (m['email'] ?? '').toString();
-        if (email.contains('@')) return email;
-      }
-      final mUser = m['user'];
-      final mId = mUser is Map
-          ? (mUser['_id'] ?? mUser['id'] ?? '').toString()
-          : (mUser ?? '').toString();
-      if (mId.isNotEmpty && mId == direct) {
-        final email = (m['email'] ?? _emailOf(mUser)).toString();
-        if (email.contains('@')) return email;
+    // Extract the ObjectId to search for in the members list
+    final String rawId;
+    if (userField is Map) {
+      rawId = (userField['_id'] ?? userField['id'] ?? '').toString();
+    } else {
+      rawId = userField.toString();
+    }
+    if (rawId.isNotEmpty) {
+      for (final m in List<dynamic>.from(_group['members'] ?? [])) {
+        // Match on member subdoc _id
+        final memberId = (m['_id'] ?? '').toString();
+        if (memberId.isNotEmpty && memberId == rawId) {
+          final email = (m['email'] ?? '').toString();
+          if (email.contains('@')) return email;
+        }
+        // Match on member's user field (populated or raw)
+        final mUser = m['user'];
+        final mId = mUser is Map
+            ? (mUser['_id'] ?? mUser['id'] ?? '').toString()
+            : (mUser ?? '').toString();
+        if (mId.isNotEmpty && mId == rawId) {
+          final email = (m['email'] ?? _emailOf(mUser)).toString();
+          if (email.contains('@')) return email;
+        }
       }
     }
-    // ObjectId with no matching member = deleted user
-    return _oidRe.hasMatch(direct) ? 'Deleted Account' : direct;
+    return _oidRe.hasMatch(rawId) ? 'Deleted Account' : (direct == 'Deleted Account' ? 'Deleted Account' : direct);
   }
 
   Color get _groupColor {
@@ -1207,6 +1219,67 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     return net;
   }
 
+  void _showDescriptionSheet(BuildContext context, String Function(String) t) {
+    final desc = (_group['description'] ?? '').toString();
+    final groupColor = _groupColor;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2))),
+            )),
+            // Header strip
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [groupColor, groupColor.withValues(alpha: 0.6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Group Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text(_group['title']?.toString() ?? '', style: const TextStyle(fontSize: 12, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ])),
+              ]),
+            ),
+            // Description body
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                child: Text(
+                  desc.isNotEmpty ? desc : 'No description set.',
+                  style: TextStyle(fontSize: 15, height: 1.6, color: desc.isNotEmpty ? AppThemeColors.primaryText(ctx) : AppThemeColors.mutedText(ctx)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ─── Service bar items ───────────────────────────────────────────
   Widget _serviceChip({
     required IconData icon,
@@ -1518,6 +1591,13 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16),
                     children: [
+                      if ((_group['description'] ?? '').toString().isNotEmpty)
+                        _serviceChip(
+                          icon: Icons.info_outline_rounded,
+                          label: 'Description',
+                          color: const Color(0xFF00695C),
+                          onTap: () => _showDescriptionSheet(context, t),
+                        ),
                       _serviceChip(
                         icon: Icons.people_alt_rounded,
                         label: t('members_label'),
@@ -1634,6 +1714,45 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                         color: const Color(0xFF0277BD),
                         badge: _communities.isNotEmpty ? _communities.length : null,
                         onTap: _showCommunitiesSheet,
+                      ),
+                      _serviceChip(
+                        icon: Icons.send_to_mobile_rounded,
+                        label: 'Request Payment',
+                        color: const Color(0xFFE65100),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GroupRequestPaymentPage(
+                                groupId: widget.groupId,
+                                groupTitle: title,
+                                groupColor: _groupColor,
+                                initialGroup: _group,
+                                userEmail: _userEmail ?? '',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _serviceChip(
+                        icon: Icons.payment_rounded,
+                        label: 'Process Payment',
+                        color: const Color(0xFF00695C),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GroupProcessPaymentPage(
+                                groupId: widget.groupId,
+                                groupTitle: title,
+                                groupColor: _groupColor,
+                                initialGroup: _group,
+                                userEmail: _userEmail ?? '',
+                              ),
+                            ),
+                          );
+                          _refresh();
+                        },
                       ),
                       if (_isCreator)
                         _serviceChip(

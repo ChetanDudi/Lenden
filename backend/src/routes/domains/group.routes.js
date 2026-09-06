@@ -25,6 +25,7 @@ module.exports = (router, { auth, otpVerifyLimiter, budgetCheck, handleUsage, up
   // Settlement
   router.post('/group-transactions/:groupId/settle-member-expenses', auth, groupTransactionController.settleMemberExpenses);
   router.post('/group-transactions/:groupId/self-settle', auth, groupTransactionController.selfSettleExpenses);
+  router.post('/group-transactions/:groupId/request-payment', auth, groupTransactionController.requestGroupPayment);
   router.post('/group-transactions/:groupId/record-payment', auth, walletAuthMiddleware, groupTransactionController.recordMemberPayment);
   router.post('/group-transactions/:groupId/settle-balance', auth, groupTransactionController.settleBalance);
   router.post('/group-transactions/:groupId/otp-verify-settle', auth, otpVerifyLimiter, groupTransactionController.otpVerifySettle);

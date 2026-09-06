@@ -34,6 +34,7 @@ import '../../widgets/app_widgets.dart';
 import '../scanner/qr_scanner_page.dart';
 import '../scanner/user_qr_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
@@ -589,22 +590,47 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
   Future<void> _checkAndShowRatingDialog() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Never show again if already rated (local flag — survives restarts)
+      final locallyRated = prefs.getBool('app_rated') ?? false;
+      if (locallyRated) {
+        setState(() => _hasRatedApp = true);
+        return;
+      }
+
+      // Record first-open timestamp on the very first call
+      final firstOpenMs = prefs.getInt('first_open_ms');
+      if (firstOpenMs == null) {
+        await prefs.setInt('first_open_ms', DateTime.now().millisecondsSinceEpoch);
+        return; // Too early — not even one session old
+      }
+
+      // Only show after 3 days of use
+      final daysSinceFirstOpen = DateTime.now()
+          .difference(DateTime.fromMillisecondsSinceEpoch(firstOpenMs))
+          .inDays;
+      if (daysSinceFirstOpen < 3) return;
+
+      // Confirm with backend (catches edge case where user rated on another device)
       final res = await ApiClient.get('/api/rating/my');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        setState(() {
-          _hasRatedApp = data['rating'] != null;
-        });
-        if (!_hasRatedApp && !_ratingDialogShown) {
-          _ratingDialogShown = true;
-          Future.delayed(const Duration(milliseconds: 1200), () {
-            if (mounted) _showAppRatingDialog();
-          });
+        final serverRated = data['rating'] != null;
+        if (serverRated) {
+          await prefs.setBool('app_rated', true);
+          setState(() => _hasRatedApp = true);
+          return;
         }
       }
-    } catch (e) {
-      // Ignore errors
-    }
+
+      if (!_ratingDialogShown) {
+        _ratingDialogShown = true;
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) _showAppRatingDialog();
+        });
+      }
+    } catch (_) {}
   }
 
   void _showAppRatingDialog() {
@@ -660,6 +686,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               final res = await ApiClient.post('/api/rating', body: {'rating': selectedStars});
                               if (res.statusCode == 200 && mounted) {
                                 setState(() => _hasRatedApp = true);
+                                // Persist so the dialog never appears again after restart
+                                SharedPreferences.getInstance().then((p) => p.setBool('app_rated', true));
                                 setSheet(() { isSuccess = true; submitting = false; });
                                 Future.delayed(const Duration(milliseconds: 3200), () {
                                   if (ctx.mounted) Navigator.pop(ctx);

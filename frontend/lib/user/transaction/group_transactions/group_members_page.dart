@@ -31,32 +31,6 @@ String _nameOf(dynamic field) {
   return _oidRe.hasMatch(s) ? 'Deleted Account' : '';
 }
 
-Widget _tricolorBorderBox({
-  required Widget child,
-  double radius = 18,
-  double borderWidth = 2,
-  EdgeInsetsGeometry? margin,
-}) {
-  return Container(
-    margin: margin,
-    decoration: BoxDecoration(
-      gradient: AppColors.tricolorGradient,
-      borderRadius: BorderRadius.circular(radius),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    padding: EdgeInsets.all(borderWidth),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(radius - borderWidth),
-      child: child,
-    ),
-  );
-}
 
 class GroupMembersPage extends StatefulWidget {
   final String groupId;
@@ -95,6 +69,12 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   String _filter = 'active';
   final _addEmailCtrl = TextEditingController();
   List<Map<String, dynamic>> _userCommunities = [];
+  List<Map<String, dynamic>> _friends = [];
+  bool _loadingFriends = false;
+  List<Map<String, dynamic>> _counterparties = [];
+  bool _loadingCounterparties = false;
+  List<Map<String, dynamic>> _userGroups = [];
+  bool _loadingGroups = false;
 
   @override
   void initState() {
@@ -248,12 +228,13 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       context: context,
       builder: (_) => Dialog(
         backgroundColor: Colors.transparent,
-        child: _tricolorBorderBox(
-          radius: 20,
-          child: Container(
+        child: Container(
+          decoration: BoxDecoration(
             color: AppThemeColors.cardBg(context),
-            padding: const EdgeInsets.all(20),
-            child: Column(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -297,7 +278,6 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
             ),
           ),
         ),
-      ),
     );
     if (confirmed != true) return;
     setState(() => _loading = true);
@@ -324,6 +304,532 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
         setState(() => _userCommunities = List<Map<String, dynamic>>.from(data['communities'] ?? []));
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadFriends() async {
+    if (_loadingFriends) return;
+    setState(() => _loadingFriends = true);
+    try {
+      final res = await ApiClient.get('/api/friends');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _friends = List<Map<String, dynamic>>.from(data['friends'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingFriends = false);
+  }
+
+  Future<void> _loadCounterparties() async {
+    if (_loadingCounterparties) return;
+    setState(() => _loadingCounterparties = true);
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final email = Uri.encodeComponent(session.user?['email']?.toString() ?? '');
+      final res = await ApiClient.get('/api/counterparties/user?email=$email');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _counterparties = List<Map<String, dynamic>>.from(data['counterparties'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingCounterparties = false);
+  }
+
+  Future<void> _loadGroups() async {
+    if (_loadingGroups || _userGroups.isNotEmpty) return;
+    setState(() => _loadingGroups = true);
+    try {
+      final res = await ApiClient.get('/api/group-transactions/user-groups');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _userGroups = List<Map<String, dynamic>>.from(data['groups'] ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingGroups = false);
+  }
+
+  // Generic flat people-picker (friends / counterparties / all-sources).
+  // Returns the list of emails the user confirmed.
+  Future<List<String>> _showPeoplePicker({
+    required String title,
+    required IconData icon,
+    required List<Map<String, dynamic>> people,
+    String subtitle = '',
+  }) async {
+    final List<String> picked = [];
+    String search = '';
+    final myEmail = Provider.of<SessionProvider>(context, listen: false)
+        .user?['email']?.toString().toLowerCase() ?? '';
+    // Exclude self and current members
+    final currentEmails = _members
+        .map((m) => ((m['email'] ?? _emailOf(m['user'])) as String).toLowerCase())
+        .toSet();
+
+    final available = people.where((p) {
+      final e = (p['email'] ?? '').toString().toLowerCase();
+      return e.isNotEmpty && e != myEmail && !currentEmails.contains(e);
+    }).toList();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final filtered = available.where((p) {
+            if (search.isEmpty) return true;
+            final e = (p['email'] ?? '').toString().toLowerCase();
+            final n = (p['name'] ?? p['username'] ?? '').toString().toLowerCase();
+            return e.contains(search.toLowerCase()) || n.contains(search.toLowerCase());
+          }).toList();
+          final allSel = filtered.isNotEmpty && filtered.every((p) => picked.contains((p['email'] ?? '').toString()));
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (_, scrollCtrl) => Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                      if (subtitle.isNotEmpty) Text(subtitle, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                    ])),
+                    if (picked.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                        child: Text('${picked.length} selected', style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    const SizedBox(width: 4),
+                    IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: TextField(
+                    onChanged: (v) => setSheet(() => search = v),
+                    style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or email...',
+                      hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                      prefixIcon: Icon(Icons.search_rounded, color: AppThemeColors.mutedText(ctx)),
+                      filled: true,
+                      fillColor: AppThemeColors.surfaceBg(ctx),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(children: [
+                    Text('${filtered.length} available', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx))),
+                    const Spacer(),
+                    if (filtered.isNotEmpty)
+                      TextButton(
+                        onPressed: () => setSheet(() {
+                          if (allSel) {
+                            for (final p in filtered) picked.remove((p['email'] ?? '').toString());
+                          } else {
+                            for (final p in filtered) {
+                              final e = (p['email'] ?? '').toString();
+                              if (e.isNotEmpty && !picked.contains(e)) picked.add(e);
+                            }
+                          }
+                        }),
+                        style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                        child: Text(allSel ? 'Deselect All' : 'Select All', style: const TextStyle(color: AppColors.cyan, fontSize: 12)),
+                      ),
+                  ]),
+                ),
+                Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                Expanded(
+                  child: filtered.isEmpty
+                    ? Center(child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.person_search_rounded, size: 48, color: AppThemeColors.mutedText(ctx)),
+                          const SizedBox(height: 12),
+                          Text(search.isEmpty ? 'No people available' : 'No match for "$search"',
+                            style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14), textAlign: TextAlign.center),
+                        ]),
+                      ))
+                    : ListView.separated(
+                        controller: scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                        itemBuilder: (_, i) {
+                          final p = filtered[i];
+                          final email = (p['email'] ?? '').toString();
+                          final name = (p['name'] ?? p['username'] ?? '').toString();
+                          final isSel = picked.contains(email);
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
+                              child: Text(name.isNotEmpty ? name[0].toUpperCase() : (email.isNotEmpty ? email[0].toUpperCase() : '?'),
+                                style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold)),
+                            ),
+                            title: Text(name.isNotEmpty ? name : email,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+                            subtitle: name.isNotEmpty ? Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
+                            trailing: Checkbox(value: isSel, activeColor: AppColors.cyan,
+                              onChanged: (_) => setSheet(() { if (isSel) picked.remove(email); else picked.add(email); })),
+                            onTap: () => setSheet(() { if (isSel) picked.remove(email); else picked.add(email); }),
+                          );
+                        },
+                      ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cyan,
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 4,
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(
+                      picked.isEmpty ? 'Done' : 'Add ${picked.length} Member${picked.length == 1 ? '' : 's'}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+    return picked;
+  }
+
+  // Groups two-tab picker (adapted from community picker pattern).
+  Future<void> _showGroupMemberPicker() async {
+    if (_userGroups.isEmpty) {
+      await _loadGroups();
+      if (!mounted) return;
+    }
+    if (_userGroups.isEmpty) {
+      _showError('No groups found. Join or create a group first.');
+      return;
+    }
+
+    final myEmail = Provider.of<SessionProvider>(context, listen: false)
+        .user?['email']?.toString().toLowerCase() ?? '';
+    final currentEmails = _members
+        .map((m) => ((m['email'] ?? _emailOf(m['user'])) as String).toLowerCase())
+        .toSet();
+    final List<String> picked = [];
+    int modeTab = 0;
+
+    String getGMemberEmail(dynamic m) {
+      if (m is Map) return (m['email'] ?? _emailOf(m['user'] ?? m)).toLowerCase().trim();
+      return '';
+    }
+    String getGMemberName(dynamic m) {
+      if (m is Map) return (m['name'] ?? (m['user'] is Map ? m['user']['name'] : '') ?? '').toString();
+      return '';
+    }
+    List<Map<String, dynamic>> getGroupMembers(Map<String, dynamic> g) {
+      final raw = g['members'];
+      if (raw is! List) return [];
+      return raw.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).where((m) {
+        final e = getGMemberEmail(m);
+        return e.isNotEmpty && e != myEmail && !currentEmails.contains(e) && m['leftAt'] == null;
+      }).toList();
+    }
+    Color parseGroupColor(dynamic v) {
+      try {
+        if (v is String && v.startsWith('#')) return Color(int.parse('FF${v.replaceFirst('#', '')}', radix: 16));
+      } catch (_) {}
+      return AppColors.cyan;
+    }
+
+    final otherGroups = _userGroups.where((g) => (g['_id'] ?? '').toString() != widget.groupId).toList();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final List<Map<String, dynamic>> allPickMembers = [];
+          if (modeTab == 1) {
+            final seen = <String>{};
+            for (final g in otherGroups) {
+              for (final m in getGroupMembers(g)) {
+                final e = getGMemberEmail(m);
+                if (e.isNotEmpty && seen.add(e)) allPickMembers.add(m);
+              }
+            }
+          }
+          return DraggableScrollableSheet(
+            initialChildSize: 0.82, minChildSize: 0.5, maxChildSize: 0.95,
+            builder: (_, scrollCtrl) => Container(
+              decoration: BoxDecoration(color: AppThemeColors.cardBg(ctx), borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.cyan, AppColors.blue]), borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.group_work_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Add from Groups', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                      Text('${otherGroups.length} group${otherGroups.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                    ])),
+                    if (picked.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                        child: Text('${picked.length} selected', style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    const SizedBox(width: 4),
+                    IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx))),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(14)),
+                    child: Row(children: [
+                      Expanded(child: GestureDetector(
+                        onTap: () => setSheet(() => modeTab = 0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(gradient: modeTab == 0 ? const LinearGradient(colors: [AppColors.cyan, AppColors.blue]) : null, borderRadius: BorderRadius.circular(10)),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.group_work_rounded, size: 16, color: modeTab == 0 ? Colors.white : AppThemeColors.secondaryText(ctx)),
+                            const SizedBox(width: 6),
+                            Text('Choose Group', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: modeTab == 0 ? Colors.white : AppThemeColors.secondaryText(ctx))),
+                          ]),
+                        ),
+                      )),
+                      Expanded(child: GestureDetector(
+                        onTap: () => setSheet(() => modeTab = 1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(gradient: modeTab == 1 ? const LinearGradient(colors: [AppColors.cyan, AppColors.blue]) : null, borderRadius: BorderRadius.circular(10)),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.person_search_rounded, size: 16, color: modeTab == 1 ? Colors.white : AppThemeColors.secondaryText(ctx)),
+                            const SizedBox(width: 6),
+                            Text('Pick Members', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: modeTab == 1 ? Colors.white : AppThemeColors.secondaryText(ctx))),
+                          ]),
+                        ),
+                      )),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                Expanded(
+                  child: modeTab == 0
+                    ? (otherGroups.isEmpty
+                      ? Center(child: Text('No other groups found', style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          controller: scrollCtrl,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                          itemCount: otherGroups.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (_, gi) {
+                            final g = otherGroups[gi];
+                            final gName = (g['title'] ?? 'Group').toString();
+                            final gMembers = getGroupMembers(g);
+                            final gColor = parseGroupColor(g['color']);
+                            final allAdded = gMembers.isNotEmpty && gMembers.every((m) => picked.contains(getGMemberEmail(m)));
+                            return Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(color: AppThemeColors.surfaceBg(ctx), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppThemeColors.border(ctx))),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Container(
+                                    width: 44, height: 44,
+                                    decoration: BoxDecoration(gradient: LinearGradient(colors: [gColor.withValues(alpha: 0.8), gColor], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(13)),
+                                    child: Center(child: Text(gName.isNotEmpty ? gName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text(gName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+                                    Text('${gMembers.length} addable member${gMembers.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+                                  ])),
+                                  TextButton.icon(
+                                    onPressed: gMembers.isEmpty ? null : () => setSheet(() {
+                                      if (allAdded) { for (final m in gMembers) picked.remove(getGMemberEmail(m)); }
+                                      else { for (final m in gMembers) { final e = getGMemberEmail(m); if (e.isNotEmpty && !picked.contains(e)) picked.add(e); } }
+                                    }),
+                                    icon: Icon(allAdded ? Icons.remove_circle_outline : Icons.group_add, size: 16, color: allAdded ? Colors.orange : AppColors.cyan),
+                                    label: Text(allAdded ? 'Deselect All' : 'Add All', style: TextStyle(fontSize: 12, color: allAdded ? Colors.orange : AppColors.cyan)),
+                                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                                  ),
+                                ]),
+                                if (gMembers.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(spacing: 8, runSpacing: 6, children: gMembers.map((m) {
+                                    final e = getGMemberEmail(m);
+                                    final n = getGMemberName(m);
+                                    final isSel = picked.contains(e);
+                                    return GestureDetector(
+                                      onTap: () => setSheet(() { if (isSel) picked.remove(e); else picked.add(e); }),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: isSel ? AppColors.cyan.withValues(alpha: 0.15) : AppThemeColors.cardBg(ctx),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: isSel ? AppColors.cyan : AppThemeColors.border(ctx)),
+                                        ),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          if (isSel) ...[const Icon(Icons.check, size: 12, color: AppColors.cyan), const SizedBox(width: 4)],
+                                          Text(n.isNotEmpty ? n.split(' ')[0] : e.split('@')[0],
+                                            style: TextStyle(fontSize: 12, color: isSel ? AppColors.cyan : AppThemeColors.primaryText(ctx), fontWeight: isSel ? FontWeight.w600 : FontWeight.normal)),
+                                        ]),
+                                      ),
+                                    );
+                                  }).toList()),
+                                ],
+                              ]),
+                            );
+                          },
+                        ))
+                    : (allPickMembers.isEmpty
+                      ? Center(child: Text('No members available', style: TextStyle(color: AppThemeColors.mutedText(ctx))))
+                      : ListView.separated(
+                          controller: scrollCtrl,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                          itemCount: allPickMembers.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: AppThemeColors.divider(ctx)),
+                          itemBuilder: (_, i) {
+                            final m = allPickMembers[i];
+                            final e = getGMemberEmail(m);
+                            final n = getGMemberName(m);
+                            final isSel = picked.contains(e);
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              leading: CircleAvatar(backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
+                                child: Text(n.isNotEmpty ? n[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold))),
+                              title: Text(n.isNotEmpty ? n : e, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(ctx))),
+                              subtitle: n.isNotEmpty ? Text(e, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))) : null,
+                              trailing: Checkbox(value: isSel, activeColor: AppColors.cyan,
+                                onChanged: (_) => setSheet(() { if (isSel) picked.remove(e); else picked.add(e); })),
+                              onTap: () => setSheet(() { if (isSel) picked.remove(e); else picked.add(e); }),
+                            );
+                          },
+                        )),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 4),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(picked.isEmpty ? 'Done' : 'Add ${picked.length} Member${picked.length == 1 ? '' : 's'}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+
+    for (final email in picked) {
+      if (!mounted) break;
+      await _addMember(email, silent: true);
+    }
+    if (mounted && picked.isNotEmpty) {
+      _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', success: true);
+      await _refresh();
+    }
+  }
+
+  // Builds an "All Sources" combined list: friends + counterparties + all community/group members.
+  Future<void> _showAllSourcesPicker() async {
+    // Load all sources concurrently
+    await Future.wait([
+      if (_friends.isEmpty) _loadFriends(),
+      if (_counterparties.isEmpty) _loadCounterparties(),
+      if (_userCommunities.isEmpty) _loadCommunities(),
+      if (_userGroups.isEmpty) _loadGroups(),
+    ]);
+    if (!mounted) return;
+
+    final myEmail = Provider.of<SessionProvider>(context, listen: false)
+        .user?['email']?.toString().toLowerCase() ?? '';
+    final currentEmails = _members
+        .map((m) => ((m['email'] ?? _emailOf(m['user'])) as String).toLowerCase())
+        .toSet();
+
+    final Map<String, Map<String, dynamic>> allPeople = {};
+    void addPerson(String email, String name) {
+      final e = email.toLowerCase().trim();
+      if (e.isEmpty || e == myEmail || currentEmails.contains(e)) return;
+      allPeople.putIfAbsent(e, () => {'email': e, 'name': name});
+    }
+    for (final f in _friends) addPerson((f['email'] ?? '').toString(), (f['name'] ?? f['username'] ?? '').toString());
+    for (final c in _counterparties) addPerson((c['email'] ?? '').toString(), (c['name'] ?? c['username'] ?? '').toString());
+    for (final comm in _userCommunities) {
+      for (final m in List<dynamic>.from(comm['members'] ?? [])) {
+        if (m is Map) {
+          final u = m['user'];
+          final e = (u is Map ? u['email'] : m['email'] ?? '').toString();
+          final n = (u is Map ? (u['name'] ?? u['username'] ?? '') : m['name'] ?? '').toString();
+          addPerson(e, n);
+        }
+      }
+    }
+    for (final g in _userGroups) {
+      if ((g['_id'] ?? '') == widget.groupId) continue;
+      for (final m in List<dynamic>.from(g['members'] ?? [])) {
+        if (m is Map && m['leftAt'] == null) {
+          final e = (m['email'] ?? _emailOf(m['user'] ?? m)).toString();
+          final n = (m['name'] ?? (m['user'] is Map ? m['user']['name'] : '') ?? '').toString();
+          addPerson(e, n);
+        }
+      }
+    }
+
+    final picked = await _showPeoplePicker(
+      title: 'All Sources',
+      icon: Icons.people_alt_rounded,
+      people: allPeople.values.toList(),
+      subtitle: '${allPeople.length} people from friends, groups & communities',
+    );
+    for (final email in picked) {
+      if (!mounted) break;
+      await _addMember(email, silent: true);
+    }
+    if (mounted && picked.isNotEmpty) {
+      _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', success: true);
+      await _refresh();
+    }
   }
 
   Future<void> _showCommunityMemberPicker() async {
@@ -597,112 +1103,154 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   void _showAddMemberSheet() {
     _addEmailCtrl.clear();
     final t = AppLocalizations.of(context).t;
+
+    Widget _srcBtn({
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+    }) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 72,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25)),
+            borderRadius: BorderRadius.circular(12),
+            color: AppColors.cyan.withValues(alpha: 0.07),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: AppColors.cyan, size: 22),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.cyan, fontWeight: FontWeight.w600), textAlign: TextAlign.center, maxLines: 2),
+          ]),
+        ),
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppThemeColors.cardBg(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 0,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.only(left: 20, right: 20, top: 0, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: const BoxDecoration(
-                gradient: AppColors.tricolorGradient,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(24)),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.person_add_rounded, color: AppColors.cyan, size: 20),
               ),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.tricolorGradient,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.person_add_rounded,
-                      color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Text(t('add_member_label'),
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold)),
-              ],
-            ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _addEmailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: t('enter_member_email_hint'),
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  filled: true,
-                  fillColor: AppThemeColors.surfaceBg(context),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.tricolorGradient,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6A1B9A),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    icon: const Icon(Icons.person_add_rounded,
-                        color: Colors.white),
-                    label: Text(t('add_member_label'),
-                        style: const TextStyle(color: Colors.white, fontSize: 16)),
-                    onPressed: () {
-                      final email = _addEmailCtrl.text.trim();
-                      if (email.isEmpty || !email.contains('@')) {
-                        _showError(t('enter_a_valid_email_message'));
-                        return;
-                      }
-                      Navigator.pop(ctx);
-                      _addMember(email);
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
+              const SizedBox(width: 12),
+              Text(t('add_member_label'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+            ]),
+            const SizedBox(height: 16),
+            // Source buttons row (scrollable to prevent overflow)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                _srcBtn(icon: Icons.people_rounded, label: 'Friends',
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _loadFriends();
+                    if (!mounted) return;
+                    final picked = await _showPeoplePicker(
+                      title: 'Add from Friends',
+                      icon: Icons.people_rounded,
+                      people: _friends,
+                      subtitle: '${_friends.length} friend${_friends.length == 1 ? '' : 's'}',
+                    );
+                    for (final email in picked) { if (!mounted) break; await _addMember(email, silent: true); }
+                    if (mounted && picked.isNotEmpty) { _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', success: true); await _refresh(); }
+                  }),
+                const SizedBox(width: 8),
+                _srcBtn(icon: Icons.swap_horiz_rounded, label: 'Counter-\nparties',
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _loadCounterparties();
+                    if (!mounted) return;
+                    final people = _counterparties.map((c) => <String, dynamic>{
+                      'email': (c['email'] ?? '').toString(),
+                      'name': (c['name'] ?? c['username'] ?? '').toString(),
+                    }).toList();
+                    final picked = await _showPeoplePicker(
+                      title: 'Add from Counterparties',
+                      icon: Icons.swap_horiz_rounded,
+                      people: people,
+                      subtitle: '${people.length} counterpart${people.length == 1 ? 'y' : 'ies'}',
+                    );
+                    for (final email in picked) { if (!mounted) break; await _addMember(email, silent: true); }
+                    if (mounted && picked.isNotEmpty) { _showSnack('${picked.length} member${picked.length == 1 ? '' : 's'} added', success: true); await _refresh(); }
+                  }),
+                const SizedBox(width: 8),
+                _srcBtn(icon: Icons.hub_rounded, label: 'Communit-\nies',
+                  onTap: () {
                     Navigator.pop(ctx);
                     _showCommunityMemberPicker();
-                  },
-                  icon: const Icon(Icons.hub_rounded, color: AppColors.cyan, size: 18),
-                  label: const Text('Add from Communities', style: TextStyle(color: AppColors.cyan, fontSize: 14)),
-                ),
+                  }),
+                const SizedBox(width: 8),
+                _srcBtn(icon: Icons.group_work_rounded, label: 'Groups',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showGroupMemberPicker();
+                  }),
+                const SizedBox(width: 8),
+                _srcBtn(icon: Icons.people_alt_rounded, label: 'All\nSources',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showAllSourcesPicker();
+                  }),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            const Row(children: [
+              Expanded(child: Divider()),
+              Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('or enter email', style: TextStyle(fontSize: 12))),
+              Expanded(child: Divider()),
+            ]),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _addEmailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                hintText: t('enter_member_email_hint'),
+                prefixIcon: const Icon(Icons.email_outlined),
+                filled: true,
+                fillColor: AppThemeColors.surfaceBg(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.cyan,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.person_add_rounded),
+                label: Text(t('add_member_label'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  final email = _addEmailCtrl.text.trim();
+                  if (email.isEmpty || !email.contains('@')) {
+                    _showError(t('enter_a_valid_email_message'));
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  _addMember(email);
+                },
+              ),
+            ),
+          ],
         ),
+      ),
     );
   }
 
@@ -764,88 +1312,105 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(t('members_title_label'),
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(widget.groupTitle,
-                style: const TextStyle(
-                    fontSize: 12, color: Colors.white70)),
-          ],
-        ),
-        actions: [
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Center(
-                child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2)),
-              ),
-            ),
-          IconButton(
-              icon: const Icon(Icons.refresh), onPressed: _refresh),
-        ],
-      ),
       body: Column(
         children: [
-          // Stats bar with tricolor accent
+          // Plain profile-style header
           Container(
-            color: const Color(0xFF1565C0),
-            padding:
-                const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-            child: Column(
-              children: [
-                // Tricolor stripe
-                Container(
-                  height: 3,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.tricolorGradient,
-                    borderRadius: BorderRadius.all(Radius.circular(4)),
-                  ),
+            color: AppThemeColors.cardBg(context),
+            child: SafeArea(
+              bottom: false,
+              child: Column(children: [
+                // Top bar: back + title + refresh
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 6, 8, 0),
+                  child: Row(children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context), size: 20),
+                    ),
+                    Expanded(child: Text(t('members_title_label'),
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)))),
+                    if (_loading)
+                      SizedBox(width: 20, height: 20,
+                        child: CircularProgressIndicator(color: AppColors.cyan, strokeWidth: 2)),
+                    IconButton(
+                      onPressed: _refresh,
+                      icon: Icon(Icons.refresh_rounded, color: AppThemeColors.secondaryText(context), size: 22),
+                    ),
+                  ]),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _statPill(t('active_count_label').replaceFirst('{count}', '$activeCount'), Colors.white),
-                      const SizedBox(width: 8),
-                      _statPill(t('left_count_label').replaceFirst('{count}', '$leftCount'), Colors.white70),
-                      const SizedBox(width: 8),
-                      _statPill(
-                          t('total_count_label').replaceFirst('{count}', '${_members.length}'), Colors.white60),
+                // Group avatar + name
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(children: [
+                    CircleAvatar(
+                      radius: 38,
+                      backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
+                      child: Text(
+                        widget.groupTitle.isNotEmpty ? widget.groupTitle[0].toUpperCase() : 'G',
+                        style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 30),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(widget.groupTitle,
+                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+                      textAlign: TextAlign.center),
+                    const SizedBox(height: 3),
+                    Text(widget.isCreator ? t('creator_label') : t('member_label'),
+                      style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                  ]),
+                ),
+                // Stats row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                    _statCard('$activeCount', t('active_label'), Icons.check_circle_outline_rounded, Colors.green),
+                    _statDivider(),
+                    _statCard('$leftCount', t('left_label'), Icons.exit_to_app_rounded, AppThemeColors.mutedText(context)),
+                    _statDivider(),
+                    _statCard('${_members.length}', t('filter_all_label'), Icons.people_rounded, AppColors.cyan),
+                    if (_pendingInvites.isNotEmpty) ...[
+                      _statDivider(),
+                      _statCard('${_pendingInvites.length}', t('pending_label'), Icons.mail_outline_rounded, Colors.orange),
                     ],
-                  ),
+                  ]),
                 ),
-              ],
+                // Add member button (creator only)
+                if (widget.isCreator)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                        ),
+                        icon: const Icon(Icons.person_add_rounded, size: 18),
+                        label: Text(t('add_member_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        onPressed: _showAddMemberSheet,
+                      ),
+                    ),
+                  ),
+                Divider(height: 1, color: AppThemeColors.divider(context)),
+              ]),
             ),
           ),
 
-          // Filter chips
+          // Filter tab row
           Container(
             color: AppThemeColors.cardBg(context),
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _filterChip(t('active_label'), 'active'),
-                  const SizedBox(width: 8),
-                  _filterChip(t('left_label'), 'left'),
-                  const SizedBox(width: 8),
-                  _filterChip(t('filter_all_label'), 'all'),
-                ],
-              ),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(children: [
+              _filterChip(t('active_label'), 'active'),
+              const SizedBox(width: 8),
+              _filterChip(t('left_label'), 'left'),
+              const SizedBox(width: 8),
+              _filterChip(t('filter_all_label'), 'all'),
+            ]),
           ),
 
           // Member list
@@ -1037,196 +1602,120 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                           widget.creatorEmail.toLowerCase();
                       final memberId = (m['_id'] ?? '').toString();
                       final profileImageUrl = (m['profileImage'] as String?) ?? '';
+                      // Parse joined date
+                      String joinedLabel = '';
+                      final rawJoined = m['joinedAt'];
+                      if (rawJoined != null) {
+                        try {
+                          final dt = DateTime.parse(rawJoined.toString()).toLocal();
+                          joinedLabel = 'Joined ${_fmtDate(dt)}';
+                        } catch (_) {}
+                      }
+                      final leftLabel = m['leftAt'] != null ? () {
+                        try {
+                          final dt = DateTime.parse(m['leftAt'].toString()).toLocal();
+                          return 'Left ${_fmtDate(dt)}';
+                        } catch (_) { return 'Left'; }
+                      }() : '';
 
-                      return _tricolorBorderBox(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        radius: 20,
-                        borderWidth: isGroupCreator ? 2.5 : 1.5,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppThemeColors.cardBg(context),
-                            borderRadius: BorderRadius.circular(18.5),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 14),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Avatar with optional tricolor ring for creator
-                                Container(
-                                  decoration: isGroupCreator
-                                      ? const BoxDecoration(
-                                          gradient: AppColors.tricolorGradient,
-                                          shape: BoxShape.circle,
-                                        )
-                                      : null,
-                                  padding: isGroupCreator
-                                      ? const EdgeInsets.all(2.5)
-                                      : EdgeInsets.zero,
-                                  child: CircleAvatar(
-                                    radius: 28,
-                                    backgroundColor: isLeft
-                                        ? Colors.grey.shade300
-                                        : ah.avatarColor(email),
-                                    child: ClipOval(
-                                      child: profileImageUrl.isNotEmpty
-                                          ? Image.network(
-                                              profileImageUrl,
-                                              width: 56,
-                                              height: 56,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Text(
-                                                email.isNotEmpty
-                                                    ? email[0].toUpperCase()
-                                                    : '?',
-                                                style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight:
-                                                        FontWeight.bold,
-                                                    fontSize: 20),
-                                              ),
-                                            )
-                                          : (memberId.isNotEmpty
-                                              ? Image.network(
-                                                  '${ApiConfig.baseUrl}/api/users/$memberId/profile-image',
-                                                  width: 56,
-                                                  height: 56,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder:
-                                                      (_, __, ___) => Text(
-                                                    email.isNotEmpty
-                                                        ? email[0]
-                                                            .toUpperCase()
-                                                        : '?',
-                                                    style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                )
-                                              : Text(
-                                                  email.isNotEmpty
-                                                      ? email[0].toUpperCase()
-                                                      : '?',
-                                                  style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20),
-                                                )),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
+                      Widget avatar = ClipOval(
+                        child: profileImageUrl.isNotEmpty
+                          ? Image.network(profileImageUrl, width: 64, height: 64, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Text(email.isNotEmpty ? email[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)))
+                          : (memberId.isNotEmpty
+                              ? Image.network('${ApiConfig.baseUrl}/api/users/$memberId/profile-image', width: 64, height: 64, fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Text(email.isNotEmpty ? email[0].toUpperCase() : '?',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)))
+                              : Text(email.isNotEmpty ? email[0].toUpperCase() : '?',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24))),
+                      );
 
-                                // Info column
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Display name
-                                      Text(
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppThemeColors.divider(context)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 26,
+                              backgroundColor: isLeft
+                                ? AppThemeColors.surfaceBg(context)
+                                : ah.avatarColor(email),
+                              child: avatar,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Expanded(
+                                      child: Text(
                                         name.isNotEmpty ? name : email,
                                         style: TextStyle(
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 15,
-                                          color: isLeft
-                                              ? AppThemeColors.mutedText(context)
-                                              : AppThemeColors.primaryText(context),
+                                          color: isLeft ? AppThemeColors.mutedText(context) : AppThemeColors.primaryText(context),
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      if (name.isNotEmpty) ...[
-                                        const SizedBox(height: 2),
-                                        Text(email,
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppThemeColors.mutedText(context)),
-                                            overflow: TextOverflow.ellipsis),
-                                      ],
-                                      const SizedBox(height: 6),
-                                      // Badges row
-                                      Wrap(
-                                        spacing: 5,
-                                        runSpacing: 4,
-                                        children: [
-                                          _statusBadge(isLeft),
-                                          if (isGroupCreator)
-                                            _badge(t('creator_label'),
-                                                AppColors.tricolorOrange,
-                                                Colors.white),
-                                          if (isMe)
-                                            _badge(t('you_label'),
-                                                const Color(0xFF1565C0),
-                                                Colors.white),
-                                          if (m['joinedViaInvite'] == true)
-                                            _badge('Via Invite',
-                                                const Color(0xFF7B1FA2),
-                                                Colors.white),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Remove / Re-add button
-                                if (widget.isCreator && !isMe) ...[
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: isLeft
-                                        ? () => _addMember(email)
-                                        : () => _removeMember(email),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 7),
-                                      decoration: BoxDecoration(
-                                        gradient: isLeft
-                                            ? const LinearGradient(
-                                                colors: [
-                                                  Color(0xFF2E7D32),
-                                                  Color(0xFF43A047)
-                                                ],
-                                              )
-                                            : const LinearGradient(
-                                                colors: [
-                                                  Color(0xFFC62828),
-                                                  Color(0xFFEF5350)
-                                                ],
-                                              ),
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            isLeft
-                                                ? Icons.person_add_rounded
-                                                : Icons.person_remove_rounded,
-                                            color: Colors.white,
-                                            size: 14,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            isLeft ? t('re_add_label') : t('remove'),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
                                     ),
-                                  ),
+                                    if (isMe) _badge(t('you_label'), AppColors.cyan.withValues(alpha: 0.15), AppColors.cyan),
+                                  ]),
+                                  if (name.isNotEmpty) ...[
+                                    const SizedBox(height: 1),
+                                    Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)), overflow: TextOverflow.ellipsis),
+                                  ],
+                                  const SizedBox(height: 5),
+                                  Wrap(spacing: 5, runSpacing: 4, children: [
+                                    _statusBadge(isLeft),
+                                    if (isGroupCreator) _badge(t('creator_label'), AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan),
+                                    if (m['joinedViaInvite'] == true) _badge('Via Invite', AppThemeColors.surfaceBg(context), AppThemeColors.secondaryText(context)),
+                                  ]),
+                                  if (joinedLabel.isNotEmpty || leftLabel.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Row(children: [
+                                      Icon(isLeft ? Icons.logout_rounded : Icons.calendar_today_rounded,
+                                        size: 11, color: AppThemeColors.mutedText(context)),
+                                      const SizedBox(width: 4),
+                                      Text(isLeft ? leftLabel : joinedLabel,
+                                        style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                                    ]),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
+                            if (widget.isCreator && !isMe) ...[
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: isLeft ? () => _addMember(email) : () => _removeMember(email),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: isLeft
+                                      ? Colors.green.withValues(alpha: 0.1)
+                                      : Colors.red.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Icon(isLeft ? Icons.person_add_rounded : Icons.person_remove_rounded,
+                                      color: isLeft ? Colors.green : Colors.red, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(isLeft ? t('re_add_label') : t('remove'),
+                                      style: TextStyle(
+                                        color: isLeft ? Colors.green : Colors.red,
+                                        fontSize: 12, fontWeight: FontWeight.w600)),
+                                  ]),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       );
                     },
@@ -1234,26 +1723,26 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           ),
         ],
       ),
-      floatingActionButton: widget.isCreator
-          ? Container(
-              decoration: BoxDecoration(
-                gradient: AppColors.tricolorGradient,
-                borderRadius: BorderRadius.circular(32),
-              ),
-              padding: const EdgeInsets.all(2),
-              child: FloatingActionButton.extended(
-                onPressed: _showAddMemberSheet,
-                backgroundColor: const Color(0xFF6A1B9A),
-                elevation: 0,
-                icon: const Icon(Icons.person_add_rounded,
-                    color: Colors.white),
-                label: Text(t('add_member_label'),
-                    style: const TextStyle(color: Colors.white)),
-              ),
-            )
-          : null,
     );
   }
+
+  String _fmtDate(DateTime dt) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
+  Widget _statCard(String count, String label, IconData icon, Color accent) {
+    return Expanded(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: accent, size: 18),
+        const SizedBox(height: 2),
+        Text(count, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+        Text(label, style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(context), fontWeight: FontWeight.w500)),
+      ]),
+    );
+  }
+
+  Widget _statDivider() => Container(width: 1, height: 36, color: AppThemeColors.divider(context));
 
   Widget _badge(String label, Color bg, Color fg) {
     return Container(
@@ -1270,35 +1759,25 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
   Widget _statusBadge(bool isLeft) {
     final t = AppLocalizations.of(context).t;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: isLeft ? Colors.grey[200] : Colors.green[50],
+        color: isLeft
+            ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
+            : (isDark ? Colors.green.shade900 : Colors.green.shade50),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         isLeft ? t('left_label') : t('active_label'),
         style: TextStyle(
           fontSize: 11,
-          color: isLeft ? Colors.grey[600] : Colors.green[700],
+          color: isLeft
+              ? (isDark ? Colors.grey.shade400 : Colors.grey.shade600)
+              : (isDark ? Colors.green.shade300 : Colors.green.shade700),
           fontWeight: FontWeight.w600,
         ),
       ),
-    );
-  }
-
-  Widget _statPill(String label, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              color: textColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600)),
     );
   }
 
@@ -1306,40 +1785,18 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     final selected = _filter == value;
     return GestureDetector(
       onTap: () => setState(() => _filter = value),
-      child: selected
-          ? Container(
-              decoration: BoxDecoration(
-                gradient: AppColors.tricolorGradient,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              padding: const EdgeInsets.all(2),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13)),
-              ),
-            )
-          : Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppThemeColors.surfaceBg(context),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(label,
-                  style: TextStyle(
-                      color: AppThemeColors.secondaryText(context),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13)),
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : AppThemeColors.surfaceBg(context),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context),
+            fontWeight: FontWeight.w600,
+            fontSize: 13)),
+      ),
     );
   }
 }

@@ -2908,6 +2908,9 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                 child: TextField(
                   controller: _noteCtrl,
                   style: TextStyle(color: AppThemeColors.primaryText(context)),
+                  maxLength: 300,
+                  buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                      buildDescCounter(ctx, currentLength, maxLength),
                   decoration: InputDecoration(
                     labelText: t('note_optional_label'),
                     prefixIcon: const Icon(Icons.note_alt_outlined),

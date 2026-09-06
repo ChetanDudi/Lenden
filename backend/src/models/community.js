@@ -22,6 +22,7 @@ const declinedInviteSchema = new mongoose.Schema({
 const communitySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 80 },
   description: { type: String, trim: true, default: '', maxlength: 300 },
+  category: { type: String, default: 'other' },
   color: { type: String, default: '#00B4D8' },
   communityImage: { type: Buffer, default: null },
   communityImageMimeType: { type: String, default: '' },

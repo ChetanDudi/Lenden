@@ -33,6 +33,9 @@ exports.createQuickTransaction = async (req, res) => {
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
+    }
 
     const user = await User.findById(req.user._id).select('email blockedUsers');
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -143,6 +146,9 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
       return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
     }
 
     const user = await User.findById(req.user._id).select(
@@ -509,6 +515,9 @@ exports.updateQuickTransaction = async (req, res) => {
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
       return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    if (description && description.length > 300) {
+      return res.status(400).json({ error: 'Description must be 300 characters or less.' });
     }
 
     const quickTransaction = await QuickTransaction.findById(id);

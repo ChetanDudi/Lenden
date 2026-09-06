@@ -1012,9 +1012,15 @@ class _CreateEditQuickTransactionPageState
                             contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           maxLines: 2,
+                          maxLength: 300,
+                          buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) =>
+                              buildDescCounter(ctx, currentLength, maxLength),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return t('please_enter_a_description');
+                            }
+                            if (value.length > 300) {
+                              return 'Description too long (max 300 characters)';
                             }
                             return null;
                           },
